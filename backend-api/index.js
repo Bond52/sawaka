@@ -12,12 +12,15 @@ app.set("trust proxy", 1);
 
 // 🌍 Origines autorisées
 const allowedOrigins = [
-  "https://ecommerce-web-avec-tailwind.vercel.app",
+  "https://ecommerce-web-avec-tailwind.vercel.app", // PROD
   "https://sawaka.org",
   "https://www.sawaka.org",
   process.env.FRONTEND_URL,
   "http://localhost:3000",
 ].filter(Boolean);
+
+// ➕ Autoriser automatiquement toutes les URLs de preview Vercel
+const vercelPreviewRegex = /^https:\/\/ecommerce-web-avec-tailwind-[a-z0-9]+\.vercel\.app$/;
 
 // 🌐 Ajoute Access-Control-Allow-Credentials AVANT CORS
 app.use((req, res, next) => {
@@ -29,12 +32,19 @@ app.use((req, res, next) => {
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Autorise aussi Postman, mobile, requêtes internes
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, origin);
-      } else {
-        callback(new Error("Origine non autorisée par CORS : " + origin));
+      // Autorise requêtes internes (SSR, server-to-server)
+      if (!origin) return callback(null, true);
+
+      const isAllowed =
+        allowedOrigins.includes(origin) ||
+        vercelPreviewRegex.test(origin);
+
+      if (isAllowed) {
+        return callback(null, origin);
       }
+
+      console.log("❌ Origine CORS refusée :", origin);
+      return callback(new Error("Origine non autorisée par CORS : " + origin));
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -43,20 +53,27 @@ app.use(
 );
 
 // 📨 Préflight OPTIONS automatique
-app.options("*", cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, origin);
-    } else {
-      callback(new Error("CORS non autorisé"));
-    }
-  },
-  credentials: true
-}));
+app.options(
+  "*",
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+
+      const isAllowed =
+        allowedOrigins.includes(origin) ||
+        vercelPreviewRegex.test(origin);
+
+      if (isAllowed) return callback(null, origin);
+      return callback(new Error("CORS non autorisé"));
+    },
+    credentials: true,
+  })
+);
 
 // 📦 Parsers
 app.use(express.json());
 app.use(cookieParser());
+
 
 // =======================
 // ROUTES PRINCIPALES
