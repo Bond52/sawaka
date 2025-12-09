@@ -10,9 +10,10 @@ const app = express();
 // 🔐 Obligatoire pour Render/Vercel (proxy HTTPS)
 app.set("trust proxy", 1);
 
-// 🌍 Origines autorisées
+// 🌍 Origines autorisées (PROD + QA + localhost)
 const allowedOrigins = [
   "https://ecommerce-web-avec-tailwind.vercel.app", // PROD
+  "https://qa.sawaka.org",                           // QA FIX 🌟
   "https://sawaka.org",
   "https://www.sawaka.org",
   process.env.FRONTEND_URL,
@@ -20,7 +21,8 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 // ➕ Autoriser automatiquement toutes les URLs de preview Vercel
-const vercelPreviewRegex = /^https:\/\/ecommerce-web-avec-tailwind-[a-z0-9]+\.vercel\.app$/;
+const vercelPreviewRegex =
+  /^https:\/\/ecommerce-web-avec-tailwind-[a-z0-9]+\.vercel\.app$/;
 
 // 🌐 Ajoute Access-Control-Allow-Credentials AVANT CORS
 app.use((req, res, next) => {
@@ -32,16 +34,12 @@ app.use((req, res, next) => {
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Autorise requêtes internes (SSR, server-to-server)
-      if (!origin) return callback(null, true);
+      if (!origin) return callback(null, true); // Requêtes internes OK
 
       const isAllowed =
-        allowedOrigins.includes(origin) ||
-        vercelPreviewRegex.test(origin);
+        allowedOrigins.includes(origin) || vercelPreviewRegex.test(origin);
 
-      if (isAllowed) {
-        return callback(null, origin);
-      }
+      if (isAllowed) return callback(null, origin);
 
       console.log("❌ Origine CORS refusée :", origin);
       return callback(new Error("Origine non autorisée par CORS : " + origin));
@@ -60,10 +58,10 @@ app.options(
       if (!origin) return callback(null, true);
 
       const isAllowed =
-        allowedOrigins.includes(origin) ||
-        vercelPreviewRegex.test(origin);
+        allowedOrigins.includes(origin) || vercelPreviewRegex.test(origin);
 
       if (isAllowed) return callback(null, origin);
+
       return callback(new Error("CORS non autorisé"));
     },
     credentials: true,
@@ -73,7 +71,6 @@ app.options(
 // 📦 Parsers
 app.use(express.json());
 app.use(cookieParser());
-
 
 // =======================
 // ROUTES PRINCIPALES
