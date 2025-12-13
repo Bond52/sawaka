@@ -1,21 +1,24 @@
-# 🧺 Sawaka — Réseau Social des Artisans Africains (Open Source)
+[![Latest Release](https://img.shields.io/github/v/release/Bond52/sawaka)](https://github.com/Bond52/sawaka/releases)
 
-Sawaka est une plateforme open source visant à connecter les artisans locaux à leurs communautés.  
-Ce projet fournit une architecture moderne basée sur **Next.js**, **Node.js/Express**, et **MongoDB**, avec un design simple, rapide et extensible.
 
-## ✨ Fonctionnalités principales
-- 🧑‍🎨 Gestion des artisans (profils, photos, catégories)
-- 🛒 Gestion des produits et services
-- 👤 Système d’authentification (JWT)
-- 🖼️ Upload d’images (Cloudinary)
-- 📦 API Node.js pour les opérations backend
-- 🌐 Déploiement recommandé : **Vercel** (frontend) + **Render** (backend)
+# 🧺 Sawaka — African Artisans Social Network (Open Source)
+
+Sawaka is an open-source platform designed to connect local artisans with their communities.
+The project provides a modern architecture based on **Next.js**, **Node.js/Express**, and **MongoDB**, with a simple, fast, and extensible design.
+
+## ✨ Key Features
+- 🧑‍🎨 Artisan management (profiles, photos, categories)
+- 🛒 Product and service management
+- 👤 Authentication system (JWT)
+- 🖼️ Image uploads (Cloudinary)
+- 📦 Node.js API for backend operations
+- 🌐 Recommended deployment: **Vercel** (frontend) + **Render** (backend)
 
 ---
 
-## 🚀 Démarrage rapide
+## 🚀 Quick Start
 
-### 1. Cloner le projet
+### 1. Clone the Project
 
 ```bash
 git clone https://github.com/Bond52/sawaka.git
@@ -24,7 +27,7 @@ cd sawaka
 
 ---
 
-### 2. Installer les dépendances
+### 2. Install Dependencies
 
 #### 🔹 Frontend (Next.js)
 
@@ -32,7 +35,7 @@ cd sawaka
 npm install
 ```
 
-#### 🔹 Backend (API Node.js / Express)
+#### 🔹 Backend (Node.js / Express API)
 
 ```bash
 cd backend-api
@@ -41,15 +44,15 @@ npm install
 
 ---
 
-## 🛠️ Variables d'environnement nécessaires
+## 🛠️ Required Environment Variables
 
-Afin de faire fonctionner le projet en local ou en production, vous devez créer les fichiers d'environnement suivants.
+To run the project locally or in production, you must create the following environment files.
 
 ---
 
 ### 🔧 Backend (`backend-api/.env`)
 
-Créer un fichier `.env` dans le dossier `backend-api` :
+Create a `.env` file inside the `backend-api` folder:
 
 ```ini
 PORT=5000
@@ -64,22 +67,32 @@ CLOUDINARY_API_SECRET=...
 
 ### 🌐 Frontend (`.env.local`)
 
-Créer un fichier `.env.local` à la racine du projet :
+Create a `.env.local` file at the root of the project:
 
 ```ini
-NEXT_PUBLIC_API_URL=https://ton-backend.onrender.com
+NEXT_PUBLIC_API_URL=https://your-backend.onrender.com
 ```
 
-⚠️ Ne jamais commiter vos fichiers `.env` dans GitHub.
+⚠️ Never commit your `.env` files to GitHub.
 
 ---
 
-## 🤝 Contribuer
+## 🤝 Contributing
 
-Toutes les contributions sont les bienvenues !  
-Merci de lire d'abord :
+All contributions are welcome!
+Please read first:
 
-- [CONTRIBUTING.md](CONTRIBUTING.md)  
+- [CONTRIBUTING.md](CONTRIBUTING.md)
 - [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+
+---
+
+## 🌳 Branching Strategy
+
+- `main` → production-ready code
+- `qa` → integration & testing
+- `feature/*` → new features
+- `fix/*` → bug fixes
+- `hotfix/*` → urgent production fixes
 
 ---
