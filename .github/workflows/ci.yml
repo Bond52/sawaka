@@ -1,0 +1,60 @@
+name: Sawaka CI
+
+on:
+  push:
+    branches: [ main, qa ]
+  pull_request:
+    branches: [ main, qa ]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    env:
+      NODE_ENV: test
+      MONGO_URI: ${{ secrets.MONGO_URI_TEST }}
+      FRONTEND_URL: http://localhost:3000
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+
+      # ================= BACKEND =================
+      - name: Install backend dependencies
+        working-directory: backend-api
+        run: npm install
+
+      - name: Run backend tests (Jest)
+        working-directory: backend-api
+        run: npm test
+
+      # ================= API (Newman) =================
+      - name: Install Newman
+        run: npm install -g newman
+
+      - name: Start backend API
+        working-directory: backend-api
+        run: |
+          npm start &
+          sleep 10
+
+      - name: Run API tests (Newman)
+        run: |
+          newman run tests/api/postman/sawaka.postman_collection.json \
+          -e tests/api/postman/sawaka.postman_environment.json
+
+      # ================= FRONTEND =================
+      - name: Install frontend dependencies
+        run: npm install
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright tests
+        run: npx playwright test
