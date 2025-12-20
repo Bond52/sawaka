@@ -86,54 +86,57 @@ app.use(cookieParser());
 // 🔌 API ROUTES
 // ======================================================
 
-// 🔐 Authentification
+// 🔐 Authentification (login, register, refresh, logout)
 app.use("/api/auth", require("./routes/auth"));
 
-// 👤 Utilisateurs
+// 👤 Utilisateurs (profil, préférences, compte)
 app.use("/api/user", require("./routes/user"));
 
-// 🛍️ Produits
+// 🛍️ Produits (catalogue, recherche, filtres)
 app.use("/api/products", require("./routes/products"));
 
-// 👩🏾‍🎨 Artisans
+// 👩🏾‍🎨 Artisans (profils, portfolios, visibilité)
 app.use("/api/artisans", require("./routes/artisans"));
 
-// 🧑‍💼 Vendeurs / articles
+// 🧑‍💼 Vendeurs / Articles (gestion produits vendeurs)
 app.use("/api/seller", require("./routes/seller.articles.routes"));
 
-// 🛒 Commandes
+// 🛒 Commandes (création, suivi, historique)
 app.use("/api/orders", require("./routes/order.routes"));
 
-// 💰 Budgets
+// 💰 Budgets (plafonds, alertes, suivi dépenses)
 app.use("/api/budget", require("./routes/budget.routes"));
 
-// 🧾 Administration
+// 🧾 Administration (back-office, modération, stats internes)
 app.use("/api/admin", require("./routes/admin.routes"));
 
-// 🔨 Outils internes
+// 🔨 Outils internes (scripts, helpers, debug)
 app.use("/api/tools", require("./routes/tools"));
 
-// 🏭 Fournisseurs
+// 🏭 Fournisseurs (sources produits, partenariats)
 app.use("/api/fournisseurs", require("./routes/fournisseurs"));
 
-// 📨 Feedback
+// 📨 Feedback utilisateurs (avis, signalements)
 app.use("/api/feedback", require("./routes/feedback"));
 
-// 📊 Statistiques
+// 📊 Statistiques publiques / internes
 app.use("/stats", require("./routes/stats"));
 
-// 🔨 Enchères
+// 🔨 Enchères (création, offres, clôture)
 app.use("/api/auction", require("./routes/auction"));
 
+
 // ======================================================
-// ⏱️ CRON JOBS (désactivés en test)
+// ⏱️ CRON JOBS (désactivés en test / CI)
 // ======================================================
 
-if (process.env.NODE_ENV !== "test") {
+const isTestOrCI =
+  process.env.NODE_ENV === "test" || process.env.CI === "true";
+
+if (!isTestOrCI) {
   const cron = require("node-cron");
   const closeExpiredAuctions = require("./cronJobs/endAuction");
 
-  // Clôture automatique des enchères expirées toutes les 5 minutes
   cron.schedule("*/5 * * * *", closeExpiredAuctions);
 }
 
@@ -146,15 +149,17 @@ app.get("/", (_, res) =>
 );
 
 // ======================================================
-// 🔌 CONNEXION MONGODB (UNIQUEMENT AU DÉMARRAGE)
+// 🔌 CONNEXION MONGODB (SAUF TEST / CI)
 // ======================================================
 
 async function connectMongo() {
+  if (isTestOrCI) {
+    return;
+  }
+
   await mongoose.connect(process.env.MONGO_URI);
 
-  if (process.env.NODE_ENV !== "test") {
-    console.log("✅ Connecté à MongoDB");
-  }
+  console.log("✅ Connecté à MongoDB");
 }
 
 // ======================================================
