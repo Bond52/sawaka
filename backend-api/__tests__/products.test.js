@@ -2,11 +2,22 @@ const request = require("supertest");
 const mongoose = require("mongoose");
 const app = require("../index");
 
+const isCI = process.env.CI === "true";
+
 beforeAll(async () => {
+  if (isCI) {
+    // En CI : pas de connexion Mongo
+    return;
+  }
+
   await mongoose.connect(process.env.MONGO_URI);
 });
 
 afterAll(async () => {
+  if (isCI) {
+    return;
+  }
+
   await mongoose.connection.close();
 });
 
