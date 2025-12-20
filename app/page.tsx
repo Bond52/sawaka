@@ -1,337 +1,350 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import dynamic from 'next/dynamic';
-import { listPublicArticles, Article } from './lib/apiSeller';
+import { useEffect, useRef, useState } from "react";
 
-// Import dynamique de la carte pour éviter les problèmes SSR
-const CameroonMap = dynamic(() => import('./components/CameroonMap'), {
-  ssr: false,
-});
+/* ------------------------------------------------------------------
+   📌 Liste des villes disponibles
+------------------------------------------------------------------- */
+const CITIES = [
+  "Douala",
+  "Yaoundé",
+  "Bafoussam",
+  "Ebolowa",
+  "Kribi",
+  "Garoua",
+  "Maroua",
+  "Buea",
+  "Bamenda",
+  "Bertoua",
+  "Ngaoundéré",
+  "Limbe",
+  "Dschang",
+];
 
-type CartItem = Article & { quantity: number };
+/* ------------------------------------------------------------------
+   💡 Idées créatives (mock)
+------------------------------------------------------------------- */
+function getCreativeIdeas(budget: number) {
+  if (budget <= 5000) {
+    return [
+      "Illustration personnalisée",
+      "Petit objet artistique",
+      "Création textile simple",
+    ];
+  } else if (budget <= 15000) {
+    return [
+      "Prototype artistique",
+      "Série d’objets décoratifs",
+      "Création mode artisanale",
+    ];
+  } else {
+    return [
+      "Table basse minimaliste",
+      "Lampe artisanale",
+      "Babyfoot artisanal",
+    ];
+  }
+}
+
+/* ------------------------------------------------------------------
+   🧰 Outils & matériaux (mock)
+------------------------------------------------------------------- */
+const MOCK_TOOLS_AND_MATERIALS = {
+  tools: [
+    "Machine à coudre",
+    "Scie sauteuse",
+    "Poste à souder",
+    "Perceuse électrique",
+    "Pinceaux professionnels",
+    "Ordinateur + logiciel de design",
+  ],
+  materials: [
+    "Bois brut",
+    "Tissu coton & wax",
+    "Peinture acrylique",
+    "Métal recyclé",
+    "Argile",
+    "Fil et accessoires de couture",
+  ],
+};
 
 export default function HomePage() {
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [projectType, setProjectType] =
+    useState<"business" | "creative">("business");
 
-  useEffect(() => {
-    listPublicArticles().then(setArticles).catch(console.error);
+  const [budget, setBudget] = useState<number>(0);
+  const [city, setCity] = useState("");
+  const [result, setResult] = useState<any | null>(null);
+  const [loading, setLoading] = useState(false);
 
-    const saved = localStorage.getItem('cart');
-    if (saved) setCart(JSON.parse(saved));
-  }, []);
+  const resultsRef = useRef<HTMLDivElement | null>(null);
 
-  const addToCart = (article: Article) => {
-    setCart(prev => {
-      const exists = prev.find(item => item._id === article._id);
-      let updated: CartItem[];
+  /* -------------------------------------------------------------
+     🔍 Soumission
+  -------------------------------------------------------------- */
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!budget || !city) return;
 
-      if (exists) {
-        updated = prev.map(item =>
-          item._id === article._id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
+    setLoading(true);
+    setResult(null);
+
+    try {
+      if (projectType === "business") {
+        setResult({
+          type: "business",
+          projectName: "Élevage de poulets de chair",
+          pdfUrl: "/pdfs/Fiche_Projet_Elevage_Poulet_Cameroun.pdf",
+          summary:
+            "Projet d’élevage de poulets destiné au marché local, avec une approche progressive et maîtrisée.",
+        });
       } else {
-        updated = [...prev, { ...article, quantity: 1 }];
+        setResult({
+          type: "creative",
+          ideas: getCreativeIdeas(budget),
+          tools: MOCK_TOOLS_AND_MATERIALS.tools,
+          materials: MOCK_TOOLS_AND_MATERIALS.materials,
+          cloudFactories: [
+            { name: "Atelier Bois & Sculpture — Douala", available: true },
+            { name: "FabLab Métal — Yaoundé", available: false },
+            { name: "Atelier Textile — Bafoussam", available: true },
+          ],
+        });
       }
+    } catch (err) {
+      console.error(err);
+    }
 
-      localStorage.setItem('cart', JSON.stringify(updated));
-      return updated;
-    });
-  };
+    setLoading(false);
+  }
 
-  // -----------------------------------------------------
-  //                      RENDER
-  // -----------------------------------------------------
+  /* -------------------------------------------------------------
+     ⬇️ Scroll automatique
+  -------------------------------------------------------------- */
+  useEffect(() => {
+    if (result && resultsRef.current) {
+      resultsRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [result]);
 
+  /* -------------------------------------------------------------
+     🖼️ RENDU
+  -------------------------------------------------------------- */
   return (
-    <>
-      {/* ===== Hero Section ===== */}
-      <section className="relative bg-gradient-to-br from-sawaka-50 via-cream-100 to-sawaka-100 py-12 md:py-20">
-        <div className="wrap">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-            <div className="text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-sawaka-500 text-white rounded-full text-sm font-medium mb-6">
-                ✨ Artisanat authentique du Cameroun
-              </div>
+    <div className="wrap py-10">
+      {/* ===== HERO ===== */}
+      <section
+        className={`flex flex-col items-center text-center ${
+          result ? "pt-6" : "min-h-[45vh]"
+        }`}
+      >
+        <h1 className="text-6xl md:text-7xl font-extrabold text-sawaka-700 mb-4">
+          Sawaka
+        </h1>
 
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-sawaka-800 leading-tight mb-6">
-                Bienvenue sur Sawaka
-                <span className="block text-gradient">la Communauté des artisans</span>
-              </h1>
+        <p className="text-xl text-sawaka-600 mb-6">
+          Des opportunités à votre portée
+        </p>
 
-              <p className="text-lg text-sawaka-600 mb-8 max-w-xl">
-                Connectez-vous directement avec d'autres artisans du Cameroun.
-                Des créations uniques, faites sur mesure ou selon votre imagination.
-              </p>
+        {/* ===== FORMULAIRE ===== */}
+        <form
+          onSubmit={handleSubmit}
+          className="w-full max-w-3xl bg-white shadow-md rounded-full px-6 py-4 flex flex-col md:flex-row gap-4 items-center"
+        >
+          <input
+            type="text"
+            inputMode="numeric"
+            placeholder="Votre budget (FCFA)"
+            value={budget || ""}
+            onChange={(e) => {
+              const cleaned = e.target.value.replace(/\D/g, "");
+              setBudget(cleaned === "" ? 0 : Number(cleaned));
+            }}
+            className="flex-1 outline-none text-lg px-2"
+          />
 
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <Link
-                  href="/produits"
-                  className="btn-sawaka inline-flex items-center gap-2 rounded-lg px-4 py-2 bg-sawaka-500 text-white hover:bg-sawaka-600 transition-colors"
-                >
-                  🛍️ Explorer les produits
-                </Link>
-
-                <Link
-                  href="/artisans"
-                  className="btn-outline inline-flex items-center gap-2 rounded-lg px-4 py-2 hover:bg-sawaka-100 transition-colors"
-                >
-                  👥 Rencontrer les artisans
-                </Link>
-              </div>
-
-              {/* Stats */}
-              <div className="grid grid-cols-3 gap-4 mt-12 pt-8 border-t border-sawaka-200">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-sawaka-700">
-                    {articles.length || '50'}+
-                  </div>
-                  <div className="text-sm text-sawaka-600">Produits</div>
-                </div>
-
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-sawaka-700">25+</div>
-                  <div className="text-sm text-sawaka-600">Artisans</div>
-                </div>
-
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-sawaka-700">500+</div>
-                  <div className="text-sm text-sawaka-600">Clients</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Vidéo YouTube */}
-            <div className="relative">
-              <div className="rounded-2xl bg-white p-4 shadow-xl">
-                <div className="w-full overflow-hidden rounded-xl">
-                  <iframe
-                    className="w-full h-[260px] md:h-[380px] lg:h-[420px] rounded-xl"
-                    src="https://www.youtube.com/embed/V-b1k04IJWI"
-                    title="Présentation Sawaka"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  ></iframe>
-                </div>
-              </div>
-
-              <div className="absolute -top-4 -right-4 w-16 h-16 bg-sawaka-500 rounded-full flex items-center justify-center text-white text-xl">
-                ✨
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ===== Map Section ===== */}
-      <section className="py-12 md:py-16">
-        <CameroonMap />
-      </section>
-
-      {/* ===== Categories Grid ===== */}
-      <section className="py-12 md:py-16">
-        <div className="wrap">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-sawaka-800 mb-4">
-              Explorez par catégorie
-            </h2>
-            <p className="text-lg text-sawaka-600 max-w-2xl mx-auto">
-              Découvrez notre large sélection de produits artisanaux authentiques
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">
-            {[
-              { name: 'Mode', icon: '👗', href: '/produits?category=mode', bg: 'bg-purple-100' },
-              { name: 'Maison', icon: '🏠', href: '/produits?category=maison', bg: 'bg-blue-100' },
-              { name: 'Art', icon: '🎨', href: '/produits?category=art', bg: 'bg-green-100' },
-              { name: 'Bijoux', icon: '💎', href: '/produits?category=bijoux', bg: 'bg-pink-100' },
-              { name: 'Beauté', icon: '🌸', href: '/produits?category=beaute', bg: 'bg-orange-100' },
-              { name: 'Textile', icon: '🧵', href: '/produits?category=textile', bg: 'bg-indigo-100' }
-            ].map((category, index) => (
-              <Link
-                key={index}
-                href={category.href}
-                className="group p-6 bg-white rounded-xl border border-cream-200 hover:border-sawaka-300 hover:shadow-lg transition-all duration-300 text-center"
-              >
-                <div
-                  className={`w-16 h-16 ${category.bg} rounded-full flex items-center justify-center text-2xl mb-4 mx-auto group-hover:scale-110 transition-transform`}
-                >
-                  {category.icon}
-                </div>
-                <h3 className="font-semibold text-sawaka-800 group-hover:text-sawaka-600 transition-colors">
-                  {category.name}
-                </h3>
-              </Link>
+          <select
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            className="outline-none text-lg px-2 bg-transparent"
+          >
+            <option value="">Votre ville</option>
+            {CITIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
             ))}
-          </div>
+          </select>
+
+          <button
+            type="submit"
+            className="bg-sawaka-600 hover:bg-sawaka-700 text-white px-6 py-2 rounded-full transition"
+          >
+            Explorer
+          </button>
+        </form>
+
+        {/* ===== TYPE DE PROJET ===== */}
+        <div className="mt-6 flex justify-center gap-8 text-sawaka-700">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              checked={projectType === "business"}
+              onChange={() => setProjectType("business")}
+              className="accent-sawaka-600"
+            />
+            Projet d’entreprise
+          </label>
+
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              checked={projectType === "creative"}
+              onChange={() => setProjectType("creative")}
+              className="accent-sawaka-600"
+            />
+            Projet créatif
+          </label>
         </div>
+
+        {/* ===== CTA SANS RECHERCHE ===== */}
+        {!result && (
+          <div className="mt-16 max-w-4xl w-full">
+            <div className="bg-sawaka-50 p-8 rounded-xl border border-sawaka-200 text-center">
+              <p className="text-sawaka-700 text-lg">
+               🎯<strong>Vous avez déjà une idée précise de votre projet ?</strong>
+                <br />
+                Créez votre projet dès maintenant ou explorez les opportunités disponibles sur le réseau Sawaka.
+              </p>
+
+              <button
+                onClick={() =>
+                  alert(
+                    "🚫 La création de projet nécessite un compte. Fonctionnalité indisponible pour l'instant."
+                  )
+                }
+                className="mt-4 bg-sawaka-600 hover:bg-sawaka-700 text-white px-6 py-3 rounded-lg transition"
+              >
+                ➕ Créer mon projet
+              </button>
+            </div>
+          </div>
+        )}
+
+        {loading && (
+          <p className="mt-4 text-sawaka-600">
+            Analyse des opportunités…
+          </p>
+        )}
       </section>
 
-      {/* ===== Featured Products ===== */}
-      <section className="py-12 md:py-16">
-        <div className="wrap">
-          <div className="flex items-center justify-between mb-12">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold text-sawaka-800 mb-2">
-                Créations populaires
+      {/* ===== RESULTATS ===== */}
+      {result && (
+        <div
+          ref={resultsRef}
+          className="space-y-10 mt-10 border-t border-cream-200 pt-8"
+        >
+          {/* ===== PROJET ENTREPRISE ===== */}
+          {result.type === "business" && (
+            <section className="max-w-3xl mx-auto bg-white border rounded-xl p-8 shadow-sm text-center">
+              <h2 className="text-2xl font-bold text-sawaka-700 mb-3">
+                📄 {result.projectName}
               </h2>
-              <p className="text-lg text-sawaka-600">
-                Découvrez les produits les plus appréciés
+
+              <p className="text-sawaka-600 mb-4">
+                {result.summary}
               </p>
-            </div>
-            
-            <Link
-              href="/produits"
-              className="hidden sm:inline-flex items-center gap-2 text-sawaka-700 hover:text-sawaka-800 font-medium"
-            >
-              Voir tout
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
-          </div>
 
-          {articles.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-24 h-24 bg-cream-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-4xl">📦</span>
-              </div>
-              <p className="text-sawaka-700 text-lg">Chargement des produits...</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {[...articles]
-                .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime())
-                .slice(0, 4)
-                .map(article => (
-                  <div
-                    key={article._id}
-                    className="group bg-white rounded-xl border border-cream-200 overflow-hidden hover:border-sawaka-300 hover:shadow-lg transition-all duration-300"
-                  >
-                    <div className="aspect-square bg-cream-100 relative overflow-hidden">
-                      {article.images && article.images.length > 0 ? (
-                        <img
-                          src={article.images[0]}
-                          alt={article.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-6xl text-sawaka-300">
-                          📦
-                        </div>
-                      )}
-
-                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2">
-                        <Link
-                          href={`/produits/${article._id}`}
-                          className="bg-white rounded-full p-2 hover:bg-sawaka-50 transition-colors"
-                        >
-                          <svg className="w-5 h-5 text-sawaka-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                        </Link>
-                      </div>
-                    </div>
-
-                    <div className="p-4">
-                      <h3 className="font-semibold text-sawaka-800 mb-1 line-clamp-2 group-hover:text-sawaka-600 transition-colors">
-                        {article.title}
-                      </h3>
-
-                      {article.categories && article.categories.length > 0 && (
-                        <p className="text-sm text-sawaka-500 mb-2">{article.categories[0]}</p>
-                      )}
-
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-1">
-                          <span className="text-2xl font-bold text-sawaka-800">
-                            {article.price.toLocaleString()}
-                          </span>
-                          <span className="text-sm text-sawaka-600">FCFA</span>
-                        </div>
-
-                        <div className="flex items-center gap-1">
-                          <span className="text-sawaka-500 text-sm">★★★★★</span>
-                          <span className="text-sawaka-600 text-sm">(4.8)</span>
-                        </div>
-                      </div>
-
-                      {article.stock <= 5 && article.stock > 0 && (
-                        <div className="text-xs text-amber-600 mb-3">
-                          Plus que {article.stock} en stock
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-            </div>
+              <a
+                href={result.pdfUrl}
+                download
+                className="inline-flex items-center gap-2 bg-sawaka-600 hover:bg-sawaka-700 text-white px-6 py-3 rounded-lg transition"
+              >
+                ⬇️ Télécharger la fiche projet (PDF)
+              </a>
+            </section>
           )}
 
-          <div className="text-center mt-12">
-            <Link
-              href="/produits"
-              className="bg-sawaka-500 rounded-lg px-4 py-2 hover:bg-sawaka-600 text-white transition-colors"
-            >
-              Voir tous les produits
-            </Link>
+          {/* ===== PROJET CRÉATIF COMPLET ===== */}
+          {result.type === "creative" && (
+            <section className="max-w-5xl mx-auto space-y-10">
+              {/* Idées */}
+              <div className="bg-white border rounded-xl p-6 shadow-sm">
+                <h2 className="text-2xl font-bold text-sawaka-700 mb-4">
+                  💡 Idées créatives suggérées
+                </h2>
+                <ul className="list-disc list-inside text-sawaka-600 space-y-1">
+                  {result.ideas.map((idea: string, i: number) => (
+                    <li key={i}>{idea}</li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Outils + Matériaux */}
+              <div className="bg-white border rounded-xl p-6 shadow-sm grid md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-xl font-semibold text-sawaka-700 mb-2">
+                    🧰 Outils nécessaires
+                  </h3>
+                  <ul className="list-disc list-inside text-sawaka-600 space-y-1">
+                    {result.tools.map((tool: string, i: number) => (
+                      <li key={i}>{tool}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-semibold text-sawaka-700 mb-2">
+                    🧱 Matériaux requis
+                  </h3>
+                  <ul className="list-disc list-inside text-sawaka-600 space-y-1">
+                    {result.materials.map((mat: string, i: number) => (
+                      <li key={i}>{mat}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {/* Ateliers */}
+              <div className="bg-white border rounded-xl p-6 shadow-sm">
+                <h3 className="text-xl font-semibold text-sawaka-700 mb-3">
+                  🏭 Ateliers & FabLabs
+                </h3>
+                <ul className="space-y-2 text-sawaka-600">
+                  {result.cloudFactories.map((cf: any, i: number) => (
+                    <li key={i}>
+                      <strong>{cf.name}</strong> —{" "}
+                      {cf.available ? "✅ Disponible" : "❌ Indisponible"}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+          )}
+
+          {/* ===== CTA FINAL (réutilisé) ===== */}
+          <div className="max-w-5xl mx-auto mt-12">
+            <div className="bg-sawaka-50 p-6 rounded-lg border border-sawaka-200 text-center">
+              <p className="text-sawaka-700 text-lg">
+                🎉 <strong>Vous avez maintenant une vision claire de votre projet ?</strong>
+                <br />
+                Vous pouvez créer et publier votre projet sur Sawaka.
+              </p>
+
+              <button
+                onClick={() =>
+                  alert(
+                    "🚫 La création de projet nécessite un compte. Fonctionnalité indisponible pour l'instant."
+                  )
+                }
+                className="mt-4 bg-sawaka-600 hover:bg-sawaka-700 text-white px-5 py-3 rounded-lg transition"
+              >
+                ➕ Créer mon projet
+              </button>
+            </div>
           </div>
         </div>
-      </section>
-
-      {/* ===== How it Works ===== */}
-      <section className="py-12 md:py-16 bg-cream-50">
-        <div className="wrap">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-sawaka-800 mb-4">
-              Comment ça marche
-            </h2>
-            <p className="text-lg text-sawaka-600 max-w-2xl mx-auto">
-              Un processus simple et sécurisé pour vous connecter aux artisans locaux
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="text-center group">
-              <div className="w-20 h-20 bg-sawaka-500 rounded-full flex items-center justify-center text-3xl mb-6 mx-auto group-hover:scale-110 transition-transform">
-                🔎
-              </div>
-              <h3 className="text-xl font-semibold text-sawaka-800 mb-3">Parcourez & Contactez</h3>
-              <p className="text-sawaka-600">Trouvez l'article unique qui vous plaît</p>
-            </div>
-
-            <div className="text-center group">
-              <div className="w-20 h-20 bg-sawaka-500 rounded-full flex items-center justify-center text-3xl mb-6 mx-auto group-hover:scale-110 transition-transform">
-                🛠️
-              </div>
-              <h3 className="text-xl font-semibold text-sawaka-800 mb-3">L'artisan prépare</h3>
-              <p className="text-sawaka-600">Votre article est fabriqué avec soin</p>
-            </div>
-
-            <div className="text-center group">
-              <div className="w-20 h-20 bg-sawaka-500 rounded-full flex items-center justify-center text-3xl mb-6 mx-auto group-hover:scale-110 transition-transform">
-                ⚡
-              </div>
-              <h3 className="text-xl font-semibold text-sawaka-800 mb-3">Collecte rapide</h3>
-              <p className="text-sawaka-600">Un chauffeur récupère votre commande</p>
-            </div>
-
-            <div className="text-center group">
-              <div className="w-20 h-20 bg-sawaka-500 rounded-full flex items-center justify-center text-3xl mb-6 mx-auto group-hover:scale-110 transition-transform">
-                📦
-              </div>
-              <h3 className="text-xl font-semibold text-sawaka-800 mb-3">Retrait pratique</h3>
-              <p className="text-sawaka-600">Récupérez votre article près de chez vous</p>
-            </div>
-          </div>
-        </div>
-      </section>
-    </>
+      )}
+    </div>
   );
 }

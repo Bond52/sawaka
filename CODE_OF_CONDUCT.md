@@ -1,28 +1,28 @@
-# Code de Conduite — Sawaka
+# Code of Conduct — Sawaka
 
-Afin de garantir un environnement respectueux et inclusif, Sawaka adopte le Code de Conduite suivant.
+To ensure a respectful and inclusive environment, Sawaka adopts the following Code of Conduct.
 
-## 💬 Principes fondamentaux
-- Respect mutuel
-- Collaboration ouverte et bienveillante
-- Aucune forme de discrimination
-- Aucun harcèlement ou intimidation
+## 💬 Core Principles
+- Mutual respect
+- Open and kind collaboration
+- No form of discrimination
+- No harassment or intimidation
 
-## 🚫 Comportements inacceptables
-- Insultes ou attaques personnelles
-- Contenu discriminatoire
-- Harcèlement, menaces ou comportements toxiques
-- Spam ou perturbation volontaire du projet
+## 🚫 Unacceptable Behavior
+- Insults or personal attacks
+- Discriminatory content
+- Harassment, threats, or toxic behavior
+- Spam or intentional disruption of the project
 
-## 🛡️ Application
-Les mainteneurs du projet peuvent :
-- Avertir un membre
-- Suspendre temporairement
-- Bannir définitivement en cas de violation grave
+## 🛡️ Enforcement
+Project maintainers may take the following actions:
+- Issue a warning
+- Temporarily suspend a contributor
+- Permanently ban in cases of serious violations
 
-## 📩 Signaler un problème
-Si vous observez une violation du Code de Conduite, contactez-nous :
+## 📩 Reporting an Issue
+If you witness or experience a violation of this Code of Conduct, please contact us at:
 
 **opensource@sawaka.org**
 
-Nous traiterons toutes les notifications de manière confidentielle.
+All reports will be handled confidentially.

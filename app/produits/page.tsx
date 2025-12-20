@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -16,6 +17,9 @@ export default function ProduitsPage() {
   const searchParams = useSearchParams();
   const categoryParam = searchParams.get("category");
 
+  /* -------------------------------------------------------------
+     FETCH ARTICLES
+  -------------------------------------------------------------- */
   useEffect(() => {
     const fetchArticles = async () => {
       try {
@@ -24,16 +28,19 @@ export default function ProduitsPage() {
 
         const data = await listPublicArticles();
 
-        // 🔎 Filtrer par catégorie si nécessaire
+        // 🔎 Filtrage par catégorie (si présente)
         let filtered = data;
         if (categoryParam) {
           const normalized = categoryParam.toLowerCase();
           filtered = data.filter((a: Article) =>
-            a.categories?.some((c) => c.toLowerCase().includes(normalized))
+            a.categories?.some((c) =>
+              c.toLowerCase().includes(normalized)
+            )
           );
         }
 
-        setArticles(filtered); // ✔️ On garde TOUT pour la pagination
+        setArticles(filtered);
+        setPage(1); // reset pagination lors du changement de catégorie
       } catch (err) {
         console.error("❌ Erreur chargement articles :", err);
         setError(err instanceof Error ? err.message : "Erreur inconnue");
@@ -45,49 +52,27 @@ export default function ProduitsPage() {
     fetchArticles();
   }, [categoryParam]);
 
-  // 🧮 Pagination
+  /* -------------------------------------------------------------
+     PAGINATION
+  -------------------------------------------------------------- */
   const totalPages = Math.ceil(articles.length / ITEMS_PER_PAGE);
   const paginatedArticles = articles.slice(
     (page - 1) * ITEMS_PER_PAGE,
     page * ITEMS_PER_PAGE
   );
 
-  // 🎨 Titre catégorie
-  const categoryTitle = (() => {
-    if (!categoryParam) return "Tous les produits";
-    switch (categoryParam.toLowerCase()) {
-      case "mode":
-        return "Mode & Accessoires";
-      case "maison":
-        return "Maison & Décoration";
-      case "art":
-        return "Art & Artisanat";
-      case "beaute":
-        return "Beauté & Bien-être";
-      case "bijoux":
-        return "Bijoux";
-      case "textile":
-        return "Textile";
-      default:
-        return "Produits";
-    }
-  })();
-
+  /* -------------------------------------------------------------
+     RENDER
+  -------------------------------------------------------------- */
   return (
     <div className="max-w-7xl mx-auto px-4 py-10">
-      <h1 className="text-4xl font-bold mb-2 text-sawaka-800 text-center">
-        {categoryTitle}
-      </h1>
-      <p className="text-center text-sawaka-600 mb-10">
-        {categoryParam
-          ? `Découvrez les articles de la catégorie ${categoryTitle}`
-          : "Découvrez les créations artisanales authentiques"}
-      </p>
 
       {loading ? (
         <div className="text-center py-20">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-sawaka-800"></div>
-          <p className="mt-4 text-sawaka-600">Chargement des produits...</p>
+          <p className="mt-4 text-sawaka-600">
+            Chargement des produits...
+          </p>
         </div>
       ) : error ? (
         <p className="text-center text-red-500">{error}</p>
@@ -97,7 +82,7 @@ export default function ProduitsPage() {
         </p>
       ) : (
         <>
-          {/* 🖼️ Grille produits */}
+          {/* 🖼️ GRILLE PRODUITS */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {paginatedArticles.map((a) => (
               <Link href={`/produits/${a._id}`} key={a._id}>
@@ -109,15 +94,19 @@ export default function ProduitsPage() {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>
+
                   <div className="p-5">
                     <h2 className="text-xl font-bold text-sawaka-800 mb-1 group-hover:text-sawaka-600 transition-colors">
                       {a.title}
                     </h2>
+
                     <p className="text-sawaka-600 text-sm mb-3 line-clamp-2">
                       {a.description || "Article artisanal unique"}
                     </p>
+
                     <span className="text-2xl font-semibold text-sawaka-800">
-                      {a.price?.toLocaleString()} <span className="text-sm">FCFA</span>
+                      {a.price?.toLocaleString()}{" "}
+                      <span className="text-sm">FCFA</span>
                     </span>
                   </div>
                 </div>
@@ -126,21 +115,23 @@ export default function ProduitsPage() {
           </div>
 
           {/* 📄 PAGINATION */}
-          <div className="flex justify-center mt-10 space-x-2">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
-              <button
-                key={num}
-                onClick={() => setPage(num)}
-                className={`px-4 py-2 rounded-md border ${
-                  page === num
-                    ? "bg-sawaka-800 text-white"
-                    : "bg-white text-sawaka-800 hover:bg-cream-200"
-                }`}
-              >
-                {num}
-              </button>
-            ))}
-          </div>
+          {totalPages > 1 && (
+            <div className="flex justify-center mt-10 space-x-2">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
+                <button
+                  key={num}
+                  onClick={() => setPage(num)}
+                  className={`px-4 py-2 rounded-md border transition ${
+                    page === num
+                      ? "bg-sawaka-800 text-white"
+                      : "bg-white text-sawaka-800 hover:bg-cream-200"
+                  }`}
+                >
+                  {num}
+                </button>
+              ))}
+            </div>
+          )}
         </>
       )}
     </div>

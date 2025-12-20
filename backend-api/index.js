@@ -10,38 +10,45 @@ const app = express();
 // 🔐 Obligatoire pour Render/Vercel (proxy HTTPS)
 app.set("trust proxy", 1);
 
-// 🌍 Origines autorisées (PROD + QA + localhost)
+// ======================================================
+// 🌍 CONFIGURATION CORS
+// ======================================================
+
+// Origines autorisées (PROD + QA + localhost)
 const allowedOrigins = [
   "https://ecommerce-web-avec-tailwind.vercel.app", // PROD
-  "https://qa.sawaka.org",                           // QA FIX 🌟
+  "https://qa.sawaka.org",                           // QA
   "https://sawaka.org",
   "https://www.sawaka.org",
   process.env.FRONTEND_URL,
   "http://localhost:3000",
 ].filter(Boolean);
 
-// ➕ Autoriser automatiquement toutes les URLs de preview Vercel
+// Autoriser automatiquement toutes les URLs de preview Vercel
 const vercelPreviewRegex =
   /^https:\/\/ecommerce-web-avec-tailwind-[a-z0-9]+\.vercel\.app$/;
 
-// 🌐 Ajoute Access-Control-Allow-Credentials AVANT CORS
+// Ajoute Access-Control-Allow-Credentials AVANT CORS
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Credentials", "true");
   next();
 });
 
-// 🛡️ CORS dynamique (INDISPENSABLE pour Render)
+// CORS dynamique
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin) return callback(null, true); // Requêtes internes OK
+      if (!origin) return callback(null, true); // Requêtes internes / tests
 
       const isAllowed =
         allowedOrigins.includes(origin) || vercelPreviewRegex.test(origin);
 
       if (isAllowed) return callback(null, origin);
 
-      console.log("❌ Origine CORS refusée :", origin);
+      if (process.env.NODE_ENV !== "test") {
+        console.log("❌ Origine CORS refusée :", origin);
+      }
+
       return callback(new Error("Origine non autorisée par CORS : " + origin));
     },
     credentials: true,
@@ -50,7 +57,7 @@ app.use(
   })
 );
 
-// 📨 Préflight OPTIONS automatique
+// Préflight OPTIONS automatique
 app.options(
   "*",
   cors({
@@ -68,73 +75,105 @@ app.options(
   })
 );
 
-// 📦 Parsers
+// ======================================================
+// 📦 MIDDLEWARES GLOBAUX
+// ======================================================
+
 app.use(express.json());
 app.use(cookieParser());
 
-// =======================
-// ROUTES PRINCIPALES
-// =======================
+// ======================================================
+// 🔌 API ROUTES
+// ======================================================
 
-const authRoutes = require("./routes/auth");
-app.use("/api/auth", authRoutes);
+// 🔐 Authentification
+app.use("/api/auth", require("./routes/auth"));
 
-const sellerRoutes = require("./routes/seller.articles.routes");
-app.use("/api/seller", sellerRoutes);
+// 👤 Utilisateurs
+app.use("/api/user", require("./routes/user"));
 
-const orderRoutes = require("./routes/order.routes");
-app.use("/api/orders", orderRoutes);
+// 🛍️ Produits
+app.use("/api/products", require("./routes/products"));
 
-const budgetRoutes = require("./routes/budget.routes");
-app.use("/api/budget", budgetRoutes);
+// 👩🏾‍🎨 Artisans
+app.use("/api/artisans", require("./routes/artisans"));
 
-const adminRoutes = require("./routes/admin.routes");
-app.use("/api/admin", adminRoutes);
+// 🧑‍💼 Vendeurs / articles
+app.use("/api/seller", require("./routes/seller.articles.routes"));
 
-const userRoutes = require("./routes/user");
-app.use("/api/user", userRoutes);
+// 🛒 Commandes
+app.use("/api/orders", require("./routes/order.routes"));
 
-const productRoutes = require("./routes/products");
-app.use("/api/products", productRoutes);
+// 💰 Budgets
+app.use("/api/budget", require("./routes/budget.routes"));
 
-const artisansRoute = require("./routes/artisans");
-app.use("/api/artisans", artisansRoute);
+// 🧾 Administration
+app.use("/api/admin", require("./routes/admin.routes"));
 
-const auctionRoutes = require("./routes/auction");
-app.use("/api/auction", auctionRoutes);
+// 🔨 Outils internes
+app.use("/api/tools", require("./routes/tools"));
 
+// 🏭 Fournisseurs
+app.use("/api/fournisseurs", require("./routes/fournisseurs"));
+
+// 📨 Feedback
 app.use("/api/feedback", require("./routes/feedback"));
 
-const statsRoutes = require("./routes/stats");
-app.use("/stats", statsRoutes);
+// 📊 Statistiques
+app.use("/stats", require("./routes/stats"));
 
-const fournisseursRoute = require("./routes/fournisseurs.js");
-app.use("/api/fournisseurs", fournisseursRoute);
+// 🔨 Enchères
+app.use("/api/auction", require("./routes/auction"));
 
-const toolsRoutes = require("./routes/tools.js");
-app.use("/api/tools", toolsRoutes);
+// ======================================================
+// ⏱️ CRON JOBS (désactivés en test)
+// ======================================================
 
-// CRON (fermeture enchères)
-const cron = require("node-cron");
-const closeExpiredAuctions = require("./cronJobs/endAuction");
-cron.schedule("*/5 * * * *", closeExpiredAuctions);
+if (process.env.NODE_ENV !== "test") {
+  const cron = require("node-cron");
+  const closeExpiredAuctions = require("./cronJobs/endAuction");
 
-// 🔎 Route simple
-app.get("/", (_, res) => res.send("🎉 API e-commerce Sawaka opérationnelle !"));
+  // Clôture automatique des enchères expirées toutes les 5 minutes
+  cron.schedule("*/5 * * * *", closeExpiredAuctions);
+}
 
-// =======================
-// 🔌 MongoDB
-// =======================
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ Connecté à MongoDB"))
-  .catch((err) => {
-    console.error("❌ Erreur MongoDB :", err.message);
-    console.error("\n⚠️ Vérifiez votre MONGO_URI dans le .env\n");
-  });
+// ======================================================
+// 🔎 ROUTE DE SANTÉ / ROOT
+// ======================================================
 
-// 🚀 Lancement serveur
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () =>
-  console.log(`🚀 Serveur lancé sur http://localhost:${PORT}`)
+app.get("/", (_, res) =>
+  res.send("🎉 API e-commerce Sawaka opérationnelle !")
 );
+
+// ======================================================
+// 🔌 CONNEXION MONGODB (UNIQUEMENT AU DÉMARRAGE)
+// ======================================================
+
+async function connectMongo() {
+  await mongoose.connect(process.env.MONGO_URI);
+
+  if (process.env.NODE_ENV !== "test") {
+    console.log("✅ Connecté à MongoDB");
+  }
+}
+
+// ======================================================
+// 🚀 LANCEMENT DU SERVEUR
+// ======================================================
+
+const PORT = process.env.PORT || 5000;
+
+if (require.main === module) {
+  connectMongo()
+    .then(() => {
+      app.listen(PORT, () =>
+        console.log(`🚀 Serveur lancé sur http://localhost:${PORT}`)
+      );
+    })
+    .catch((err) => {
+      console.error("❌ Erreur MongoDB :", err.message);
+      process.exit(1);
+    });
+}
+
+module.exports = app;

@@ -1,27 +1,27 @@
-# Politique de Sécurité — Sawaka
+# Security Policy — Sawaka
 
-## 🔐 Signalement de vulnérabilité
+## 🔐 Reporting a Vulnerability
 
-Merci de ne **pas ouvrir d'issue publique** en cas de faille de sécurité.
+Please **do not open a public issue** for security vulnerabilities.
 
-Pour signaler une vulnérabilité, contactez :
+To report a vulnerability, contact:
 
 **security@sawaka.org**
 
-Nous répondons sous **48 heures**.
+We aim to respond within **48 hours**.
 
 ---
 
-## 🛠 Versions supportées
+## 🛠 Supported Versions
 
-| Version | Support |
-|--------|---------|
-| main   | ✔ Supportée |
-| autres branches | ❌ Non garanties |
+| Version | Supported |
+|--------|-----------|
+| main   | ✔ Supported |
+| other branches | ❌ Not guaranteed |
 
 ---
 
-## 🧪 Bonnes pratiques recommandées
-- Ne jamais exposer vos clés API
-- Toujours utiliser `.env` (non commité)
-- Utiliser des permissions minimales
+## 🧪 Recommended Best Practices
+- Never expose your API keys
+- Always use `.env` files (do not commit them)
+- Use the principle of least privilege
