@@ -1,16 +1,16 @@
 # 🚀 Pull Request — Sawaka
 
-## 🎯 Objectif
-Décrivez ce que fait cette PR.
+## 🎯 Objective
+Describe what this pull request does.
 
-## 🔧 Type de changements
-- [ ] Nouvelle fonctionnalité
-- [ ] Correction de bug
-- [ ] Amélioration du code
-- [ ] Mise à jour documentation
+## 🔧 Type of Changes
+- [ ] New feature
+- [ ] Bug fix
+- [ ] Code improvement / refactoring
+- [ ] Documentation update
 
-## 🧪 Tests effectués
-Expliquez comment la fonctionnalité a été testée.
+## 🧪 Tests Performed
+Explain how the changes were tested.
 
 ## 📎 Notes
-Informations supplémentaires si nécessaire.
+Additional information if needed.
