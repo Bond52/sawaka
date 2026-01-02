@@ -1,44 +1,44 @@
-# Contribuer à Sawaka
+# Contributing to Sawaka
 
-Merci de votre intérêt pour contribuer à Sawaka !  
-Nous accueillons les développeurs, designers, testeurs et créateurs de contenu.
+Thank you for your interest in contributing to Sawaka!
+We welcome developers, designers, testers, and content creators.
 
-## 🧩 Comment contribuer
+## 🧩 How to Contribute
 
-### 1. Fork du projet
-Cliquez sur **Fork** en haut du repo GitHub.
+### 1. Fork the Project
+Click **Fork** at the top of the GitHub repository.
 
-### 2. Créer une branche
+### 2. Create a Branch
 ```bash
-git checkout -b feature/ma-fonctionnalite
+git checkout -b feature/my-feature
 ```
 
-### 3. Développer votre contribution
-- Suivre les bonnes pratiques du code
-- Ajouter des commentaires si nécessaire
-- Tester localement
+### 3. Develop Your Contribution
+- Follow coding best practices
+- Add comments where necessary
+- Test locally
 
-### 4. Commit propre
+### 4. Clean Commit
 ```bash
-git commit -m "feat: description de la fonctionnalité"
+git commit -m "feat: short description of the feature"
 ```
 
-### 5. Créer une Pull Request
-Décrivez clairement ce que fait votre PR.
+### 5. Create a Pull Request
+Clearly describe what your PR does.
 
 ---
 
-## 📐 Standards de qualité
+## 📐 Quality Standards
 
 ### Backend (Node.js)
-- Respecter ESLint/Prettier
-- Pas de console.log dans les PR finales
+- Follow ESLint / Prettier rules
+- No `console.log` in final PRs
 
 ### Frontend (Next.js)
-- Utiliser composants fonctionnels
-- Respecter la nomenclature Tailwind CSS
+- Use functional components
+- Follow Tailwind CSS naming conventions
 
 ---
 
-## 🙏 Merci !
-Votre contribution aide à soutenir les artisans africains.
+## 🙏 Thank You!
+Your contribution helps support the Sawaka community.
