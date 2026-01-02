@@ -18,10 +18,10 @@ To ensure a respectful and inclusive environment, Sawaka adopts the following Co
 Project maintainers may take the following actions:
 - Issue a warning
 - Temporarily suspend a contributor
-- Permanently ban in cases of serious violations
+- Permanently ban contributors in cases of serious violations
 
 ## 📩 Reporting an Issue
-If you witness or experience a violation of this Code of Conduct, please contact us at:
+If you observe a violation of this Code of Conduct, please contact:
 
 **opensource@sawaka.org**
 

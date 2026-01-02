@@ -21,7 +21,7 @@ We aim to respond within **48 hours**.
 
 ---
 
-## 🧪 Recommended Best Practices
-- Never expose your API keys
-- Always use `.env` files (do not commit them)
-- Use the principle of least privilege
+## 🧪 Recommended Security Practices
+- Never expose API keys
+- Always use `.env` files (never commit them)
+- Apply the principle of least privilege
