@@ -2,61 +2,91 @@ name: Sawaka CI
 
 on:
   push:
-    branches: [ main, qa ]
+    branches: [main, qa]
   pull_request:
-    branches: [ main, qa ]
+    branches: [main, qa]
 
 jobs:
   ci:
     runs-on: ubuntu-latest
 
+    services:
+      mongo:
+        image: mongo:6
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     env:
       NODE_ENV: test
-      MONGO_URI: ${{ secrets.MONGO_URI_TEST }}
+      CI: "true"
+      MONGO_URI: mongodb://localhost:27017/sawaka_test
+      JWT_SECRET: ci-dummy-secret-do-not-use-in-prod
       FRONTEND_URL: http://localhost:3000
 
     steps:
-      # 1️⃣ Récupération du code
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Installer Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
-          cache: npm
+          node-version: "18"
+          cache: "npm"
+
+      - name: Install frontend dependencies
+        run: npm ci
 
       # ==================================================
-      # 🔧 BACKEND — Jest + Supertest
+      # Backend — Jest
       # ==================================================
       - name: Install backend dependencies
         working-directory: backend-api
-        run: npm install
+        run: npm ci
 
       - name: Run backend tests (Jest)
         working-directory: backend-api
         run: npm test
 
       # ==================================================
-      # 🌐 API — Postman / Newman
+      # API — Newman (server must be running)
       # ==================================================
-      - name: Install Newman
-        run: npm install -g newman
-
-      - name: Run API tests (Newman)
+      - name: Start API, wait, then run Newman
         run: |
-          newman run tests/api/postman/sawaka.postman_collection.json \
-          -e tests/api/postman/sawaka.postman_environment.json
+          (cd backend-api && node index.js) &
+          npx wait-on -t 30000 http://localhost:5000/
+          npx newman run tests/api/postman/sawaka.postman_collection.json \
+            -e tests/api/postman/sawaka.postman_environment.json \
+            --delay-request 100
 
       # ==================================================
-      # 🖥️ FRONTEND — Playwright
+      # Frontend — lint, build
       # ==================================================
-      - name: Install frontend dependencies
-        run: npm install
+      - name: Lint
+        run: npm run lint
 
+      - name: Build
+        run: npm run build
+
+      # ==================================================
+      # Frontend — Playwright (app must be running)
+      # ==================================================
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
 
-      - name: Run Playwright tests
-        run: npx playwright test
+      - name: Start Next.js, wait, then run Playwright
+        run: |
+          npm run start &
+          npx wait-on -t 60000 http://localhost:3000/
+          npx playwright test
+
+      # ==================================================
+      # Docs generation
+      # ==================================================
+      - name: Generate documentation
+        working-directory: backend-api
+        run: npm run docs:generate

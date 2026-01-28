@@ -58,7 +58,7 @@ export default function AmeliorationPage() {
 
       <p className="text-sawaka-700 mb-6">
         Sawaka est en phase de test. Donnez-nous vos idées, vos suggestions,
-        vos retours sur l'expérience utilisateur ou les bugs rencontrés !
+        vos retours sur l&apos;expérience utilisateur ou les bugs rencontrés !
       </p>
 
       <input

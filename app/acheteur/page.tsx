@@ -6,7 +6,7 @@ export default function AcheteurPage() {
   return (
     <div>
       <h1>Bienvenue acheteur</h1>
-      <p>Vous êtes maintenant connecté en tant qu'acheteur.</p>
+      <p>Vous êtes maintenant connecté en tant qu&apos;acheteur.</p>
 
       <Link href="/acheteur/commandes">
         <button style={{ marginTop: "1rem" }}>

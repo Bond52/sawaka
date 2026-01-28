@@ -23,7 +23,7 @@ export default function HeroSection() {
           </h1>
 
          <p className="text-lg md:text-xl text-white/90 mb-6">
-            Explorez des milliers de projets créatifs et trouvez l'accompagnement
+            Explorez des milliers de projets créatifs et trouvez l&apos;accompagnement
             pour réaliser vos idées.
           </p>
 

@@ -151,15 +151,19 @@ app.get("/", (_, res) =>
 // ======================================================
 // 🔌 CONNEXION MONGODB (SAUF TEST / CI)
 // ======================================================
+// In test/CI we skip connect when app is required by Jest (supertest) because
+// jest.setup.js connects Mongoose. When running the server for Newman (main
+// module), we must connect if MONGO_URI is set.
 
 async function connectMongo() {
-  if (isTestOrCI) {
+  if (isTestOrCI && !(require.main === module && process.env.MONGO_URI)) {
     return;
   }
+  if (!process.env.MONGO_URI) return;
 
   await mongoose.connect(process.env.MONGO_URI);
 
-  console.log("✅ Connecté à MongoDB");
+  if (!isTestOrCI) console.log("✅ Connecté à MongoDB");
 }
 
 // ======================================================
