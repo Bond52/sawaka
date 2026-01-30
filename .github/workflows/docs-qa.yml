@@ -1,0 +1,42 @@
+# QA documentation validation — no GitHub Pages deployment.
+# Validates that JSDoc and Swagger UI generation succeeds on qa.
+name: Docs QA
+
+on:
+  push:
+    branches: [qa]
+  pull_request:
+    branches: [qa]
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install backend dependencies
+        working-directory: backend-api
+        run: npm ci
+
+      - name: Run JSDoc generation
+        working-directory: backend-api
+        run: npm run docs:generate
+
+      - name: Run Swagger UI static generation
+        working-directory: backend-api
+        run: npm run docs:swagger-ui
+
+      # Artifact for manual download; no Pages deployment on qa
+      - name: Upload documentation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-qa
+          path: |
+            backend-api/docs/jsdoc
+            backend-api/docs/api-docs
