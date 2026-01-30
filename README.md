@@ -1,23 +1,36 @@
 [![Latest Release](https://img.shields.io/github/v/release/Bond52/sawaka)](https://github.com/Bond52/sawaka/releases)
 
-# Sawaka — Artisans Social Network (Open Source)
+# 🧺 Sawaka — Artisans Social Network (Open Source)
 
-Sawaka is an open-source platform that connects local artisans with their communities. It is built with **Next.js** (frontend), **Node.js / Express** (API), and **MongoDB**, with a focus on simplicity, performance, and extensibility.
-
----
-
-## Features
-
-- Artisan profiles, photos, and categories
-- Product and service management
-- JWT-based authentication
-- Image uploads (Cloudinary)
-- REST API (Node.js + Express)
-- Recommended deployment: **Vercel** (frontend) + **Render** (backend)
+Sawaka is an open-source platform designed to connect local artisans with their communities.  
+It is built on a modern, scalable architecture using **Next.js**, **Node.js/Express**, and **MongoDB**, with a focus on simplicity, performance, and extensibility.
 
 ---
 
-## Quick Start
+## ✨ Key Features
+
+- 🧑‍🎨 Artisan management (profiles, photos, categories)
+- 🛒 Product and service management
+- 👤 Authentication system (JWT)
+- 🖼️ Image uploads (Cloudinary)
+- 📦 REST API powered by Node.js and Express
+- 🌐 Recommended deployment: **Vercel** (frontend) + **Render** (backend)
+
+---
+
+## 📘 Project Vision
+
+The project vision is documented in the GitHub Wiki:  
+👉 https://github.com/Bond52/sawaka/wiki/Vision-Document
+
+This vision serves as a reference for:
+- Epics definition
+- Backlog prioritization
+- Functional and technical decisions
+
+---
+
+## 🚀 Quick Start
 
 ### 1. Clone the repository
 
@@ -217,6 +230,11 @@ Additional guidelines (Definition of Ready, coding standards, PR workflow) are i
 | `feature/*` | New features |
 | `fix/*` | Bug fixes |
 | `hotfix/*` | Urgent production fixes |
+
+Additional guidelines are available in the Wiki:
+- Definition of Ready
+- Coding standards
+- Workflow (issues, pull requests, reviews)
 
 ---
 
