@@ -4,6 +4,12 @@ on:
   push:
     branches: [main, qa]
 
+# 🔑 Permissions GLOBALes requises par GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 concurrency:
   group: pages
   cancel-in-progress: false
@@ -11,6 +17,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -38,21 +45,26 @@ jobs:
           cp -r backend-api/docs/jsdoc site/jsdoc
           cp -r backend-api/docs/api-docs site/api-docs
 
-      - name: Add root index
+      - name: Add root index page
         run: |
           cat > site/index.html << 'EOF'
           <!DOCTYPE html>
           <html lang="en">
           <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <meta charset="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
             <title>Sawaka Documentation</title>
           </head>
           <body>
             <h1>Sawaka Documentation</h1>
+            <p>Public technical documentation generated automatically via CI.</p>
             <ul>
-              <li><a href="/jsdoc/">JSDoc</a> — Code-level API reference</li>
-              <li><a href="/api-docs/">Swagger UI</a> — Interactive API documentation</li>
+              <li>
+                <a href="./jsdoc/">JSDoc</a> — Code-level API reference
+              </li>
+              <li>
+                <a href="./api-docs/">Swagger UI</a> — Interactive REST API documentation
+              </li>
             </ul>
           </body>
           </html>
@@ -66,12 +78,11 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
+
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
