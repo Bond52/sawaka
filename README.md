@@ -196,6 +196,10 @@ JSDoc is also generated in CI. The `backend-api/docs` directory is gitignored.
 - **Production:** [https://sawaka-api-prod.onrender.com](https://sawaka-api-prod.onrender.com)
 - **QA:** [https://sawaka-api-qa.onrender.com](https://sawaka-api-qa.onrender.com)
 
+### Project Vision
+
+The project vision is documented in the GitHub Wiki: [Vision Document](https://github.com/Bond52/sawaka/wiki/Vision-Document). It serves as a reference for epics, backlog prioritization, and functional decisions.
+
 ### Diagrams
 
 Architecture and flow diagrams (e.g. draw.io) can be stored in `docs/diagrams` when added.
@@ -217,7 +221,7 @@ We welcome contributions. Please read:
 4. Open a pull request against `main` or `qa`. Ensure CI passes.
 5. Follow review feedback and update as needed.
 
-Additional guidelines (Definition of Ready, coding standards, PR workflow) are in the [Wiki](https://github.com/Bond52/sawaka/wiki). The [Vision document](https://github.com/Bond52/sawaka/wiki/Vision-Document) describes product vision, epics, and prioritization.
+Additional guidelines (Definition of Ready, coding standards, PR workflow) are in the [Wiki](https://github.com/Bond52/sawaka/wiki).
 
 ---
 

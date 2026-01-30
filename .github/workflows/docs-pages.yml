@@ -1,8 +1,10 @@
-name: Publish Documentation to GitHub Pages
+# Production documentation — GitHub Pages only from main.
+# Publishes JSDoc and Swagger UI to GitHub Pages.
+name: Docs Publish to GitHub Pages
 
 on:
   push:
-    branches: [main, qa]
+    branches: [main]
 
 concurrency:
   group: pages
@@ -32,20 +34,20 @@ jobs:
         working-directory: backend-api
         run: npm run docs:swagger-ui
 
-      - name: Copy files to site directory
+      - name: Prepare site directory
         run: |
           mkdir -p site
           cp -r backend-api/docs/jsdoc site/jsdoc
           cp -r backend-api/docs/api-docs site/api-docs
 
-      - name: Add root index
+      - name: Add root index page
         run: |
           cat > site/index.html << 'EOF'
           <!DOCTYPE html>
           <html lang="en">
           <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <meta charset="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
             <title>Sawaka Documentation</title>
           </head>
           <body>
@@ -63,6 +65,7 @@ jobs:
         with:
           path: site/
 
+  # Deploy job requires pages:write and id-token:write for Pages
   deploy:
     needs: build
     runs-on: ubuntu-latest
