@@ -1,10 +1,5 @@
 import "./globals.css";
 
-export const metadata = {
-  title: "Sawaka",
-  description: "Artisanat authentique",
-};
-
 export default function RootLayout({
   children,
 }: {
@@ -12,8 +7,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr">
-      <body>
-        {children}
+      <body className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1">{children}</main>
+        <Footer />
       </body>
     </html>
   );

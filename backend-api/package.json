@@ -3,7 +3,12 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "cross-env NODE_ENV=test CI=true jest --runInBand",
+    "test:watch": "jest --watch",
+    "docs:generate": "jsdoc -c jsdoc.json",
+    "docs:swagger-ui": "node scripts/generate-swagger-ui.js"
   },
   "keywords": [],
   "author": "",
@@ -26,5 +31,12 @@
     "node-cron": "^4.2.1",
     "nodemailer": "^7.0.10",
     "stripe": "^18.3.0"
+  },
+  "devDependencies": {
+    "cross-env": "^10.1.0",
+    "jest": "^30.2.0",
+    "jsdoc": "^4.0.5",
+    "nodemon": "^3.1.11",
+    "supertest": "^7.1.4"
   }
 }

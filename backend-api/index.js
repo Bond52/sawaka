@@ -10,31 +10,46 @@ const app = express();
 // 🔐 Obligatoire pour Render/Vercel (proxy HTTPS)
 app.set("trust proxy", 1);
 
-// 🌍 Origines autorisées
+// ======================================================
+// 🌍 CONFIGURATION CORS
+// ======================================================
+
+// Origines autorisées (PROD + QA + localhost)
 const allowedOrigins = [
-  "https://ecommerce-web-avec-tailwind.vercel.app",
+  "https://ecommerce-web-avec-tailwind.vercel.app", // PROD
+  "https://qa.sawaka.org",                           // QA
   "https://sawaka.org",
   "https://www.sawaka.org",
   process.env.FRONTEND_URL,
   "http://localhost:3000",
 ].filter(Boolean);
 
-// 🌐 Ajoute Access-Control-Allow-Credentials AVANT CORS
+// Autoriser automatiquement toutes les URLs de preview Vercel
+const vercelPreviewRegex =
+  /^https:\/\/ecommerce-web-avec-tailwind-[a-z0-9]+\.vercel\.app$/;
+
+// Ajoute Access-Control-Allow-Credentials AVANT CORS
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Credentials", "true");
   next();
 });
 
-// 🛡️ CORS dynamique (INDISPENSABLE pour Render)
+// CORS dynamique
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Autorise aussi Postman, mobile, requêtes internes
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, origin);
-      } else {
-        callback(new Error("Origine non autorisée par CORS : " + origin));
+      if (!origin) return callback(null, true); // Requêtes internes / tests
+
+      const isAllowed =
+        allowedOrigins.includes(origin) || vercelPreviewRegex.test(origin);
+
+      if (isAllowed) return callback(null, origin);
+
+      if (process.env.NODE_ENV !== "test") {
+        console.log("❌ Origine CORS refusée :", origin);
       }
+
+      return callback(new Error("Origine non autorisée par CORS : " + origin));
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -42,85 +57,132 @@ app.use(
   })
 );
 
-// 📨 Préflight OPTIONS automatique
-app.options("*", cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, origin);
-    } else {
-      callback(new Error("CORS non autorisé"));
-    }
-  },
-  credentials: true
-}));
+// Préflight OPTIONS automatique
+app.options(
+  "*",
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
 
-// 📦 Parsers
+      const isAllowed =
+        allowedOrigins.includes(origin) || vercelPreviewRegex.test(origin);
+
+      if (isAllowed) return callback(null, origin);
+
+      return callback(new Error("CORS non autorisé"));
+    },
+    credentials: true,
+  })
+);
+
+// ======================================================
+// 📦 MIDDLEWARES GLOBAUX
+// ======================================================
+
 app.use(express.json());
 app.use(cookieParser());
 
-// =======================
-// ROUTES PRINCIPALES
-// =======================
+// ======================================================
+// 🔌 API ROUTES
+// ======================================================
 
-const authRoutes = require("./routes/auth");
-app.use("/api/auth", authRoutes);
+// 🔐 Authentification (login, register, refresh, logout)
+app.use("/api/auth", require("./routes/auth"));
 
-const sellerRoutes = require("./routes/seller.articles.routes");
-app.use("/api/seller", sellerRoutes);
+// 👤 Utilisateurs (profil, préférences, compte)
+app.use("/api/user", require("./routes/user"));
 
-const orderRoutes = require("./routes/order.routes");
-app.use("/api/orders", orderRoutes);
+// 🛍️ Produits (catalogue, recherche, filtres)
+app.use("/api/products", require("./routes/products"));
 
-const budgetRoutes = require("./routes/budget.routes");
-app.use("/api/budget", budgetRoutes);
+// 👩🏾‍🎨 Artisans (profils, portfolios, visibilité)
+app.use("/api/artisans", require("./routes/artisans"));
 
-const adminRoutes = require("./routes/admin.routes");
-app.use("/api/admin", adminRoutes);
+// 🧑‍💼 Vendeurs / Articles (gestion produits vendeurs)
+app.use("/api/seller", require("./routes/seller.articles.routes"));
 
-const userRoutes = require("./routes/user");
-app.use("/api/user", userRoutes);
+// 🛒 Commandes (création, suivi, historique)
+app.use("/api/orders", require("./routes/order.routes"));
 
-const productRoutes = require("./routes/products");
-app.use("/api/products", productRoutes);
+// 💰 Budgets (plafonds, alertes, suivi dépenses)
+app.use("/api/budget", require("./routes/budget.routes"));
 
-const artisansRoute = require("./routes/artisans");
-app.use("/api/artisans", artisansRoute);
+// 🧾 Administration (back-office, modération, stats internes)
+app.use("/api/admin", require("./routes/admin.routes"));
 
-const auctionRoutes = require("./routes/auction");
-app.use("/api/auction", auctionRoutes);
+// 🔨 Outils internes (scripts, helpers, debug)
+app.use("/api/tools", require("./routes/tools"));
 
+// 🏭 Fournisseurs (sources produits, partenariats)
+app.use("/api/fournisseurs", require("./routes/fournisseurs"));
+
+// 📨 Feedback utilisateurs (avis, signalements)
 app.use("/api/feedback", require("./routes/feedback"));
 
-const statsRoutes = require("./routes/stats");
-app.use("/stats", statsRoutes);
+// 📊 Statistiques publiques / internes
+app.use("/stats", require("./routes/stats"));
 
-const fournisseursRoute = require("./routes/fournisseurs.js");
-app.use("/api/fournisseurs", fournisseursRoute);
+// 🔨 Enchères (création, offres, clôture)
+app.use("/api/auction", require("./routes/auction"));
 
-const toolsRoutes = require("./routes/tools.js");
-app.use("/api/tools", toolsRoutes);
 
-// CRON (fermeture enchères)
-const cron = require("node-cron");
-const closeExpiredAuctions = require("./cronJobs/endAuction");
-cron.schedule("*/5 * * * *", closeExpiredAuctions);
+// ======================================================
+// ⏱️ CRON JOBS (désactivés en test / CI)
+// ======================================================
 
-// 🔎 Route simple
-app.get("/", (_, res) => res.send("🎉 API e-commerce Sawaka opérationnelle !"));
+const isTestOrCI =
+  process.env.NODE_ENV === "test" || process.env.CI === "true";
 
-// =======================
-// 🔌 MongoDB
-// =======================
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ Connecté à MongoDB"))
-  .catch((err) => {
-    console.error("❌ Erreur MongoDB :", err.message);
-    console.error("\n⚠️ Vérifiez votre MONGO_URI dans le .env\n");
-  });
+if (!isTestOrCI) {
+  const cron = require("node-cron");
+  const closeExpiredAuctions = require("./cronJobs/endAuction");
 
-// 🚀 Lancement serveur
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () =>
-  console.log(`🚀 Serveur lancé sur http://localhost:${PORT}`)
+  cron.schedule("*/5 * * * *", closeExpiredAuctions);
+}
+
+// ======================================================
+// 🔎 ROUTE DE SANTÉ / ROOT
+// ======================================================
+
+app.get("/", (_, res) =>
+  res.send("🎉 API e-commerce Sawaka opérationnelle !")
 );
+
+// ======================================================
+// 🔌 CONNEXION MONGODB (SAUF TEST / CI)
+// ======================================================
+// In test/CI we skip connect when app is required by Jest (supertest) because
+// jest.setup.js connects Mongoose. When running the server for Newman (main
+// module), we must connect if MONGO_URI is set.
+
+async function connectMongo() {
+  if (isTestOrCI && !(require.main === module && process.env.MONGO_URI)) {
+    return;
+  }
+  if (!process.env.MONGO_URI) return;
+
+  await mongoose.connect(process.env.MONGO_URI);
+
+  if (!isTestOrCI) console.log("✅ Connecté à MongoDB");
+}
+
+// ======================================================
+// 🚀 LANCEMENT DU SERVEUR
+// ======================================================
+
+const PORT = process.env.PORT || 5000;
+
+if (require.main === module) {
+  connectMongo()
+    .then(() => {
+      app.listen(PORT, () =>
+        console.log(`🚀 Serveur lancé sur http://localhost:${PORT}`)
+      );
+    })
+    .catch((err) => {
+      console.error("❌ Erreur MongoDB :", err.message);
+      process.exit(1);
+    });
+}
+
+module.exports = app;

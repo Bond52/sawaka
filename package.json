@@ -22,12 +22,16 @@
     "react-simple-maps": "^3.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
+    "eslint-config-next": "13.4.19",
+    "wait-on": "^7.2.0",
     "@tailwindcss/forms": "^0.5.7",
     "@tailwindcss/typography": "^0.5.13",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^24.5.2",
     "@types/react": "^19.1.14",
     "autoprefixer": "^10.4.21",
+    "newman": "^6.2.1",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.0.0"
