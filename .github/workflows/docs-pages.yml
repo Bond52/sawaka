@@ -1,0 +1,78 @@
+name: Publish Documentation to GitHub Pages
+
+on:
+  push:
+    branches: [main, qa]
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install backend dependencies
+        working-directory: backend-api
+        run: npm ci
+
+      - name: Run JSDoc generation
+        working-directory: backend-api
+        run: npm run docs:generate
+
+      - name: Run Swagger UI static generation
+        working-directory: backend-api
+        run: npm run docs:swagger-ui
+
+      - name: Copy files to site directory
+        run: |
+          mkdir -p site
+          cp -r backend-api/docs/jsdoc site/jsdoc
+          cp -r backend-api/docs/api-docs site/api-docs
+
+      - name: Add root index
+        run: |
+          cat > site/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Sawaka Documentation</title>
+          </head>
+          <body>
+            <h1>Sawaka Documentation</h1>
+            <ul>
+              <li><a href="/jsdoc/">JSDoc</a> — Code-level API reference</li>
+              <li><a href="/api-docs/">Swagger UI</a> — Interactive API documentation</li>
+            </ul>
+          </body>
+          </html>
+          EOF
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
