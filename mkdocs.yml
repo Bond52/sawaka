@@ -1,0 +1,19 @@
+site_name: Sawaka – Context & Strategy (QA)
+site_url: https://bond52.github.io/sawaka/
+
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+
+nav:
+  - Overview: README.md
+  - Context analysis:
+      - Introduction: context-analysis/README.md
+      - PESTLE: context-analysis/pestle.md
+      - Market analysis: context-analysis/market_analysis.md
+  - Glossary:
+      - Channel model: glossary/channel_model.md
+      - Monetization: glossary/monetization.md
+      - Governance: glossary/type_of_governance.md
