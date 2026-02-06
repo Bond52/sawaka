@@ -1,4 +1,4 @@
-## 1️⃣ Artisan Marketplaces (Formal)
+## 1️⃣ Artisan Marketplaces
 
 | Platform | Model | Target Users | Monetization | Strengths | Weaknesses | Website |
 |--------|-------|--------------|--------------|-----------|------------|---------|
@@ -8,7 +8,7 @@
 Artisan marketplaces assume seller formalization, solvable demand, and logistics maturity. Most are primarily designed for export-oriented sales to external markets, which limits their relevance for artisans operating in low–purchasing-power local contexts. These platforms are therefore complementary rather than competitive to Sawaka. Sawaka addresses an upstream gap by strengthening local visibility, community coordination, and regional opportunity discovery, enabling artisans to collaborate, respond to local demand, and progressively build capacity before engaging with export-focused marketplaces.
 
 
-## 2️⃣ Informal Digital Channels (De facto usage)
+## 2️⃣ Informal Digital Channels
 
 | Channel | Model | Adoption Level | Monetization | Strengths | Weaknesses | Why Artisans Use It |
 |--------|-------|---------------|--------------|-----------|------------|--------------------|

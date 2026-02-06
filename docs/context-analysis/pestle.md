@@ -2,7 +2,7 @@
 
 ---
 
-## 🅿️ Political / Regulatory
+## 🏛️ Political / Regulatory
 
 | Factor | Observation | Impact on Sawaka | Risk / Opportunity | Sources |
 |------|------------|------------------|-------------------|---------|
@@ -11,7 +11,7 @@
 | Digital policy priority | National digital transformation programs such as **PATNUC** demonstrate strong political intent toward the digital economy, mainly focused on public services and the formal economy. | Globally favorable digital environment, but limited direct support for artisans and micro-entrepreneurs, leaving room for independent, community-driven platforms. | ⚠️ Policy–field gap | https://patnuc.cm/ |
 | Support to entrepreneurs (SMEs & informal sector) | The informal economy represents the majority of activity for micro-entrepreneurs and artisans, with limited access to formal public support mechanisms. | Access to support programs occurs mainly through NGOs, associations, or intermediary structures; strong dependency on local partnerships. | ✅ Partnership opportunity | https://data.undp.org/fr/insights/informal-economy |
 
-### 🧠 Tested assumption
+### Assumption
 > Sawaka should prioritize a **community-driven and partnership-based strategy**, relying on direct engagement with economic actors while leveraging state support only when relevant.
 
 ---
@@ -23,7 +23,7 @@
 | Dominance of the informal economy | UNDP data shows that the informal economy overwhelmingly dominates micro-entrepreneur and artisan activity, characterized by low formalization and income instability. | Sawaka must operate without requiring prior administrative or financial formalization and provide simple, inclusive, and accessible mechanisms. | ⚠️ Constraint / ✅ Opportunity | https://data.undp.org/fr/insights/informal-economy |
 | Low consumer purchasing power | Consumer purchasing power is limited; artisanal products are often considered non-essential and face competition from cheaper industrial goods. | Sawaka’s value proposition must first focus on **market access, visibility, and matchmaking**, prior to any monetization targeting artisans. | ⚠️ Risk (limited solvent demand) | https://donnees.banquemondiale.org/pays/cameroun |
 
-### 🧠 Key assumption
+### Assumption
 > The platform must contribute to improving artisans’ **commercial outlets** (visibility, market access, and connections).
 
 ---
@@ -45,19 +45,8 @@
 | High cost of mobile data | Cameroon ranks in the lower half of African countries in the **Affordability Drivers Index (ADI ≈ 47.8/100)**; **1 GB of data costs over 5.7% of monthly income**, exceeding the recommended ≤2% threshold. | UX must strictly minimize data usage: limited heavy media, short interactions, and systematic content optimization. | ⚠️ Risk | https://a4ai.org/wp-content/uploads/2022/03/3522_RegionalReport_Africa.pdf |
 | Basic digital literacy | Digital usage is centered on instant messaging, with **WhatsApp as the dominant communication tool**. | Sawaka should integrate with existing usage patterns (e.g., WhatsApp) rather than attempt to replace them, reducing adoption friction. | ✅ Opportunity | http://histoiresdecm.com/2024/01/24/chiffres-whatsapp-cameroun-2023 |
 
-### 🧠 Structuring decision
+### Assumption
 > Sawaka must prioritize a **simple, fast, mobile-first interface**, tolerant of low-bandwidth environments.
-
----
-
-## 🌱 Environmental
-
-| Factor | Observation | Impact on Sawaka | Risk / Opportunity | Sources |
-|------|------------|------------------|-------------------|---------|
-| Promotion of short value chains | Actions supporting local value chains, collective entrepreneurship, and short supply chains contribute indirectly to strengthening the local economy (e.g., FAO initiatives). | Strengthens Sawaka’s positive image among NGOs, donors, and institutional partners focused on local and sustainable development. | ✅ Opportunity | https://www.fao.org/cameroon/en |
-
-### 🎯 Strategic lever
-> Position Sawaka primarily on **social and cultural impact**, with environmental benefits framed as a credible but secondary outcome rather than a core adoption driver.
 
 ---
 
@@ -69,7 +58,18 @@
 | Personal data protection | Although legal texts exist, the absence of a fully operational national data protection authority limits effective enforcement, including for foreign platforms. | For Sawaka, the primary short-term risk is **reputational and ethical**; voluntary adoption of strong data-protection practices is essential to build trust. | ⚠️ Risk | https://www.village-justice.com/articles/%EF%81%9Bcameroun%EF%81%9D-inexistence-autorite-protection-des-donnees-personnelles-les,53952.html |
 | OHADA business law | Cameroon is a member of **OHADA**, which provides a harmonized regional business law framework for contracts and commercial relations. | Even as an international association, Sawaka benefits from increased contractual predictability when engaging in partnerships, NGO collaborations, or structured economic relationships in Cameroon. | ✅ Opportunity | https://www.ohada.com/ |
 
-### 🧠 Strategic assumption
+### Assumption
 > Sawaka launches as a **non-transactional platform**, while maintaining strategic flexibility for future evolution.
+
+---
+
+## 🌱 Environmental
+
+| Factor | Observation | Impact on Sawaka | Risk / Opportunity | Sources |
+|------|------------|------------------|-------------------|---------|
+| Promotion of short value chains | Actions supporting local value chains, collective entrepreneurship, and short supply chains contribute indirectly to strengthening the local economy (e.g., FAO initiatives). | Strengthens Sawaka’s positive image among NGOs, donors, and institutional partners focused on local and sustainable development. | ✅ Opportunity | https://www.fao.org/cameroon/en |
+
+### Assumption
+> Position Sawaka primarily on **social and cultural impact**, with environmental benefits framed as a credible but secondary outcome rather than a core adoption driver.
 
 ---

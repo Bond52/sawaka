@@ -1,7 +1,4 @@
-# Monetization Models — Sawaka Glossary
-
-This document defines monetization models used in Sawaka’s analysis, requirements, and strategic discussions.
-
+# Monetization Models
 ---
 
 ## Transaction-Based Monetization

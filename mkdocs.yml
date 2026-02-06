@@ -6,14 +6,30 @@ site_dir: site
 
 theme:
   name: material
+  language: en
+  features:
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - content.table
+    - content.code.copy
 
 nav:
-  - Overview: README.md
-  - Context analysis:
+  - Overview: context-analysis/README.md
+
+  - Context Analysis:
       - Introduction: context-analysis/README.md
-      - PESTLE: context-analysis/pestle.md
-      - Market analysis: context-analysis/market_analysis.md
+      - PESTLE Analysis: context-analysis/pestle.md
+      - Market Analysis: context-analysis/market_analysis.md
+      - Stakeholder Matrix (Excel):
+          - Download file: context-analysis/Stakeholder Matrix v1.0_Sawaka.xlsx
+
   - Glossary:
-      - Channel model: glossary/channel_model.md
+      - Channel Model: glossary/channel_model.md
       - Monetization: glossary/monetization.md
-      - Governance: glossary/type_of_governance.md
+      - Type of Governance: glossary/type_of_governance.md
+
+  - Internal Documentation:
+      - Agent Developer Context: agent-developer-context.md
+      - BA Information Management: ba-information-management.md
+      - CI Diagnosis: CI_DIAGNOSIS.md
