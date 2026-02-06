@@ -1,5 +1,5 @@
 # QA documentation validation — no GitHub Pages deployment.
-# Validates that JSDoc and Swagger UI generation succeeds on qa.
+# Validates API docs (JSDoc + Swagger) and business documentation on qa.
 name: Docs QA
 
 on:
@@ -11,10 +11,17 @@ on:
 jobs:
   docs:
     runs-on: ubuntu-latest
+
     steps:
+      # ----------------------------
+      # Checkout
+      # ----------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # ----------------------------
+      # Node setup (API docs)
+      # ----------------------------
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -24,19 +31,44 @@ jobs:
         working-directory: backend-api
         run: npm ci
 
-      - name: Run JSDoc generation
+      # ----------------------------
+      # API documentation validation
+      # ----------------------------
+      - name: Generate JSDoc
         working-directory: backend-api
         run: npm run docs:generate
 
-      - name: Run Swagger UI static generation
+      - name: Generate Swagger UI (static)
         working-directory: backend-api
         run: npm run docs:swagger-ui
 
-      # Artifact for manual download; no Pages deployment on qa
-      - name: Upload documentation artifact
+      # ----------------------------
+      # Business documentation checks
+      # ----------------------------
+      - name: Validate business documentation structure
+        run: |
+          echo "Checking business documentation files..."
+
+          test -f docs/context-analysis/pestle.md
+          test -f docs/context-analysis/market_analysis.md
+          test -f docs/context-analysis/README.md
+
+          test -d docs/glossary
+          test -f docs/glossary/channel_model.md
+          test -f docs/glossary/monetization.md
+          test -f docs/glossary/type_of_governance.md
+
+          echo "Business documentation structure OK"
+
+      # ----------------------------
+      # Artifact (manual download)
+      # ----------------------------
+      - name: Upload QA documentation artifact
         uses: actions/upload-artifact@v4
         with:
           name: docs-qa
           path: |
             backend-api/docs/jsdoc
             backend-api/docs/api-docs
+            docs/context-analysis
+            docs/glossary
