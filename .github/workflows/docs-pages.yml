@@ -4,7 +4,9 @@ name: Docs Publish to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: 
+      - main
+      - qa
 
 concurrency:
   group: pages
