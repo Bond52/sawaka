@@ -1,0 +1,53 @@
+name: "Requirement — Functional"
+description: "Define a functional requirement"
+title: "FR — "
+labels: ["requirement", "functional"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      placeholder: Describe the feature behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: business_intent
+    attributes:
+      label: Business Intent
+      placeholder: Why is this needed?
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_outcome
+    attributes:
+      label: Expected Outcome
+      placeholder: What should happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      placeholder: |
+        - [ ] Criteria 1
+        - [ ] Criteria 2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - High
+        - Medium
+        - Low
+
+  - type: textarea
+    id: relationships
+    attributes:
+      label: Relationships
+      placeholder: Parent / Derived from / Related to

@@ -1,0 +1,43 @@
+name: "Requirement — Non-Functional"
+description: "Define a non-functional requirement (performance, security, reliability...)"
+title: "NFR — "
+labels: ["requirement", "nfr"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      placeholder: Describe the requirement clearly
+    validations:
+      required: true
+
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      placeholder: What is the goal of this requirement?
+    validations:
+      required: true
+
+  - type: textarea
+    id: metric
+    attributes:
+      label: Success Metric
+      placeholder: Example: ≥ 95% delivery success rate
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - High
+        - Medium
+        - Low
+
+  - type: textarea
+    id: relationships
+    attributes:
+      label: Relationships
+      placeholder: Parent / Derived from / Related to
