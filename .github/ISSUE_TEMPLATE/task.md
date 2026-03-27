@@ -1,18 +1,17 @@
----
-name: Task
-about: Create a technical or UI task
-title: "[TASK] "
-labels: ["task"]
-assignees: ""
----
+## Description
+What needs to be done and why.
 
-### Description
-What needs to be done?
+## Scope
+- [ ] Define scope item 1
+- [ ] Define scope item 2
 
-### Technical Notes
-- UI / API / Backend / Infra
+## Technical Notes
+Implementation details (UI / API / Backend / Infra)
 
-### Definition of Done
+## Dependencies
+- Related issues / requirements / blockers
+
+## Definition of Done
 - [ ] Implementation completed
 - [ ] Code reviewed
 - [ ] Tested
