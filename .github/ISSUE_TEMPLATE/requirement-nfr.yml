@@ -1,6 +1,6 @@
 name: "Requirement — Non-Functional"
 description: "Define a non-functional requirement (performance, security, reliability...)"
-title: "NFR — "
+title: "NFR - "
 labels: ["requirement", "nfr"]
 body:
   - type: textarea
