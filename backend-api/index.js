@@ -116,6 +116,9 @@ app.use("/api/tools", require("./routes/tools"));
 // 🏭 Fournisseurs (sources produits, partenariats)
 app.use("/api/fournisseurs", require("./routes/fournisseurs"));
 
+// 🏷️ Fournisseurs (Supplier + magic link)
+app.use("/api/suppliers", require("./routes/supplier.routes"));
+
 // 📨 Feedback utilisateurs (avis, signalements)
 app.use("/api/feedback", require("./routes/feedback"));
 
