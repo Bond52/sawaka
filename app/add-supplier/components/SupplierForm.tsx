@@ -3,6 +3,28 @@
 import { Globe, Lock } from "lucide-react";
 import { useRef, useState } from "react";
 
+type Category =
+  | "construction_materials"
+  | "wood_lumber"
+  | "metal_steel"
+  | "electrical_supplies"
+  | "plumbing_supplies"
+  | "paints_finishes"
+  | "hardware_fasteners"
+  | "hand_tools"
+  | "power_tools"
+  | "industrial_machinery"
+  | "safety_equipment"
+  | "textiles_fabrics"
+  | "leather_accessories"
+  | "art_craft_materials"
+  | "agro_raw_materials"
+  | "food_processing_equipment"
+  | "packaging_containers"
+  | "equipment_rental"
+  | "transport_logistics"
+  | "import_wholesale_distribution";
+
 export const SUPPLIER_CATEGORY_OPTIONS = [
   { label: "Construction Materials", value: "construction_materials" },
   { label: "Wood & Lumber", value: "wood_lumber" },
@@ -27,9 +49,9 @@ export const SUPPLIER_CATEGORY_OPTIONS = [
     label: "Import / Wholesale Distribution",
     value: "import_wholesale_distribution",
   },
-] as const;
+] as const satisfies ReadonlyArray<{ label: string; value: Category }>;
 
-const ALLOWED_CATEGORY_VALUES = new Set(
+const ALLOWED_CATEGORY_VALUES = new Set<Category>(
   SUPPLIER_CATEGORY_OPTIONS.map((o) => o.value)
 );
 
@@ -77,13 +99,13 @@ function isValidOptionalUrl(value: string): boolean {
   }
 }
 
-function normalizeCategoryValues(selected: string[]): string[] {
+function normalizeCategoryValues(selected: string[]): Category[] {
   const asArray = Array.isArray(selected) ? selected : [];
   const filtered = asArray.filter(
-    (v): v is string =>
-      typeof v === "string" && ALLOWED_CATEGORY_VALUES.has(v)
+    (v): v is Category =>
+      typeof v === "string" && ALLOWED_CATEGORY_VALUES.has(v as Category)
   );
-  return Array.from(new Set(filtered));
+  return Array.from(new Set<Category>(filtered));
 }
 
 function buildPayload(
@@ -201,7 +223,7 @@ export default function SupplierForm() {
   const API_URL = resolveApiBaseUrl();
 
   const [form, setForm] = useState<FormState>(initialForm);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [serverMessage, setServerMessage] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -273,7 +295,7 @@ export default function SupplierForm() {
       setSuccess(false);
     };
 
-  const toggleCategory = (value: string) => {
+  const toggleCategory = (value: Category) => {
     if (!ALLOWED_CATEGORY_VALUES.has(value)) return;
     setCategories((prev) => {
       const safe = normalizeCategoryValues(prev);
