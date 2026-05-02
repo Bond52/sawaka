@@ -1,12 +1,5 @@
 const transporter = require("../utils/mailer");
 
-function buildActivationUrl(token) {
-  const raw = (process.env.FRONTEND_URL || "").trim().replace(/\/$/, "");
-  if (!raw) return null;
-  const base = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
-  return `${base}/activate?token=${encodeURIComponent(token)}`;
-}
-
 function escapeHtml(s) {
   return String(s)
     .replace(/&/g, "&amp;")
@@ -41,21 +34,23 @@ const EmailService = {
         return false;
       }
 
-      const url = buildActivationUrl(token);
-      if (!url) {
-        console.error(
-          "EmailService.sendMagicLink: FRONTEND_URL is required to build activation link"
-        );
-        return false;
-      }
+      const BASE_URL = process.env.APP_BASE_URL || "https://qa.sawaka.org";
+      const base = BASE_URL.trim().replace(/\/$/, "");
+      const origin = /^https?:\/\//i.test(base) ? base : `https://${base}`;
+      const link = `${origin}/supplier/activate?token=${encodeURIComponent(
+        token
+      )}`;
 
-      const safeUrl = escapeHtml(url);
+      const safeUrl = escapeHtml(link);
 
       const mailOptions = {
         from,
         to,
         subject: "Activate your Sawaka account",
-        text: `Click the following link to activate your account: ${url}`,
+        headers: {
+          "X-Mailin-track": "0",
+        },
+        text: `Click the following link to activate your account: ${link}`,
         html: `
 <!DOCTYPE html>
 <html lang="en">
@@ -81,7 +76,7 @@ const EmailService = {
           </tr>
           <tr>
             <td style="padding:20px 28px 8px 28px;" align="center">
-              <a href="${url}" style="display:inline-block;padding:12px 28px;background-color:#734c2c;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;border-radius:8px;">Activate account</a>
+              <a href="${link}" style="display:inline-block;padding:12px 28px;background-color:#734c2c;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;border-radius:8px;">Activate account</a>
             </td>
           </tr>
           <tr>
@@ -96,6 +91,10 @@ const EmailService = {
   </table>
 </body>
 </html>`.trim(),
+
+headers: {
+  "X-Mailin-track": "0"
+}
       };
 
       const maxAttempts = 3;
