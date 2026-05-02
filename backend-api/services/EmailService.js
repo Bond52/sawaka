@@ -98,8 +98,22 @@ const EmailService = {
 </html>`.trim(),
       };
 
-      await transporter.sendMail(mailOptions);
-      return true;
+      const maxAttempts = 3;
+      let lastErr;
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          await transporter.sendMail(mailOptions);
+          return true;
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+      console.error("EmailService.sendMagicLink: sendMail failed", {
+        message: lastErr && lastErr.message,
+        code: lastErr && lastErr.code,
+        stack: lastErr && lastErr.stack,
+      });
+      return false;
     } catch (err) {
       console.error("EmailService.sendMagicLink: sendMail failed", {
         message: err && err.message,
