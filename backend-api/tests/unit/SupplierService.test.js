@@ -53,6 +53,12 @@ describe("SupplierService", () => {
       expect(transporter.sendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           to: "s@example.com",
+          text: expect.stringContaining(
+            "https://app.example.com/supplier/activate?token=abc123token"
+          ),
+          html: expect.stringContaining(
+            "https://app.example.com/supplier/activate?token=abc123token"
+          ),
         })
       );
       expect(result).toBe(supplierDoc);
