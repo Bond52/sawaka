@@ -1,4 +1,5 @@
 const transporter = require("../utils/mailer");
+const { buildSupplierActivationUrl } = require("../utils/supplierActivationUrl");
 
 function escapeHtml(s) {
   return String(s)
@@ -34,12 +35,7 @@ const EmailService = {
         return false;
       }
 
-      const BASE_URL = process.env.APP_BASE_URL || "https://qa.sawaka.org";
-      const base = BASE_URL.trim().replace(/\/$/, "");
-      const origin = /^https?:\/\//i.test(base) ? base : `https://${base}`;
-      const link = `${origin}/supplier/activate?token=${encodeURIComponent(
-        token
-      )}`;
+      const link = buildSupplierActivationUrl(token);
 
       const safeUrl = escapeHtml(link);
 
@@ -91,10 +87,6 @@ const EmailService = {
   </table>
 </body>
 </html>`.trim(),
-
-headers: {
-  "X-Mailin-track": "0"
-}
       };
 
       const maxAttempts = 3;

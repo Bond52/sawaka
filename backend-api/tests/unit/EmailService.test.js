@@ -2,18 +2,13 @@ jest.mock("../../utils/mailer");
 
 const transporter = require("../../utils/mailer");
 const EmailService = require("../../services/EmailService");
-
-function expectedMagicLinkUrl(appBaseUrl, token) {
-  const BASE_URL = appBaseUrl || "https://qa.sawaka.org";
-  const base = String(BASE_URL).trim().replace(/\/$/, "");
-  const origin = /^https?:\/\//i.test(base) ? base : `https://${base}`;
-  return `${origin}/supplier/activate?token=${encodeURIComponent(token)}`;
-}
+const { buildSupplierActivationUrl } = require("../../utils/supplierActivationUrl");
 
 describe("EmailService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.APP_BASE_URL = "https://app.example.com";
+    delete process.env.FRONTEND_URL;
     process.env.MAIL_FROM = "noreply@example.com";
     delete process.env.BREVO_SMTP_USER;
     delete process.env.BREVO_SMTP_PASSWORD;
@@ -40,7 +35,7 @@ describe("EmailService", () => {
         })
       );
 
-      const url = expectedMagicLinkUrl(process.env.APP_BASE_URL, token);
+      const url = buildSupplierActivationUrl(token);
       expect(url).toMatch(/\/supplier\/activate\?token=/);
       expect(mailOpts.text).toBe(
         `Click the following link to activate your account: ${url}`
@@ -87,7 +82,7 @@ describe("EmailService", () => {
       await EmailService.sendMagicLink("u@example.org", token);
 
       const mailOpts = transporter.sendMail.mock.calls[0][0];
-      const expected = expectedMagicLinkUrl(process.env.APP_BASE_URL, token);
+      const expected = buildSupplierActivationUrl(token);
       expect(expected).toContain("/supplier/activate?token=");
       expect(expected).toContain(encodeURIComponent(token));
       expect(mailOpts.text).toContain(expected);

@@ -2,6 +2,7 @@ const Supplier = require("../models/Supplier");
 const MagicLinkService = require("./MagicLinkService");
 const MagicLinkToken = require("../models/MagicLinkToken");
 const transporter = require("../utils/mailer");
+const { buildSupplierActivationUrl } = require("../utils/supplierActivationUrl");
 
 const VALIDATION_REASON_MESSAGES = {
   TOKEN_MISSING: "Token required",
@@ -11,11 +12,7 @@ const VALIDATION_REASON_MESSAGES = {
 };
 
 async function sendMagicLinkEmail(to, token) {
-  const base = (process.env.FRONTEND_URL || "").replace(/\/$/, "");
-  const path = process.env.SUPPLIER_MAGIC_LINK_PATH || "/supplier/activate";
-  const url = `${base}${path.startsWith("/") ? path : `/${path}`}?token=${encodeURIComponent(
-    token
-  )}`;
+  const url = buildSupplierActivationUrl(token);
 
   const from =
     process.env.MAIL_FROM || process.env.BREVO_SMTP_USER;
