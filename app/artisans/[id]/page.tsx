@@ -7,16 +7,18 @@ import {
   useSearchParams,
 } from "next/navigation";
 import { ArrowLeft, Mail, Phone, MapPin, User } from "lucide-react";
+import { useTranslation } from "@/src/i18n/I18nProvider";
 import { getArtisan, Artisan } from "@/app/lib/apiArtisans";
 
 type Tab = "produits" | "projets";
 
 export default function ArtisanDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const from = searchParams.get("from"); // 👈 origine
+  const from = searchParams.get("from");
 
   const [artisan, setArtisan] = useState<Artisan | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,7 +46,7 @@ export default function ArtisanDetailPage() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <p className="text-gray-600">Chargement...</p>
+        <p className="text-gray-600">{t("common.loading")}</p>
       </div>
     );
   }
@@ -52,12 +54,12 @@ export default function ArtisanDetailPage() {
   if (!artisan) {
     return (
       <div className="flex flex-col items-center justify-center h-screen">
-        <h2 className="text-xl font-bold mb-2">Artisan introuvable</h2>
+        <h2 className="text-xl font-bold mb-2">{t("artisans.notFound")}</h2>
         <button
           onClick={handleBack}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mt-4"
         >
-          <ArrowLeft size={20} /> Retour
+          <ArrowLeft size={20} /> {t("common.back")}
         </button>
       </div>
     );
@@ -65,15 +67,13 @@ export default function ArtisanDetailPage() {
 
   return (
     <main className="min-h-screen bg-white p-6">
-      {/* RETOUR */}
       <button
         onClick={handleBack}
         className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
       >
-        <ArrowLeft size={20} /> Retour
+        <ArrowLeft size={20} /> {t("common.back")}
       </button>
 
-      {/* ===== CARTE ARTISAN ===== */}
       <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-sm p-8 border border-gray-200">
         <div className="flex flex-col items-center mb-6">
           <img
@@ -81,7 +81,7 @@ export default function ArtisanDetailPage() {
               artisan.avatarUrl ||
               "https://via.placeholder.com/200x200?text=Artisan"
             }
-            alt="artisan"
+            alt={t("artisans.imageAlt")}
             className="w-48 h-48 object-cover rounded-xl border border-gray-300"
           />
 
@@ -113,13 +113,12 @@ export default function ArtisanDetailPage() {
 
           {artisan.commerceName && (
             <p className="flex items-center gap-2">
-              <User size={18} /> Commerce : {artisan.commerceName}
+              <User size={18} /> {t("artisans.shop")} {artisan.commerceName}
             </p>
           )}
         </div>
       </div>
 
-      {/* ===== ONGLET ===== */}
       <div className="max-w-3xl mx-auto mt-10">
         <div className="flex border-b border-gray-200 mb-6">
           <button
@@ -130,7 +129,7 @@ export default function ArtisanDetailPage() {
                 : "text-gray-500"
             }`}
           >
-            Produits
+            {t("artisans.productsTab")}
           </button>
 
           <button
@@ -141,19 +140,19 @@ export default function ArtisanDetailPage() {
                 : "text-gray-500"
             }`}
           >
-            Projets
+            {t("artisans.projectsTab")}
           </button>
         </div>
 
         {activeTab === "produits" && (
           <p className="italic text-gray-600">
-            Aucun produit publié pour le moment.
+            {t("artisans.noProducts")}
           </p>
         )}
 
         {activeTab === "projets" && (
           <p className="italic text-gray-600">
-            Aucun projet associé à cet artisan pour le moment.
+            {t("artisans.noProjects")}
           </p>
         )}
       </div>

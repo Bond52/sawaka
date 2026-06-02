@@ -1,18 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslation } from "@/src/i18n/I18nProvider";
 import FournisseursPage from "@/app/fournisseurs/page";
 import ArtisansPage from "@/app/artisans/page";
 
 export default function ReseauPage() {
+  const { t } = useTranslation();
   const [networkType, setNetworkType] = useState<
     "fournisseur" | "artisan"
   >("fournisseur");
 
   return (
     <div className="wrap py-6">
-
-      {/* BARRE HAUTE : SELECTEUR */}
       <div className="flex justify-end mb-6">
         <select
           value={networkType}
@@ -31,12 +31,11 @@ export default function ReseauPage() {
             focus:ring-2 focus:ring-sawaka-300
           "
         >
-          <option value="fournisseur">Fournisseurs</option>
-          <option value="artisan">Artisans</option>
+          <option value="fournisseur">{t("network.suppliers")}</option>
+          <option value="artisan">{t("network.artisans")}</option>
         </select>
       </div>
 
-      {/* CONTENU */}
       <div>
         {networkType === "fournisseur" ? (
           <FournisseursPage />

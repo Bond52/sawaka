@@ -1,19 +1,21 @@
 'use client';
 
 import Link from "next/link";
+import { useTranslation } from "@/src/i18n/I18nProvider";
 
 export default function AcheteurPage() {
+  const { t } = useTranslation();
+
   return (
     <div>
-      <h1>Bienvenue acheteur</h1>
-      <p>Vous êtes maintenant connecté en tant qu&apos;acheteur.</p>
+      <h1>{t("buyer.welcome")}</h1>
+      <p>{t("buyer.connected")}</p>
 
       <Link href="/acheteur/commandes">
         <button style={{ marginTop: "1rem" }}>
-          📦 Voir mes commandes en cours
+          📦 {t("buyer.viewOrders")}
         </button>
       </Link>
     </div>
   );
 }
-

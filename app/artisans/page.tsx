@@ -2,18 +2,13 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { useTranslation } from "@/src/i18n/I18nProvider";
 
-/* =========================
-   API
-========================= */
 const API =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   process.env.NEXT_PUBLIC_API_BASE ||
   "https://ecommerce-web-avec-tailwind.onrender.com";
 
-/* =========================
-   TYPES
-========================= */
 interface Artisan {
   _id: string;
   firstName?: string;
@@ -31,9 +26,9 @@ interface Artisan {
 }
 
 export default function ArtisansPage() {
+  const { t } = useTranslation();
   const [artisans, setArtisans] = useState<Artisan[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -59,7 +54,6 @@ export default function ArtisansPage() {
     fetchArtisans();
   }, []);
 
-  /* 🔍 Filtrage simple (CSS identique fournisseurs) */
   const filteredArtisans = useMemo(() => {
     return artisans.filter((a) => {
       const displayName =
@@ -79,7 +73,7 @@ export default function ArtisansPage() {
     return (
       <div className="wrap py-12">
         <p className="text-sawaka-600 text-lg">
-          Chargement des artisans...
+          {t("artisans.loading")}
         </p>
       </div>
     );
@@ -87,32 +81,23 @@ export default function ArtisansPage() {
 
   return (
     <div className="wrap py-12">
-      {/* ===== TITRE ===== */}
       <h1 className="text-3xl font-bold text-sawaka-700 mb-4">
-        Artisans
+        {t("artisans.title")}
       </h1>
 
-{/*
-      <p className="text-sawaka-700 text-lg leading-relaxed max-w-2xl mb-8">
-        Découvrez les artisans du réseau Sawaka et entrez en contact
-        avec des professionnels qualifiés.
-      </p>
-*/}
-      {/* 🔎 Recherche (CSS IDENTIQUE fournisseurs) */}
       <div className="flex flex-col md:flex-row gap-4 mb-8">
         <input
           type="text"
-          placeholder="Rechercher un artisan..."
+          placeholder={t("artisans.searchPlaceholder")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full md:w-1/2 px-4 py-2 border border-cream-400 rounded-lg focus:ring-2 focus:ring-sawaka-500"
         />
       </div>
 
-      {/* 🔥 LISTE (CSS IDENTIQUE fournisseurs) */}
       {filteredArtisans.length === 0 ? (
         <p className="text-center text-gray-500 mt-6">
-          Aucun artisan trouvé.
+          {t("artisans.empty")}
         </p>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
@@ -128,33 +113,30 @@ export default function ArtisansPage() {
                 href={`/artisans/${artisan._id}?from=reseau`}
                 className="bg-white border border-cream-300 rounded-lg p-6 shadow-sm hover:shadow-md transition-all block"
               >
-                {/* IMAGE */}
-<div className="flex justify-center mb-4">
-  <img
-    src={
-      artisan.avatarUrl ||
-      "https://via.placeholder.com/300x300?text=Artisan"
-    }
-    alt="artisan"
-    className="w-40 h-40 object-cover rounded-lg border border-cream-300"
-  />
-</div>
+                <div className="flex justify-center mb-4">
+                  <img
+                    src={
+                      artisan.avatarUrl ||
+                      "https://via.placeholder.com/300x300?text=Artisan"
+                    }
+                    alt={t("artisans.imageAlt")}
+                    className="w-40 h-40 object-cover rounded-lg border border-cream-300"
+                  />
+                </div>
 
-
-                {/* TEXTES */}
                 <h2 className="text-xl font-bold text-sawaka-700 mb-1">
                   {displayName}
                 </h2>
 
                 <p className="text-sawaka-600 text-sm mb-2">
-                  {artisan.email || "Email indisponible"}
+                  {artisan.email || t("artisans.emailUnavailable")}
                 </p>
 
                 <p className="text-sawaka-500 text-sm">
-                  Inscrit depuis le{" "}
+                  {t("artisans.registeredSince")}{" "}
                   {artisan.createdAt
                     ? new Date(artisan.createdAt).toLocaleDateString()
-                    : "N/A"}
+                    : t("common.na")}
                 </p>
               </Link>
             );

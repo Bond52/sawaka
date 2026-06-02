@@ -1,7 +1,10 @@
 "use client";
 
+import { useTranslation } from "@/src/i18n/I18nProvider";
+
 export default function ProjetDetailPage() {
-  // 🔹 MOCK projet unique (pour l’instant)
+  const { t } = useTranslation();
+
   const projet = {
     titre: "Faire parler les plantes avec Arduino 🌿🤖",
     auteur: "Pascal Ebong",
@@ -55,7 +58,6 @@ selon le niveau d’humidité détecté.
 
   return (
     <div className="wrap py-12">
-      {/* ===== HEADER ===== */}
       <div className="max-w-4xl mx-auto mb-8">
         <p className="text-xs uppercase text-sawaka-500 mb-2">
           {projet.categorie}
@@ -66,11 +68,10 @@ selon le niveau d’humidité détecté.
         </h1>
 
         <p className="text-sm text-sawaka-600">
-          par <strong>{projet.auteur}</strong> • 📍 {projet.ville}
+          {t("projects.byAuthor", { author: projet.auteur })} • 📍 {projet.ville}
         </p>
       </div>
 
-      {/* ===== IMAGE PRINCIPALE ===== */}
       <div className="max-w-4xl mx-auto mb-10">
         <img
           src={projet.image}
@@ -79,25 +80,20 @@ selon le niveau d’humidité détecté.
         />
       </div>
 
-      {/* ===== CONTENU ===== */}
       <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-        
-        {/* ===== COLONNE GAUCHE (contenu principal) ===== */}
         <div className="md:col-span-2 space-y-8">
-          {/* DESCRIPTION */}
           <section>
             <h2 className="text-xl font-semibold text-sawaka-700 mb-3">
-              À propos du projet
+              {t("projects.about")}
             </h2>
             <p className="text-sawaka-700 whitespace-pre-line">
               {projet.description}
             </p>
           </section>
 
-          {/* ÉTAPES */}
           <section>
             <h2 className="text-xl font-semibold text-sawaka-700 mb-4">
-              Étapes du projet
+              {t("projects.steps")}
             </h2>
 
             <div className="space-y-6">
@@ -107,7 +103,7 @@ selon le niveau d’humidité détecté.
                   className="border rounded-lg p-4 bg-white shadow-sm"
                 >
                   <h3 className="font-semibold text-sawaka-800 mb-2">
-                    Étape {index + 1} — {e.titre}
+                    {t("projects.stepPrefix", { n: index + 1 })} {e.titre}
                   </h3>
                   <p className="text-sawaka-700 whitespace-pre-line">
                     {e.contenu}
@@ -118,12 +114,10 @@ selon le niveau d’humidité détecté.
           </section>
         </div>
 
-        {/* ===== COLONNE DROITE (sidebar Instructables-like) ===== */}
         <aside className="space-y-6">
-          {/* MATÉRIAUX */}
           <div className="border rounded-lg p-4 bg-white shadow-sm">
             <h3 className="font-semibold text-sawaka-700 mb-2">
-              🧱 Matériaux
+              🧱 {t("projects.materials")}
             </h3>
             <ul className="list-disc pl-5 text-sm text-sawaka-700 space-y-1">
               {projet.materiaux.map((m, i) => (
@@ -132,10 +126,9 @@ selon le niveau d’humidité détecté.
             </ul>
           </div>
 
-          {/* OUTILS */}
           <div className="border rounded-lg p-4 bg-white shadow-sm">
             <h3 className="font-semibold text-sawaka-700 mb-2">
-              🔧 Outils
+              🔧 {t("projects.tools")}
             </h3>
             <ul className="list-disc pl-5 text-sm text-sawaka-700 space-y-1">
               {projet.outils.map((o, i) => (
@@ -144,23 +137,20 @@ selon le niveau d’humidité détecté.
             </ul>
           </div>
 
-          {/* CTA */}
           <div className="border rounded-lg p-4 bg-sawaka-50 text-center">
             <p className="text-sm text-sawaka-700 mb-3">
-              Intéressé par ce projet ?
+              {t("projects.interested")}
             </p>
 
             <button
-              onClick={() =>
-                alert("🚫 La collaboration nécessite un compte.")
-              }
+              onClick={() => alert(t("alerts.collaborationRequiresAccount"))}
               className="w-full bg-sawaka-600 hover:bg-sawaka-700 text-white py-2 rounded-lg transition"
             >
-              📩 Contacter le porteur du projet
+              📩 {t("projects.contactOwner")}
             </button>
 
             <p className="mt-3 text-xs text-sawaka-500 italic">
-              Ceci est un projet communautaire en cours.
+              {t("projects.communityNote")}
             </p>
           </div>
         </aside>
