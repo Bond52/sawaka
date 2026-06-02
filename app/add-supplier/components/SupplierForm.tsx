@@ -391,12 +391,14 @@ export default function SupplierForm() {
 
   return (
     <form
+      data-testid="supplier-form"
       onSubmit={handleSubmit}
       className="rounded-2xl border border-slate-200/90 bg-white shadow-soft"
     >
       <div className="p-6 sm:p-8 lg:p-10 space-y-8">
         {success && (
           <div
+            data-testid="supplier-success"
             className="rounded-xl border border-emerald-200/90 bg-emerald-50/90 px-4 py-3.5 text-sm font-medium text-emerald-900 shadow-sm"
             role="status"
           >
@@ -414,7 +416,10 @@ export default function SupplierForm() {
         )}
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+          <h2
+            data-testid="supplier-form-title"
+            className="text-2xl font-bold tracking-tight text-slate-900"
+          >
             {t("suppliers.formTitle")}
           </h2>
           <div
@@ -440,6 +445,7 @@ export default function SupplierForm() {
             </label>
             <input
               id="supplier-name"
+              data-testid="supplier-input-name"
               name="name"
               value={form.name}
               onChange={update("name")}
@@ -450,7 +456,11 @@ export default function SupplierForm() {
               aria-describedby={fieldErrors.name ? "err-name" : undefined}
             />
             {fieldErrors.name && (
-              <p id="err-name" className="mt-1.5 text-sm font-medium text-red-600">
+              <p
+                id="err-name"
+                data-testid="supplier-error-name"
+                className="mt-1.5 text-sm font-medium text-red-600"
+              >
                 {fieldErrors.name}
               </p>
             )}
@@ -504,6 +514,7 @@ export default function SupplierForm() {
               </label>
               <input
                 id="supplier-country"
+                data-testid="supplier-input-country"
                 name="country"
                 value={form.country}
                 onChange={update("country")}
@@ -516,7 +527,11 @@ export default function SupplierForm() {
                 }
               />
               {fieldErrors.country && (
-                <p id="err-country" className="mt-1.5 text-sm font-medium text-red-600">
+                <p
+                  id="err-country"
+                  data-testid="supplier-error-country"
+                  className="mt-1.5 text-sm font-medium text-red-600"
+                >
                   {fieldErrors.country}
                 </p>
               )}
@@ -600,6 +615,7 @@ export default function SupplierForm() {
             </label>
             <input
               id="supplier-account-email"
+              data-testid="supplier-input-account-email"
               type="email"
               name="accountEmail"
               value={form.accountEmail}
@@ -613,7 +629,11 @@ export default function SupplierForm() {
               }
             />
             {fieldErrors.accountEmail && (
-              <p id="err-accountEmail" className="mt-1.5 text-sm font-medium text-red-600">
+              <p
+                id="err-accountEmail"
+                data-testid="supplier-error-account-email"
+                className="mt-1.5 text-sm font-medium text-red-600"
+              >
                 {fieldErrors.accountEmail}
               </p>
             )}
@@ -676,6 +696,7 @@ export default function SupplierForm() {
             </label>
             <input
               id="supplier-phone"
+              data-testid="supplier-input-phone"
               type="tel"
               name="phone"
               value={form.phone}
@@ -687,7 +708,11 @@ export default function SupplierForm() {
               aria-describedby={fieldErrors.phone ? "err-phone" : undefined}
             />
             {fieldErrors.phone && (
-              <p id="err-phone" className="mt-1.5 text-sm font-medium text-red-600">
+              <p
+                id="err-phone"
+                data-testid="supplier-error-phone"
+                className="mt-1.5 text-sm font-medium text-red-600"
+              >
                 {fieldErrors.phone}
               </p>
             )}
@@ -721,6 +746,7 @@ export default function SupplierForm() {
         <div className="pt-2">
           <button
             type="submit"
+            data-testid="supplier-submit"
             disabled={submitting}
             className="btn btn-primary w-full min-h-[48px] rounded-xl px-6 py-3 text-base font-semibold shadow-sm disabled:pointer-events-none disabled:opacity-50 sm:w-auto sm:min-w-[220px]"
           >

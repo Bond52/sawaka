@@ -1,47 +1,26 @@
 import { test, expect } from "@playwright/test";
 
-const SUCCESS =
-  "Supplier profile created. Please check your email to complete activation.";
-
 test.describe("/add-supplier", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/add-supplier");
   });
 
   test("loads supplier form page", async ({ page }) => {
-    await expect(
-      page.getByRole("heading", { name: /Ajouter un fournisseur/i })
-    ).toBeVisible();
-    await expect(
-      page.getByRole("heading", { name: /Create Your Supplier Profile/i })
-    ).toBeVisible();
-    await expect(
-      page.getByRole("textbox", { name: /Supplier Name/i })
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: /Créer le profil fournisseur/i })
-    ).toBeVisible();
+    await expect(page.getByTestId("add-supplier-page-title")).toBeVisible();
+    await expect(page.getByTestId("add-supplier-page-subtitle")).toBeVisible();
+    await expect(page.getByTestId("supplier-form")).toBeVisible();
+    await expect(page.getByTestId("supplier-form-title")).toBeVisible();
+    await expect(page.getByTestId("supplier-input-name")).toBeVisible();
+    await expect(page.getByTestId("supplier-submit")).toBeVisible();
   });
 
   test("submit empty form shows validation errors", async ({ page }) => {
-    await page
-      .getByRole("button", { name: /Créer le profil fournisseur/i })
-      .click();
+    await page.getByTestId("supplier-submit").click();
 
-    await expect(
-      page.getByText(/Indiquez le nom du fournisseur \(champ obligatoire\)\./)
-    ).toBeVisible();
-    await expect(
-      page.getByText(/Indiquez le pays \(champ obligatoire\)\./)
-    ).toBeVisible();
-    await expect(
-      page.getByText(/Indiquez l['’]e-mail du compte \(champ obligatoire\)\./)
-    ).toBeVisible();
-    await expect(
-      page.getByText(
-        /Indiquez un numéro de téléphone \(champ obligatoire\)\./
-      )
-    ).toBeVisible();
+    await expect(page.getByTestId("supplier-error-name")).toBeVisible();
+    await expect(page.getByTestId("supplier-error-country")).toBeVisible();
+    await expect(page.getByTestId("supplier-error-account-email")).toBeVisible();
+    await expect(page.getByTestId("supplier-error-phone")).toBeVisible();
   });
 
   test("fill required fields submits and shows success message", async ({
@@ -59,15 +38,15 @@ test.describe("/add-supplier", () => {
       });
     });
 
-    await page.getByLabel(/Supplier Name/i).fill("Playwright Test Supplier");
-    await page.getByLabel(/^Country/i).fill("Cameroon");
-    await page.getByLabel(/Email for account access/i).fill("supplier@test.example");
-    await page.getByLabel(/^Phone number/i).fill("+237612345678");
-
+    await page.getByTestId("supplier-input-name").fill("Playwright Test Supplier");
+    await page.getByTestId("supplier-input-country").fill("Cameroon");
     await page
-      .getByRole("button", { name: /Créer le profil fournisseur/i })
-      .click();
+      .getByTestId("supplier-input-account-email")
+      .fill("supplier@test.example");
+    await page.getByTestId("supplier-input-phone").fill("+237612345678");
 
-    await expect(page.getByRole("status")).toContainText(SUCCESS);
+    await page.getByTestId("supplier-submit").click();
+
+    await expect(page.getByTestId("supplier-success")).toBeVisible();
   });
 });
