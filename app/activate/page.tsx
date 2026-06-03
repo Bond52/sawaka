@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslation } from "@/src/i18n/I18nProvider";
 
 const SUPPLIER_JWT_KEY = "supplierJwt";
 
@@ -17,7 +18,11 @@ function resolveApiBaseUrl(): string {
   return "";
 }
 
-function mapActivationError(raw: string, status: number): string {
+function mapActivationError(
+  raw: string,
+  status: number,
+  t: (key: string) => string
+): string {
   const lower = raw.toLowerCase();
 
   if (
@@ -25,7 +30,7 @@ function mapActivationError(raw: string, status: number): string {
     lower.includes("déjà utilisé") ||
     lower.includes("already been used")
   ) {
-    return "Already used";
+    return t("activation.alreadyUsed");
   }
 
   if (
@@ -33,7 +38,7 @@ function mapActivationError(raw: string, status: number): string {
     lower.includes("expiré") ||
     lower.includes("expiration")
   ) {
-    return "Expired link";
+    return t("activation.expiredLink");
   }
 
   if (
@@ -42,7 +47,7 @@ function mapActivationError(raw: string, status: number): string {
     lower.includes("not found") ||
     status === 404
   ) {
-    return "Invalid link";
+    return t("activation.invalidLink");
   }
 
   if (
@@ -50,34 +55,35 @@ function mapActivationError(raw: string, status: number): string {
     lower.includes("could not be activated") ||
     status === 409
   ) {
-    return "Invalid link";
+    return t("activation.invalidLink");
   }
 
   if (status >= 500) {
-    return "Something went wrong. Please try again later.";
+    return t("activation.serverError");
   }
 
   if (raw.trim()) return raw.trim();
 
-  return "Invalid link";
+  return t("activation.invalidLink");
 }
 
 function ActivateContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useTranslation();
   const token = searchParams.get("token")?.trim() ?? "";
 
   const [phase, setPhase] = useState<"loading" | "success" | "error">(() =>
     token ? "loading" : "error"
   );
-  const [errorMessage, setErrorMessage] = useState<string | null>(() =>
-    token
-      ? null
-      : "Invalid link"
-  );
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      setPhase("error");
+      setErrorMessage(t("activation.invalidLink"));
+      return;
+    }
 
     let cancelled = false;
 
@@ -91,9 +97,7 @@ function ActivateContent() {
         if (!API_URL) {
           if (!cancelled) {
             setPhase("error");
-            setErrorMessage(
-              "Application misconfiguration: NEXT_PUBLIC_API_BASE is not set."
-            );
+            setErrorMessage(t("activation.misconfiguration"));
           }
           return;
         }
@@ -121,7 +125,7 @@ function ActivateContent() {
             (typeof data.message === "string" && data.message) ||
             "";
           setPhase("error");
-          setErrorMessage(mapActivationError(errText, res.status));
+          setErrorMessage(mapActivationError(errText, res.status, t));
           return;
         }
 
@@ -132,7 +136,7 @@ function ActivateContent() {
 
         if (!jwt) {
           setPhase("error");
-          setErrorMessage("Invalid link");
+          setErrorMessage(t("activation.invalidLink"));
           return;
         }
 
@@ -140,9 +144,7 @@ function ActivateContent() {
           localStorage.setItem(SUPPLIER_JWT_KEY, jwt);
         } catch {
           setPhase("error");
-          setErrorMessage(
-            "Could not save your session. Enable storage and try again."
-          );
+          setErrorMessage(t("activation.sessionSaveFailed"));
           return;
         }
 
@@ -150,9 +152,7 @@ function ActivateContent() {
       } catch {
         if (!cancelled) {
           setPhase("error");
-          setErrorMessage(
-            "Unable to reach the server. Check your connection and try again."
-          );
+          setErrorMessage(t("activation.networkError"));
         }
       }
     })();
@@ -160,7 +160,7 @@ function ActivateContent() {
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [token, t]);
 
   return (
     <div className="flex min-h-[calc(100vh-8rem)] flex-col items-center justify-center px-4 py-12 sm:py-16">
@@ -172,10 +172,10 @@ function ActivateContent() {
               aria-hidden
             />
             <p className="text-base font-semibold text-slate-900">
-              Activating your account...
+              {t("activation.activating")}
             </p>
             <p className="mt-2 text-sm text-slate-500">
-              Please wait while we confirm your link.
+              {t("activation.pleaseWait")}
             </p>
           </>
         )}
@@ -199,14 +199,14 @@ function ActivateContent() {
               </svg>
             </div>
             <p className="text-lg font-semibold text-slate-900">
-              Your account has been successfully activated.
+              {t("activation.success")}
             </p>
             <button
               type="button"
               onClick={() => router.push("/")}
               className="btn btn-primary w-full min-h-[48px] rounded-xl text-base font-semibold"
             >
-              Go to dashboard
+              {t("activation.goDashboard")}
             </button>
           </div>
         )}
@@ -237,7 +237,7 @@ function ActivateContent() {
               onClick={() => router.push("/")}
               className="btn btn-outline w-full min-h-[48px] rounded-xl font-semibold"
             >
-              Go to home
+              {t("activation.goHome")}
             </button>
           </div>
         )}
@@ -247,6 +247,7 @@ function ActivateContent() {
 }
 
 function ActivateFallback() {
+  const { t } = useTranslation();
   return (
     <div className="flex min-h-[calc(100vh-8rem)] flex-col items-center justify-center px-4 py-12">
       <div className="w-full max-w-md rounded-2xl border border-slate-200/90 bg-white p-8 shadow-soft text-center">
@@ -255,7 +256,7 @@ function ActivateFallback() {
           aria-hidden
         />
         <p className="text-base font-semibold text-slate-900">
-          Activating your account...
+          {t("activation.activating")}
         </p>
       </div>
     </div>

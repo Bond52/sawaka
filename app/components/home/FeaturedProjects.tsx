@@ -1,18 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslation } from "@/src/i18n/I18nProvider";
 
 export default function FeaturedProjects() {
-  /* IDs REELS issus de ta base */
+  const { t } = useTranslation();
+
   const IDS = {
     pascal: "692a3dc77be2252fe0996451",
     amina: "692a3dc77be2252fe099644d",
     samuel: "692a3dc77be2252fe099644e",
   };
 
-  /* ============================
-        PROJETS (MOCK HOME)
-  ============================= */
   const projets = [
     {
       auteur: "Pascal Ebong",
@@ -44,35 +43,29 @@ export default function FeaturedProjects() {
   ];
 
   function handleComingSoon() {
-    alert(
-      "🚧 Ce projet n’a pas encore de page de détail.\n\n👉 Le projet Arduino est disponible en exemple."
-    );
+    alert(t("alerts.projectDetailUnavailable"));
   }
 
   return (
     <section>
-      {/* ===== HEADER ===== */}
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-2xl font-bold text-sawaka-800">
-          Projets en Vedette
+          {t("home.featuredProjects")}
         </h2>
-
         <Link
           href="/projets"
           className="text-sm font-medium text-orange-600 border border-orange-500 px-4 py-2 rounded-lg hover:bg-orange-50 transition"
         >
-          Voir tous →
+          {t("home.seeAll")}
         </Link>
       </div>
 
-      {/* ===== GRID ===== */}
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {projets.map((p, index) => (
           <div
             key={index}
             className="bg-white rounded-xl border shadow-sm hover:shadow-md transition overflow-hidden"
           >
-            {/* IMAGE */}
             <div className="h-44 bg-cream-100 overflow-hidden">
               <img
                 src={p.image}
@@ -80,39 +73,30 @@ export default function FeaturedProjects() {
                 className="h-full w-full object-cover"
               />
             </div>
-
-            {/* CONTENT */}
             <div className="p-4">
               <p className="text-xs uppercase text-orange-500 mb-1">
                 {p.categorie}
               </p>
-
               <h3 className="font-semibold text-sawaka-800 mb-2 line-clamp-2">
                 {p.titre}
               </h3>
-
               <p className="text-sm text-sawaka-600">
-                par {p.auteur}
+                {t("common.by")} {p.auteur}
               </p>
-
-              <p className="text-xs text-sawaka-500 mb-3">
-                📍 {p.ville}
-              </p>
-
-              {/* ACTION */}
+              <p className="text-xs text-sawaka-500 mb-3">📍 {p.ville}</p>
               {p.hasDetailPage ? (
                 <Link
                   href={`/projets/${p.id}`}
                   className="text-sm text-orange-600 hover:underline"
                 >
-                  Voir le projet →
+                  {t("home.seeProject")}
                 </Link>
               ) : (
                 <button
                   onClick={handleComingSoon}
                   className="text-sm text-sawaka-400 hover:text-sawaka-600 underline"
                 >
-                  Voir le projet →
+                  {t("home.seeProject")}
                 </button>
               )}
             </div>

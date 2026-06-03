@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "@/src/i18n/I18nProvider";
 
-/* ------------------------------------------------------------------
-   📌 Liste des villes disponibles
-------------------------------------------------------------------- */
 const CITIES = [
   "Douala",
   "Yaoundé",
@@ -22,25 +20,21 @@ const CITIES = [
 ];
 
 export default function ProjectExplorer() {
+  const { t } = useTranslation();
   const [projectType, setProjectType] =
     useState<"business" | "creative">("business");
-
   const [keyword, setKeyword] = useState("");
   const [budget, setBudget] = useState<number>(0);
   const [city, setCity] = useState("");
-
-  const [result, setResult] = useState<any | null>(null);
+  const [result, setResult] = useState<{ ok: boolean } | null>(null);
   const [loading, setLoading] = useState(false);
-
   const resultsRef = useRef<HTMLDivElement | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!keyword && !budget && !city) return;
-
     setLoading(true);
     setResult(null);
-
     setTimeout(() => {
       setResult({ ok: true });
       setLoading(false);
@@ -55,34 +49,21 @@ export default function ProjectExplorer() {
 
   return (
     <>
-      {/* ===== FORMULAIRE ===== */}
       <form
         onSubmit={handleSubmit}
-        className="
-          w-full max-w-5xl mx-auto
-          bg-white border border-gray-200
-          rounded-2xl
-          px-6 py-3
-          flex flex-col md:flex-row
-          gap-3
-          items-center
-          shadow-sm
-        "
+        className="w-full max-w-5xl mx-auto bg-white border border-gray-200 rounded-2xl px-6 py-3 flex flex-col md:flex-row gap-3 items-center shadow-sm"
       >
-        {/* MOTS-CLÉS */}
         <input
           type="text"
-          placeholder="Rechercher par mots-clés..."
+          placeholder={t("home.searchKeywords")}
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
           className="flex-1 h-11 px-4 border border-gray-300 rounded-lg outline-none text-sm focus:border-orange-500"
         />
-
-        {/* BUDGET */}
         <input
           type="text"
           inputMode="numeric"
-          placeholder="Budget (FCFA)"
+          placeholder={t("home.budgetFcfa")}
           value={budget || ""}
           onChange={(e) => {
             const cleaned = e.target.value.replace(/\D/g, "");
@@ -90,31 +71,26 @@ export default function ProjectExplorer() {
           }}
           className="h-11 px-4 border border-gray-300 rounded-lg outline-none text-sm focus:border-orange-500"
         />
-
-        {/* VILLE */}
         <select
           value={city}
           onChange={(e) => setCity(e.target.value)}
           className="h-11 px-4 border border-gray-300 rounded-lg bg-white text-sm outline-none focus:border-orange-500"
         >
-          <option value="">Ville</option>
+          <option value="">{t("home.city")}</option>
           {CITIES.map((c) => (
             <option key={c} value={c}>
               {c}
             </option>
           ))}
         </select>
-
-        {/* BOUTON */}
         <button
           type="submit"
           className="h-11 px-7 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-semibold transition"
         >
-          Rechercher
+          {t("common.search")}
         </button>
       </form>
 
-      {/* TYPE DE PROJET */}
       <div className="mt-1.5 flex justify-center gap-6 text-sm text-sawaka-700">
         <label className="flex items-center gap-2 cursor-pointer">
           <input
@@ -123,9 +99,8 @@ export default function ProjectExplorer() {
             onChange={() => setProjectType("business")}
             className="accent-orange-500"
           />
-          Projet d’entreprise
+          {t("home.projectTypeBusiness")}
         </label>
-
         <label className="flex items-center gap-2 cursor-pointer">
           <input
             type="radio"
@@ -133,21 +108,17 @@ export default function ProjectExplorer() {
             onChange={() => setProjectType("creative")}
             className="accent-orange-500"
           />
-          Projet créatif
+          {t("home.projectTypeCreative")}
         </label>
       </div>
 
       {loading && (
         <p className="mt-3 text-center text-sm text-sawaka-600">
-          Recherche en cours…
+          {t("home.searching")}
         </p>
       )}
 
-      {result && (
-        <div ref={resultsRef} className="mt-8">
-          {/* résultats à venir */}
-        </div>
-      )}
+      {result && <div ref={resultsRef} className="mt-8" />}
     </>
   );
 }

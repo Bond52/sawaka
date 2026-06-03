@@ -1,7 +1,8 @@
-'use client';
+"use client";
 
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { useTranslation } from "@/src/i18n/I18nProvider";
 
 type Props = {
   onSuccess?: () => void;
@@ -10,52 +11,51 @@ type Props = {
 export default function LoginForm({ onSuccess }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useTranslation();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const API_URL =
     process.env.NEXT_PUBLIC_API_BASE ||
-    (typeof window !== 'undefined' && window.location.hostname === 'localhost'
-      ? 'http://localhost:5000'
-      : 'https://ecommerce-web-avec-tailwind.onrender.com');
+    (typeof window !== "undefined" && window.location.hostname === "localhost"
+      ? "http://localhost:5000"
+      : "https://ecommerce-web-avec-tailwind.onrender.com");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    localStorage.removeItem('user');
-    document.cookie = 'token=; Max-Age=0; path=/';
+    localStorage.removeItem("user");
+    document.cookie = "token=; Max-Age=0; path=/";
 
     try {
       const res = await fetch(`${API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
 
       const data = await res.json();
-      if (!res.ok) return alert(data.error || 'Identifiants incorrects');
+      if (!res.ok) return alert(data.error || t("alerts.wrongCredentials"));
 
       if (data.token) {
         localStorage.setItem(
-          'user',
+          "user",
           JSON.stringify({
             token: data.token,
             roles: data.roles,
-            username: data.username || email.split('@')[0],
-            firstName: data.firstName || '',
-            lastName: data.lastName || '',
+            username: data.username || email.split("@")[0],
+            firstName: data.firstName || "",
+            lastName: data.lastName || "",
           })
         );
       }
 
       onSuccess?.();
-
-      const redirect = searchParams.get('redirect');
-      router.push(redirect || '/');
+      const redirect = searchParams.get("redirect");
+      router.push(redirect || "/");
     } catch {
-      alert('Erreur de connexion au serveur');
+      alert(t("alerts.serverConnectionError"));
     }
   };
 
@@ -63,34 +63,32 @@ export default function LoginForm({ onSuccess }: Props) {
     <form onSubmit={handleLogin} className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-sawaka-800 mb-1">
-          Email
+          {t("auth.email")}
         </label>
         <input
           type="email"
-          placeholder="Votre email"
+          placeholder={t("auth.emailPlaceholder")}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
           className="w-full rounded-lg border px-3 py-2"
         />
       </div>
-
       <div>
         <label className="block text-sm font-medium text-sawaka-800 mb-1">
-          Mot de passe
+          {t("auth.password")}
         </label>
         <input
           type="password"
-          placeholder="Votre mot de passe"
+          placeholder={t("auth.passwordPlaceholder")}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
           className="w-full rounded-lg border px-3 py-2"
         />
       </div>
-
       <button type="submit" className="btn-primary w-full">
-        Se connecter
+        {t("auth.login")}
       </button>
     </form>
   );

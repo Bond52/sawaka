@@ -2,24 +2,18 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslation } from "@/src/i18n/I18nProvider";
 import {
   activateSupplierWithMagicLink,
   SUPPLIER_JWT_KEY,
 } from "@/app/lib/apiSuppliers";
-
-const MESSAGES = {
-  loadingTitle: "Activating your supplier account...",
-  loadingHint: "Please wait while we confirm your activation link.",
-  success:
-    "Your supplier account has been successfully activated.",
-  error: "This activation link is invalid or expired.",
-} as const;
 
 type Phase = "loading" | "success" | "error";
 
 function SupplierActivateContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useTranslation();
   const token = searchParams.get("token")?.trim() ?? "";
 
   const [phase, setPhase] = useState<Phase>(() => (token ? "loading" : "error"));
@@ -68,9 +62,9 @@ function SupplierActivateContent() {
               aria-hidden
             />
             <p className="text-base font-semibold text-slate-900">
-              {MESSAGES.loadingTitle}
+              {t("activation.supplierActivating")}
             </p>
-            <p className="mt-2 text-sm text-slate-500">{MESSAGES.loadingHint}</p>
+            <p className="mt-2 text-sm text-slate-500">{t("activation.supplierPleaseWait")}</p>
           </>
         )}
 
@@ -93,14 +87,14 @@ function SupplierActivateContent() {
               </svg>
             </div>
             <p className="text-lg font-semibold text-slate-900">
-              {MESSAGES.success}
+              {t("activation.supplierSuccess")}
             </p>
             <button
               type="button"
               onClick={() => router.push("/")}
               className="btn btn-primary w-full min-h-[48px] rounded-xl text-base font-semibold"
             >
-              Go to home
+              {t("activation.goHome")}
             </button>
           </div>
         )}
@@ -124,14 +118,14 @@ function SupplierActivateContent() {
               </svg>
             </div>
             <p className="text-base font-semibold text-red-900">
-              {MESSAGES.error}
+              {t("activation.supplierInvalidLink")}
             </p>
             <button
               type="button"
               onClick={() => router.push("/add-supplier")}
               className="btn btn-outline w-full min-h-[48px] rounded-xl font-semibold"
             >
-              Request a new link
+              {t("activation.requestNewLink")}
             </button>
           </div>
         )}
@@ -141,6 +135,7 @@ function SupplierActivateContent() {
 }
 
 function SupplierActivateFallback() {
+  const { t } = useTranslation();
   return (
     <div className="flex min-h-[calc(100vh-8rem)] flex-col items-center justify-center px-4 py-12">
       <div className="w-full max-w-md rounded-2xl border border-slate-200/90 bg-white p-8 text-center shadow-soft">
@@ -149,7 +144,7 @@ function SupplierActivateFallback() {
           aria-hidden
         />
         <p className="text-base font-semibold text-slate-900">
-          {MESSAGES.loadingTitle}
+          {t("activation.supplierActivating")}
         </p>
       </div>
     </div>

@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ShoppingCart, Heart, Star, User, MessageCircle, ArrowLeft } from "lucide-react";
+import { useTranslation } from "@/src/i18n/I18nProvider";
 
 interface Comment {
   _id?: string;
@@ -38,6 +39,7 @@ interface Article {
 }
 
 export default function ProduitDetail() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const router = useRouter();
   const [article, setArticle] = useState<Article | null>(null);
@@ -72,7 +74,7 @@ export default function ProduitDetail() {
         setArticle(data);
       } catch (err) {
         console.error("Erreur chargement article :", err);
-        setError("Impossible de charger l'article");
+        setError(t("products.loadError"));
       } finally {
         setLoading(false);
       }
@@ -101,7 +103,7 @@ export default function ProduitDetail() {
     }
 
     localStorage.setItem("cart", JSON.stringify(cart));
-    alert(`${quantity} article(s) ajouté(s) au panier !`);
+    alert(t("alerts.cartItemsAdded", { count: quantity }));
   };
 
   // Like / Unlike
@@ -116,7 +118,7 @@ export default function ProduitDetail() {
       });
 
       if (!res.ok) {
-        throw new Error("Vous devez être connecté pour aimer un article");
+        throw new Error(t("alerts.loginToLike"));
       }
 
       const data = await res.json();
@@ -127,7 +129,7 @@ export default function ProduitDetail() {
         setArticle({ ...article, likes: Array.from({ length: totalLikes }, () => "x") });
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Erreur lors du like");
+      alert(err instanceof Error ? err.message : t("alerts.likeError"));
     }
   };
 
@@ -135,7 +137,7 @@ export default function ProduitDetail() {
   const handleComment = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     if (!id || !comment.trim()) {
-      alert("Veuillez écrire un commentaire");
+      alert(t("alerts.writeComment"));
       return;
     }
 
@@ -148,7 +150,7 @@ export default function ProduitDetail() {
       });
 
       if (!res.ok) {
-        throw new Error("Vous devez être connecté pour commenter");
+        throw new Error(t("alerts.loginToComment"));
       }
 
       setComment("");
@@ -158,18 +160,18 @@ export default function ProduitDetail() {
       const refreshedData = await refreshRes.json();
       setArticle(refreshedData);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Erreur lors de l'ajout du commentaire");
+      alert(err instanceof Error ? err.message : t("alerts.commentError"));
     }
   };
 
   // 🔨 Fonction pour enchérir
   const handleBid = async () => {
     if (!article) return;
-    if (!newBid) return alert("Veuillez entrer un montant.");
+    if (!newBid) return alert(t("alerts.enterAmount"));
     const bidAmount = parseFloat(newBid);
 
     if (isNaN(bidAmount) || bidAmount <= (article.auction?.highestBid || 0)) {
-      return alert("Le montant doit être strictement supérieur à l'enchère actuelle.");
+      return alert(t("alerts.bidMustExceed"));
     }
 
     try {
@@ -188,13 +190,13 @@ export default function ProduitDetail() {
             : prev
         );
         setNewBid("");
-        alert("✅ Enchère placée avec succès !");
+        alert(t("alerts.bidSuccess"));
       } else {
-        alert(data.message || "Erreur lors de l'enchère");
+        alert(data.message || t("alerts.bidError"));
       }
     } catch (err) {
       console.error(err);
-      alert("Erreur réseau lors de l'enchère.");
+      alert(t("alerts.bidNetworkError"));
     }
   };
 
@@ -203,7 +205,7 @@ export default function ProduitDetail() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-16 w-16 border-b-4 border-sawaka-600"></div>
-          <p className="mt-4 text-sawaka-700">Chargement du produit...</p>
+          <p className="mt-4 text-sawaka-700">{t("products.loadingDetail")}</p>
         </div>
       </div>
     );
@@ -213,10 +215,10 @@ export default function ProduitDetail() {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-sawaka-800 mb-4">Produit introuvable</h1>
-          <p className="text-sawaka-600 mb-6">{error || "Ce produit n'existe pas ou a été supprimé"}</p>
+          <h1 className="text-2xl font-bold text-sawaka-800 mb-4">{t("products.notFound")}</h1>
+          <p className="text-sawaka-600 mb-6">{error || t("products.notFoundDesc")}</p>
           <button onClick={() => router.push("/produits")} className="btn-primary">
-            Retour aux produits
+            {t("products.backToProducts")}
           </button>
         </div>
       </div>
@@ -234,7 +236,7 @@ export default function ProduitDetail() {
           onClick={() => router.push("/produits")}
           className="flex items-center gap-2 text-sawaka-700 hover:text-sawaka-900 mb-6 transition"
         >
-          <ArrowLeft size={20} /> Retour aux produits
+          <ArrowLeft size={20} /> {t("products.backToProducts")}
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-white rounded-2xl shadow-lg p-6 lg:p-8">
@@ -252,7 +254,7 @@ export default function ProduitDetail() {
 
               {article.stock === 0 && (
                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                  <span className="text-white text-2xl font-bold">Rupture de stock</span>
+                  <span className="text-white text-2xl font-bold">{t("products.outOfStock")}</span>
                 </div>
               )}
             </div>
@@ -279,20 +281,20 @@ export default function ProduitDetail() {
           <div className="flex flex-col">
             <div className="flex-1">
               <h1 className="text-3xl lg:text-4xl font-bold text-sawaka-900 mb-4">{article.title}</h1>
-              <p className="text-sawaka-700 mb-6 leading-relaxed">{article.description || "Aucune description disponible."}</p>
+              <p className="text-sawaka-700 mb-6 leading-relaxed">{article.description || t("products.noDescription")}</p>
 
               {/* 💰 Section enchère */}
               {article.status === "auction" && article.auction?.isActive ? (
                 <div className="border rounded-xl bg-cream-50 p-6 mb-6">
-                  <h3 className="text-xl font-semibold text-sawaka-900 mb-3">💰 Vente aux enchères</h3>
+                  <h3 className="text-xl font-semibold text-sawaka-900 mb-3">💰 {t("products.auction")}</h3>
                   <p className="text-lg mb-2">
-                    Enchère actuelle :{" "}
+                    {t("products.currentBid")}{" "}
                     <span className="font-bold text-green-600">
-                      {article.auction.highestBid.toLocaleString()} FCFA
+                      {article.auction.highestBid.toLocaleString()} {t("common.fcfa")}
                     </span>
                   </p>
                   <p className="text-sawaka-600 mb-4">
-                    Se termine le{" "}
+                    {t("products.endsOn")}{" "}
                     <span className="font-semibold">
                       {new Date(article.auction.endDate).toLocaleString("fr-FR")}
                     </span>
@@ -302,21 +304,21 @@ export default function ProduitDetail() {
                       type="number"
                       value={newBid}
                       onChange={(e) => setNewBid(e.target.value)}
-                      placeholder="Votre offre (FCFA)"
+                      placeholder={t("products.yourBid")}
                       className="border rounded-lg p-2 flex-1"
                     />
                     <button onClick={handleBid} className="btn-primary">
-                      Enchérir
+                      {t("products.placeBid")}
                     </button>
                   </div>
                 </div>
               ) : (
                 <div className="bg-cream-100 rounded-xl p-6 mb-6">
                   <p className="text-4xl font-bold text-sawaka-800">
-                    {article.price.toLocaleString()} <span className="text-2xl">FCFA</span>
+                    {article.price.toLocaleString()} <span className="text-2xl">{t("common.fcfa")}</span>
                   </p>
                   <p className="text-sawaka-600 mt-2">
-                    Stock disponible: <span className="font-semibold">{article.stock}</span>
+                    {t("products.stockAvailable")} <span className="font-semibold">{article.stock}</span>
                   </p>
                 </div>
               )}
@@ -372,14 +374,14 @@ export default function ProduitDetail() {
         onClick={() => router.push(`/artisans/${article.vendorId?._id}`)}
         className="flex-1 btn-primary flex items-center justify-center gap-2"
       >
-        <MessageCircle size={18} /> Contacter l’artisan
+        <MessageCircle size={18} /> {t("products.contactArtisan")}
       </button>
 
       {/* ❤️ Bouton Like placé à droite du bouton Contact */}
       <button
         type="button"
         onClick={handleLike}
-        aria-label={liked ? "Retirer des favoris" : "Ajouter aux favoris"}
+        aria-label={liked ? t("products.removeFavorite") : t("products.addFavorite")}
         className={`w-12 h-12 rounded-lg transition flex items-center justify-center ${
           liked
             ? "bg-red-500 text-white"
@@ -395,7 +397,7 @@ export default function ProduitDetail() {
 
 
               <p className="text-sm text-sawaka-600">
-                <Heart size={16} className="inline" /> {article.likes?.length || 0} personne(s) aiment ce produit
+                <Heart size={16} className="inline" /> {t("products.peopleLike", { count: article.likes?.length || 0 })}
               </p>
             </div>
 
@@ -403,7 +405,7 @@ export default function ProduitDetail() {
             {article.vendorId && (
               <div className="mt-6 pt-6 border-t border-sawaka-200">
                 <h3 className="text-lg font-semibold text-sawaka-800 mb-3 flex items-center gap-2">
-                  <User size={20} /> Artisan
+                  <User size={20} /> {t("products.artisan")}
                 </h3>
                 <div className="bg-cream-50 rounded-lg p-4">
                   <p className="font-semibold text-sawaka-900">
@@ -429,7 +431,7 @@ export default function ProduitDetail() {
         {/* Commentaires */}
         <div className="mt-8 bg-white rounded-2xl shadow-lg p-6 lg:p-8">
           <h2 className="text-2xl font-bold text-sawaka-900 mb-6">
-            Avis clients ({article.comments?.length || 0})
+            {t("products.reviews", { count: article.comments?.length || 0 })}
           </h2>
           {/* ... commentaires inchangés ... */}
         </div>

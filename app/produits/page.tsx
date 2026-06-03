@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useTranslation } from "@/src/i18n/I18nProvider";
 import { listPublicArticles } from "../lib/apiSeller";
 import type { Article } from "../lib/apiSeller";
 
 const ITEMS_PER_PAGE = 12;
 
 export default function ProduitsPage() {
+  const { t } = useTranslation();
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -43,7 +45,7 @@ export default function ProduitsPage() {
         setPage(1); // reset pagination lors du changement de catégorie
       } catch (err) {
         console.error("❌ Erreur chargement articles :", err);
-        setError(err instanceof Error ? err.message : "Erreur inconnue");
+        setError(err instanceof Error ? err.message : t("common.errorUnknown"));
       } finally {
         setLoading(false);
       }
@@ -71,14 +73,14 @@ export default function ProduitsPage() {
         <div className="text-center py-20">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-sawaka-800"></div>
           <p className="mt-4 text-sawaka-600">
-            Chargement des produits...
+            {t("products.loading")}
           </p>
         </div>
       ) : error ? (
         <p className="text-center text-red-500">{error}</p>
       ) : articles.length === 0 ? (
         <p className="text-center text-sawaka-600">
-          Aucun article trouvé dans cette catégorie.
+          {t("products.emptyCategory")}
         </p>
       ) : (
         <>
@@ -101,12 +103,12 @@ export default function ProduitsPage() {
                     </h2>
 
                     <p className="text-sawaka-600 text-sm mb-3 line-clamp-2">
-                      {a.description || "Article artisanal unique"}
+                      {a.description || t("products.defaultDescription")}
                     </p>
 
                     <span className="text-2xl font-semibold text-sawaka-800">
                       {a.price?.toLocaleString()}{" "}
-                      <span className="text-sm">FCFA</span>
+                      <span className="text-sm">{t("common.fcfa")}</span>
                     </span>
                   </div>
                 </div>
