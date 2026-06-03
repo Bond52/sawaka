@@ -8,30 +8,41 @@ const OPTIONS: { value: Locale; label: string }[] = [
   { value: "fr", label: "FR" },
 ];
 
-export default function LanguageSwitcher() {
+type LanguageSwitcherProps = {
+  className?: string;
+};
+
+export default function LanguageSwitcher({ className = "" }: LanguageSwitcherProps) {
   const { locale, setLocale, t } = useTranslation();
 
   return (
     <div
-      className="flex items-center rounded-lg border border-gray-200 overflow-hidden text-xs font-semibold"
+      data-testid="language-switcher"
+      className={`inline-flex items-center rounded-lg border-2 border-orange-200 bg-white p-0.5 shadow-sm ${className}`.trim()}
       role="group"
       aria-label={t("language.switcher")}
     >
-      {OPTIONS.map(({ value, label }) => (
-        <button
-          key={value}
-          type="button"
-          onClick={() => setLocale(value)}
-          className={`px-2.5 py-1.5 transition ${
-            locale === value
-              ? "bg-sawaka-600 text-white"
-              : "bg-white text-gray-600 hover:bg-gray-50"
-          }`}
-          aria-pressed={locale === value}
-        >
-          {label}
-        </button>
-      ))}
+      {OPTIONS.map(({ value, label }) => {
+        const active = locale === value;
+        return (
+          <button
+            key={value}
+            type="button"
+            data-testid={`language-switcher-${value}`}
+            onClick={() => setLocale(value)}
+            className={[
+              "min-w-[2.75rem] rounded-md px-3 py-1.5 text-sm font-bold transition-colors",
+              active
+                ? "bg-orange-500 text-white shadow-sm"
+                : "text-gray-700 hover:bg-orange-50 hover:text-orange-700",
+            ].join(" ")}
+            aria-pressed={active}
+            aria-label={label}
+          >
+            {label}
+          </button>
+        );
+      })}
     </div>
   );
 }
