@@ -280,6 +280,7 @@
     "validation": {
       "nameRequired": "Enter the supplier name (required field).",
       "nameMin": "Name must be at least 2 characters.",
+      "categoriesRequired": "Please select at least one category.",
       "countryRequired": "Enter the country (required field).",
       "accountEmailRequired": "Enter the account email (required field).",
       "accountEmailInvalid": "Account email is not valid (e.g. contact@company.com).",

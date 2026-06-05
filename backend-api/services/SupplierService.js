@@ -47,6 +47,14 @@ const SupplierService = {
       throw new Error("phone must be at least 6 characters");
     }
 
+    if (!Array.isArray(clean.categories) || clean.categories.length === 0) {
+      const err = new Error("categories is required");
+      err.errors = {
+        categories: "At least one category is required",
+      };
+      throw err;
+    }
+
     let supplier;
     try {
       supplier = await Supplier.create({

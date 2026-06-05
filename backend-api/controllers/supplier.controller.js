@@ -18,7 +18,11 @@ async function createSupplier(req, res) {
       ) || err.name === "ValidationError";
 
     if (isBadRequest) {
-      return res.status(400).json({ error: msg });
+      const body = { error: msg };
+      if (err.errors && typeof err.errors === "object") {
+        body.errors = err.errors;
+      }
+      return res.status(400).json(body);
     }
 
     console.error("supplier.controller.createSupplier:", err);
