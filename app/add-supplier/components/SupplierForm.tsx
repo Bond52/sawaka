@@ -229,7 +229,10 @@ export default function SupplierForm() {
   const [submitting, setSubmitting] = useState(false);
   const submitLockRef = useRef(false);
 
-  function validateForm(values: FormState): Record<string, string> {
+  function validateForm(
+    values: FormState,
+    selectedCategories: Category[]
+  ): Record<string, string> {
     const errors: Record<string, string> = {};
     const name = values.name.trim();
     const country = values.country.trim();
@@ -237,11 +240,16 @@ export default function SupplierForm() {
     const phone = values.phone.trim();
     const publicEmail = values.publicEmail.trim();
     const website = values.website.trim();
+    const safeCategories = normalizeCategoryValues(selectedCategories);
 
     if (!name) {
       errors.name = t("suppliers.validation.nameRequired");
     } else if (name.length < 2) {
       errors.name = t("suppliers.validation.nameMin");
+    }
+
+    if (safeCategories.length === 0) {
+      errors.categories = t("suppliers.validation.categoriesRequired");
     }
 
     if (!country) {
@@ -310,7 +318,7 @@ export default function SupplierForm() {
     setServerMessage(null);
     setSuccess(false);
 
-    const errors = validateForm(form);
+    const errors = validateForm(form, categories);
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       queueMicrotask(() => scrollToFirstFieldError(errors));
@@ -467,12 +475,19 @@ export default function SupplierForm() {
           </div>
 
           <div className="space-y-3">
-            <span className={`${labelClass} mb-0`}>{t("suppliers.categorySingle")}</span>
+            <span className={`${labelClass} mb-0`}>
+              {t("suppliers.categorySingle")}{" "}
+              <span className="text-red-600">*</span>
+            </span>
             <div
               id="supplier-categories"
               className="flex flex-wrap gap-2.5"
               role="group"
               aria-label={t("suppliers.categoriesAria")}
+              aria-invalid={!!fieldErrors.categories}
+              aria-describedby={
+                fieldErrors.categories ? "err-categories" : undefined
+              }
             >
               {SUPPLIER_CATEGORY_OPTIONS.map((opt) => {
                 const selected = categories.includes(opt.value);
@@ -480,6 +495,7 @@ export default function SupplierForm() {
                   <button
                     key={opt.value}
                     type="button"
+                    data-testid={`supplier-category-${opt.value}`}
                     onClick={() => toggleCategory(opt.value)}
                     className={[
                       "rounded-full border px-3.5 py-2 text-xs font-medium transition-all md:text-[13px]",
@@ -494,7 +510,11 @@ export default function SupplierForm() {
               })}
             </div>
             {fieldErrors.categories && (
-              <p className="mt-1.5 text-sm font-medium text-red-600">
+              <p
+                id="err-categories"
+                data-testid="supplier-error-categories"
+                className="mt-1.5 text-sm font-medium text-red-600"
+              >
                 {fieldErrors.categories}
               </p>
             )}

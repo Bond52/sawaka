@@ -38,6 +38,7 @@ describe("SupplierService", () => {
         accountEmail: "s@example.com",
         phone: "0612345678",
         companyName: "Acme",
+        categories: ["construction_materials"],
       });
 
       expect(Supplier.create).toHaveBeenCalledWith(
@@ -45,6 +46,7 @@ describe("SupplierService", () => {
           accountEmail: "s@example.com",
           phone: "0612345678",
           companyName: "Acme",
+          categories: ["construction_materials"],
           status: "Invited",
           isVisible: false,
         })
@@ -64,9 +66,81 @@ describe("SupplierService", () => {
       expect(result).toBe(supplierDoc);
     });
 
+    it("creates supplier with multiple categories", async () => {
+      const supplierDoc = {
+        _id: supplierId,
+        accountEmail: "s@example.com",
+        phone: "0612345678",
+        categories: ["construction_materials", "wood_lumber"],
+      };
+      Supplier.create.mockResolvedValue(supplierDoc);
+      MagicLinkService.generateToken.mockResolvedValue({
+        _id: tokenDocId,
+        token: "abc123token",
+      });
+      transporter.sendMail.mockResolvedValue({ messageId: "1" });
+
+      const result = await SupplierService.createSupplier({
+        accountEmail: "s@example.com",
+        phone: "0612345678",
+        categories: ["construction_materials", "wood_lumber"],
+      });
+
+      expect(Supplier.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          categories: ["construction_materials", "wood_lumber"],
+        })
+      );
+      expect(result).toBe(supplierDoc);
+    });
+
+    it("throws when categories is missing", async () => {
+      await expect(
+        SupplierService.createSupplier({
+          accountEmail: "s@example.com",
+          phone: "0612345678",
+        })
+      ).rejects.toMatchObject({
+        message: "categories is required",
+        errors: { categories: "At least one category is required" },
+      });
+      expect(Supplier.create).not.toHaveBeenCalled();
+    });
+
+    it("throws when categories is an empty array", async () => {
+      await expect(
+        SupplierService.createSupplier({
+          accountEmail: "s@example.com",
+          phone: "0612345678",
+          categories: [],
+        })
+      ).rejects.toMatchObject({
+        message: "categories is required",
+        errors: { categories: "At least one category is required" },
+      });
+      expect(Supplier.create).not.toHaveBeenCalled();
+    });
+
+    it("throws when categories is null", async () => {
+      await expect(
+        SupplierService.createSupplier({
+          accountEmail: "s@example.com",
+          phone: "0612345678",
+          categories: null,
+        })
+      ).rejects.toMatchObject({
+        message: "categories is required",
+        errors: { categories: "At least one category is required" },
+      });
+      expect(Supplier.create).not.toHaveBeenCalled();
+    });
+
     it("throws when accountEmail is missing", async () => {
       await expect(
-        SupplierService.createSupplier({ phone: "0612345678" })
+        SupplierService.createSupplier({
+          phone: "0612345678",
+          categories: ["construction_materials"],
+        })
       ).rejects.toThrow("accountEmail is required");
       expect(Supplier.create).not.toHaveBeenCalled();
     });
@@ -76,6 +150,7 @@ describe("SupplierService", () => {
         SupplierService.createSupplier({
           accountEmail: "s@example.com",
           phone: "12345",
+          categories: ["construction_materials"],
         })
       ).rejects.toThrow("phone must be at least 6 characters");
       expect(Supplier.create).not.toHaveBeenCalled();
@@ -83,7 +158,10 @@ describe("SupplierService", () => {
 
     it("throws when phone is missing", async () => {
       await expect(
-        SupplierService.createSupplier({ accountEmail: "s@example.com" })
+        SupplierService.createSupplier({
+          accountEmail: "s@example.com",
+          categories: ["construction_materials"],
+        })
       ).rejects.toThrow("phone is required");
       expect(Supplier.create).not.toHaveBeenCalled();
     });
@@ -103,6 +181,7 @@ describe("SupplierService", () => {
         SupplierService.createSupplier({
           accountEmail: "not-an-email",
           phone: "0612345678",
+          categories: ["construction_materials"],
         })
       ).rejects.toThrow("Invalid account email format");
     });
@@ -115,6 +194,7 @@ describe("SupplierService", () => {
         SupplierService.createSupplier({
           accountEmail: "s@example.com",
           phone: "0612345678",
+          categories: ["construction_materials"],
         })
       ).rejects.toThrow("Invalid phone format");
     });

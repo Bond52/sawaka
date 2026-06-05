@@ -280,6 +280,7 @@
     "validation": {
       "nameRequired": "Indiquez le nom du fournisseur (champ obligatoire).",
       "nameMin": "Le nom doit contenir au moins 2 caractères.",
+      "categoriesRequired": "Veuillez sélectionner au moins une catégorie.",
       "countryRequired": "Indiquez le pays (champ obligatoire).",
       "accountEmailRequired": "Indiquez l'e-mail du compte (champ obligatoire).",
       "accountEmailInvalid": "L'e-mail du compte n'est pas valide (ex. : contact@entreprise.com).",
