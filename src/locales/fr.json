@@ -162,6 +162,9 @@
     "createMyProject": "Créer mon projet"
   },
   "products": {
+    "supplierCtaTitle": "Vendez vos produits sur Sawaka",
+    "supplierCtaDescription": "Rejoignez la marketplace, créez votre profil fournisseur et commencez à proposer vos produits.",
+    "supplierCtaButton": "Devenir fournisseur",
     "loading": "Chargement des produits...",
     "emptyCategory": "Aucun article trouvé dans cette catégorie.",
     "defaultDescription": "Article artisanal unique",
