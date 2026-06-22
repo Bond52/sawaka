@@ -31,7 +31,7 @@ export default function Footer() {
             {t("footer.terms")}
           </Link>
           <Link
-            href="/confidentialite"
+            href="/privacy"
             className="!text-white hover:underline hover:!text-white"
           >
             {t("footer.privacy")}
