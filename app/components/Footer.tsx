@@ -25,7 +25,7 @@ export default function Footer() {
             {t("footer.mission")}
           </Link>
           <Link
-            href="/conditions-utilisation"
+            href="/terms"
             className="!text-white hover:underline hover:!text-white"
           >
             {t("footer.terms")}
