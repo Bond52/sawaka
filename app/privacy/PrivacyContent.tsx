@@ -2,7 +2,7 @@
 
 import { useTranslation } from "@/src/i18n/I18nProvider";
 
-const PRIVACY_EMAIL = "privacy@sawaka.org";
+const CONTACT_EMAIL = "contact@sawaka.org";
 
 export default function PrivacyContent() {
   const { t } = useTranslation();
@@ -164,10 +164,10 @@ export default function PrivacyContent() {
             <p>
               {t("privacy.s10P2Before")}{" "}
               <a
-                href={`mailto:${PRIVACY_EMAIL}`}
+                href={`mailto:${CONTACT_EMAIL}`}
                 className="text-sawaka-700 underline hover:text-sawaka-800"
               >
-                {PRIVACY_EMAIL}
+                {CONTACT_EMAIL}
               </a>
               {t("privacy.s10P2After")}
             </p>
@@ -192,10 +192,10 @@ export default function PrivacyContent() {
             <p>
               {t("privacy.s12P1Before")}{" "}
               <a
-                href={`mailto:${PRIVACY_EMAIL}`}
+                href={`mailto:${CONTACT_EMAIL}`}
                 className="text-sawaka-700 underline hover:text-sawaka-800"
               >
-                {PRIVACY_EMAIL}
+                {CONTACT_EMAIL}
               </a>
               {t("privacy.s12P1After")}
             </p>
