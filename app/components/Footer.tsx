@@ -36,12 +36,6 @@ export default function Footer() {
           >
             {t("footer.privacy")}
           </Link>
-          <Link
-            href="/publicite"
-            className="!text-white hover:underline hover:!text-white"
-          >
-            {t("footer.advertising")}
-          </Link>
         </div>
       </div>
     </footer>
