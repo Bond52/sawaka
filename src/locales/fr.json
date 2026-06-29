@@ -644,5 +644,180 @@
     "s12Title": "12. Contact",
     "s12P1Before": "Les questions concernant cette Politique de confidentialité peuvent être adressées à Sawaka par les moyens de contact mis à disposition sur la plateforme ou par courriel à",
     "s12P1After": "."
+  },
+  "mission": {
+    "title": "Notre mission",
+    "subtitle": "Sawaka est bien plus qu'une place de marché. C'est une plateforme collaborative conçue pour transformer les idées en opportunités en connectant entrepreneurs, artisans, makers, fournisseurs et communautés.",
+    "s1Title": "Pourquoi Sawaka existe",
+    "s1Intro": "Partout, des personnes motivées portent des idées de projets — mais beaucoup ne savent pas par où commencer. Elles manquent souvent d'éléments essentiels pour avancer :",
+    "why": {
+      "noStart": "des informations pratiques pour structurer et lancer un projet ;",
+      "lackInfo": "de contacts, de fournisseurs et d'orientations concrètes ;",
+      "noEcosystem": "d'accès à un écosystème local où trouver les bonnes personnes et les bonnes ressources."
+    },
+    "s1Closing": "De nombreux projets pertinents n'aboutissent jamais parce qu'il est difficile de trouver le bon environnement pour avancer. Sawaka est né pour combler cet écart.",
+    "s2Title": "Notre mission",
+    "s2Intro": "Sawaka aide les personnes qui veulent créer, apprendre et entreprendre à :",
+    "help": {
+      "discoverIdeas": "découvrir des idées de projets adaptées à leur contexte ;",
+      "findSuppliers": "identifier des fournisseurs et des ressources utiles ;",
+      "connectEntrepreneurs": "entrer en contact avec des entrepreneurs expérimentés ;",
+      "findResources": "trouver des informations pratiques et des retours d'expérience ;",
+      "learnCommunity": "apprendre au sein d'une communauté active ;",
+      "collaborate": "collaborer plutôt que d'avancer en isolement."
+    },
+    "s2Closing": "Au cœur de notre approche : aider chacun à transformer des ressources limitées en opportunités concrètes et réalistes.",
+    "s3Title": "Ce qui rend Sawaka différent",
+    "s3Intro": "Contrairement aux places de marché classiques ou aux réseaux sociaux professionnels, Sawaka combine :",
+    "difference": {
+      "projectDiscovery": "l'exploration d'idées de projets ;",
+      "supplierDiscovery": "la découverte de fournisseurs et de ressources locales ;",
+      "collaboration": "des outils de collaboration entre membres ;",
+      "communityKnowledge": "un savoir partagé par la communauté ;",
+      "practicalGuidance": "des orientations pratiques pour avancer concrètement."
+    },
+    "s3Closing": "La plateforme est conçue autour de la collaboration concrète — pas seulement du réseautage.",
+    "s4Title": "Pour qui est Sawaka",
+    "s4Intro": "Sawaka rassemble des profils complémentaires au sein d'un même écosystème de création locale.",
+    "audience": {
+      "artisans": {
+        "title": "Artisans",
+        "desc": "Mettez en valeur votre savoir-faire, trouvez des matériaux et connectez-vous avec d'autres créateurs de votre région."
+      },
+      "makers": {
+        "title": "Makers",
+        "desc": "Accédez à des outils, des idées de projets et une communauté pour prototyper et partager vos créations."
+      },
+      "entrepreneurs": {
+        "title": "Entrepreneurs",
+        "desc": "Structurez vos initiatives, trouvez des partenaires et bénéficiez de l'expérience d'autres porteurs de projets."
+      },
+      "students": {
+        "title": "Étudiants",
+        "desc": "Explorez des idées concrètes, apprenez des praticiens et découvrez les ressources disponibles autour de vous."
+      },
+      "creators": {
+        "title": "Créateurs",
+        "desc": "Donnez vie à vos idées en trouvant inspiration, retours et collaborations au sein d'un réseau engagé."
+      },
+      "suppliers": {
+        "title": "Fournisseurs",
+        "desc": "Gagnez en visibilité auprès de créateurs et d'entrepreneurs qui recherchent vos produits, matériaux ou services."
+      },
+      "mentors": {
+        "title": "Mentors",
+        "desc": "Partagez votre expérience et aidez d'autres personnes à structurer ou lancer leurs projets."
+      },
+      "ideas": {
+        "title": "Porteurs d'idées",
+        "desc": "Vous avez une idée mais ne savez pas par où commencer ? Découvrez des pistes concrètes et des personnes qui peuvent vous guider."
+      }
+    },
+    "s5Title": "Ce que vous pouvez faire sur Sawaka",
+    "s5Intro": "La plateforme offre des outils pour passer de l'inspiration à l'action :",
+    "features": {
+      "ideas": {
+        "title": "Explorer des idées de projets",
+        "desc": "Découvrez des pistes entrepreneuriales ou créatives adaptées à votre contexte et à vos moyens."
+      },
+      "suppliers": {
+        "title": "Découvrir des fournisseurs",
+        "desc": "Trouvez des artisans, revendeurs et structures capables de répondre à vos besoins."
+      },
+      "materials": {
+        "title": "Trouver des matières premières",
+        "desc": "Localisez les matériaux essentiels pour vos créations et vos prototypes."
+      },
+      "tools": {
+        "title": "Repérer des outils",
+        "desc": "Identifiez les outils disponibles à l'achat, à la location ou au sein de votre communauté."
+      },
+      "experience": {
+        "title": "Partager son expérience",
+        "desc": "Contribuez au savoir collectif en partageant ce que vous avez appris sur le terrain."
+      },
+      "collaborate": {
+        "title": "Collaborer sur des projets",
+        "desc": "Rejoignez des initiatives en cours ou trouvez des personnes pour avancer ensemble."
+      },
+      "showcase": {
+        "title": "Présenter son travail",
+        "desc": "Mettez en avant vos réalisations et attirez l'attention de la communauté."
+      },
+      "network": {
+        "title": "Développer son réseau professionnel",
+        "desc": "Connectez-vous avec des pairs, des mentors et des partenaires locaux."
+      },
+      "learn": {
+        "title": "Apprendre des autres entrepreneurs",
+        "desc": "Bénéficiez de conseils pratiques et de retours d'expérience concrets."
+      }
+    },
+    "s5Closing": "De nouvelles fonctionnalités seront ajoutées progressivement, en fonction des besoins de la communauté.",
+    "s6Title": "Nos valeurs",
+    "values": {
+      "collaboration": {
+        "title": "Collaboration",
+        "desc": "Nous privilégions l'entraide et la complémentarité plutôt que la compétition isolée."
+      },
+      "knowledge": {
+        "title": "Partage des connaissances",
+        "desc": "L'expérience de chacun enrichit l'ensemble et accélère les apprentissages collectifs."
+      },
+      "accessibility": {
+        "title": "Accessibilité",
+        "desc": "Sawaka est pensé pour être simple, inclusif et utilisable sans infrastructure complexe."
+      },
+      "transparency": {
+        "title": "Transparence",
+        "desc": "Nous communiquons ouvertement sur nos objectifs, nos limites et notre progression."
+      },
+      "learning": {
+        "title": "Apprentissage continu",
+        "desc": "La plateforme évolue avec ses utilisateurs, en testant, en écoutant et en s'améliorant."
+      },
+      "localImpact": {
+        "title": "Impact local",
+        "desc": "Nous favorisons les initiatives qui créent de la valeur pour les communautés de proximité."
+      },
+      "innovation": {
+        "title": "Innovation",
+        "desc": "Nous explorons de nouvelles façons de connecter idées, compétences et ressources locales."
+      },
+      "community": {
+        "title": "Communauté",
+        "desc": "Sawaka est construit avec et pour les personnes qui veulent créer ensemble."
+      }
+    },
+    "s7Title": "Notre vision à long terme",
+    "s7Intro": "À long terme, Sawaka vise à devenir un écosystème de confiance qui aide les communautés locales à créer des opportunités économiques durables. Nous explorons notamment :",
+    "vision": {
+      "suppliers": "un annuaire de fournisseurs plus riche et mieux structuré ;",
+      "knowledge": "un savoir communautaire organisé et accessible à tous ;",
+      "bi": "des outils d'intelligence économique pour mieux comprendre les tendances et les besoins locaux ;",
+      "ai": "une exploration de projets assistée par l'IA, fondée sur des données locales pertinentes ;",
+      "mapping": "une cartographie des écosystèmes de création à l'échelle territoriale."
+    },
+    "s7Closing": "Ces orientations constituent des ambitions à long terme — elles ne représentent pas des engagements sur des produits précis.",
+    "s8Title": "L'association",
+    "s8Intro": "Sawaka est soutenu par une association à but non lucratif basée au Canada. Son rôle est de :",
+    "association": {
+      "support": "soutenir le développement du projet dans l'intérêt collectif ;",
+      "collaboration": "encourager la collaboration entre les membres de la communauté ;",
+      "contributors": "accueillir les contributeurs et les bénévoles ;",
+      "partnerships": "développer des partenariats avec des acteurs locaux ;",
+      "initiatives": "promouvoir des initiatives communautaires liées à la création et à l'entrepreneuriat."
+    },
+    "ctaTitle": "Rejoignez l'aventure",
+    "ctaIntro": "Sawaka est encore en construction. Vous pouvez :",
+    "cta": {
+      "follow": "suivre l'évolution du projet ;",
+      "feedback": "partager vos retours et suggestions ;",
+      "test": "tester les nouvelles fonctionnalités ;",
+      "ideas": "proposer des idées ;",
+      "community": "rejoindre la communauté."
+    },
+    "ctaBefore": "Pour toute question ou pour nous écrire, contactez-nous à",
+    "ctaAfter": "."
   }
 }
