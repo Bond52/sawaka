@@ -1,6 +1,7 @@
 import { resolveApiBaseUrl } from "./apiBase";
 
 export const SUPPLIER_JWT_KEY = "supplierJwt";
+export const SUPPLIER_MANAGEMENT_JWT_KEY = "supplierManagementJwt";
 
 export type PublicSupplier = {
   id: string;
@@ -266,4 +267,582 @@ export async function activateSupplierWithMagicLink(
   }
 
   return { ok: true, token: jwt };
+}
+
+export type RequestManagementLinkResult =
+  | { ok: true }
+  | { ok: false; status: number; detail: string };
+
+/**
+ * Requests a supplier-management magic link (POST /api/suppliers/:id/management-link).
+ * Success always looks the same whether or not the email matched.
+ */
+export async function requestSupplierManagementLink(
+  supplierId: string,
+  email: string
+): Promise<RequestManagementLinkResult> {
+  const apiBase = resolveApiBaseUrl();
+  const url = `${apiBase}/api/suppliers/${encodeURIComponent(supplierId)}/management-link`;
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+  } catch (err) {
+    console.error("[apiSuppliers] requestSupplierManagementLink: network error", {
+      err,
+      url,
+    });
+    return { ok: false, status: 0, detail: "network_error" };
+  }
+
+  if (!res.ok) {
+    let detail = `HTTP ${res.status}`;
+    try {
+      const data = await res.json();
+      if (typeof data?.error === "string") detail = data.error;
+    } catch {
+      /* ignore */
+    }
+    console.error("[apiSuppliers] requestSupplierManagementLink: API error", {
+      status: res.status,
+      detail,
+      url,
+    });
+    return { ok: false, status: res.status, detail };
+  }
+
+  return { ok: true };
+}
+
+export type EstablishManagementSessionResult =
+  | { ok: true; token: string; supplierId: string; expiresAt?: string }
+  | { ok: false; status: number; detail: string };
+
+/**
+ * Exchanges a management magic-link token for a session JWT
+ * (POST /api/suppliers/management-session).
+ */
+export async function establishSupplierManagementSession(
+  token: string
+): Promise<EstablishManagementSessionResult> {
+  const apiBase = resolveApiBaseUrl();
+  const url = `${apiBase}/api/suppliers/management-session`;
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    });
+  } catch (err) {
+    console.error(
+      "[apiSuppliers] establishSupplierManagementSession: network error",
+      { err, url }
+    );
+    return { ok: false, status: 0, detail: "network_error" };
+  }
+
+  let data: {
+    token?: unknown;
+    supplierId?: unknown;
+    expiresAt?: unknown;
+    error?: unknown;
+  } = {};
+  try {
+    data = await res.json();
+  } catch {
+    /* non-JSON */
+  }
+
+  if (!res.ok) {
+    const detail =
+      (typeof data.error === "string" && data.error) || `HTTP ${res.status}`;
+    console.error(
+      "[apiSuppliers] establishSupplierManagementSession: API error",
+      { status: res.status, detail, url }
+    );
+    return { ok: false, status: res.status, detail };
+  }
+
+  const sessionToken =
+    typeof data.token === "string" && data.token.length > 0 ? data.token : null;
+  const supplierId =
+    typeof data.supplierId === "string" && data.supplierId.length > 0
+      ? data.supplierId
+      : null;
+
+  if (!sessionToken || !supplierId) {
+    return { ok: false, status: res.status, detail: "missing_session" };
+  }
+
+  return {
+    ok: true,
+    token: sessionToken,
+    supplierId,
+    expiresAt:
+      typeof data.expiresAt === "string" ? data.expiresAt : undefined,
+  };
+}
+
+/** Supplier fields the owner may edit from the management area. */
+export type EditableSupplier = {
+  id: string;
+  name: string;
+  categories: string[];
+  country: string;
+  region?: string;
+  city?: string;
+  address?: string;
+  postalCode?: string;
+  accountEmail: string;
+  /** Contact email awaiting verification; the account email stays active until then. */
+  pendingContactEmail?: string;
+  publicEmail?: string;
+  phone: string;
+  website?: string;
+};
+
+export type EditableSupplierPayload = {
+  name?: string;
+  categories?: string[];
+  country?: string;
+  region?: string;
+  city?: string;
+  address?: string;
+  postalCode?: string;
+  accountEmail?: string;
+  publicEmail?: string;
+  phone?: string;
+  website?: string;
+};
+
+export type GetEditableSupplierResult =
+  | { ok: true; supplier: EditableSupplier }
+  | { ok: false; status: number; detail: string };
+
+export type UpdateEditableSupplierResult =
+  | {
+      ok: true;
+      supplier: EditableSupplier;
+      /** True when the contact email change still needs to be confirmed by email. */
+      emailVerificationPending: boolean;
+    }
+  | {
+      ok: false;
+      status: number;
+      detail: string;
+      fieldErrors?: Record<string, string>;
+    };
+
+export type ContactEmailActionResult =
+  | { ok: true }
+  | { ok: false; status: number; detail: string };
+
+export type CancelPendingContactEmailResult =
+  | { ok: true; supplier: EditableSupplier }
+  | { ok: false; status: number; detail: string };
+
+/** Maps a raw API object to the editable supplier DTO used by the manage form. */
+export function mapEditableSupplier(raw: unknown): EditableSupplier | null {
+  const source =
+    isRecord(raw) && isRecord(raw.supplier) ? raw.supplier : raw;
+  if (!isRecord(source)) return null;
+
+  const id = asTrimmedString(source.id) || asTrimmedString(source._id);
+  const name = asTrimmedString(source.name);
+  if (!id || !name) return null;
+
+  const supplier: EditableSupplier = {
+    id,
+    name,
+    categories: asStringArray(source.categories),
+    country: asTrimmedString(source.country) || "",
+    accountEmail: asTrimmedString(source.accountEmail) || "",
+    phone: asTrimmedString(source.phone) || "",
+  };
+
+  const region = asTrimmedString(source.region);
+  if (region) supplier.region = region;
+
+  const city = asTrimmedString(source.city);
+  if (city) supplier.city = city;
+
+  const address = asTrimmedString(source.address);
+  if (address) supplier.address = address;
+
+  const postalCode = asTrimmedString(source.postalCode);
+  if (postalCode) supplier.postalCode = postalCode;
+
+  const pendingContactEmail = asTrimmedString(source.pendingContactEmail);
+  if (pendingContactEmail) supplier.pendingContactEmail = pendingContactEmail;
+
+  const publicEmail = asTrimmedString(source.publicEmail);
+  if (publicEmail) supplier.publicEmail = publicEmail;
+
+  const website = asTrimmedString(source.website);
+  if (website) supplier.website = website;
+
+  return supplier;
+}
+
+function readErrorDetail(data: unknown, status: number): string {
+  if (isRecord(data)) {
+    const error = asTrimmedString(data.error);
+    if (error) return error;
+    const message = asTrimmedString(data.message);
+    if (message) return message;
+  }
+  return `HTTP ${status}`;
+}
+
+/** Extracts a `{ field: message }` map from a backend validation payload. */
+function readFieldErrors(data: unknown): Record<string, string> | undefined {
+  if (!isRecord(data) || !isRecord(data.errors)) return undefined;
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(data.errors)) {
+    if (typeof value === "string" && value.trim()) {
+      out[key] = value.trim();
+      continue;
+    }
+    if (Array.isArray(value)) {
+      const first = value.find(
+        (item) => typeof item === "string" && item.trim()
+      );
+      if (typeof first === "string") out[key] = first.trim();
+      continue;
+    }
+    if (isRecord(value)) {
+      const message = asTrimmedString(value.message);
+      if (message) out[key] = message;
+    }
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/**
+ * Fetches the editable supplier bound to a management session
+ * (GET /api/suppliers/management).
+ */
+export async function getEditableSupplier(
+  token: string
+): Promise<GetEditableSupplierResult> {
+  const sessionToken = token?.trim();
+  if (!sessionToken) {
+    return { ok: false, status: 401, detail: "missing_token" };
+  }
+
+  const apiBase = resolveApiBaseUrl();
+  const url = `${apiBase}/api/suppliers/management`;
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "GET",
+      credentials: "include",
+      cache: "no-store",
+      headers: { Authorization: `Bearer ${sessionToken}` },
+    });
+  } catch (err) {
+    console.error("[apiSuppliers] getEditableSupplier: network error", {
+      err,
+      url,
+    });
+    return { ok: false, status: 0, detail: "network_error" };
+  }
+
+  let data: unknown = null;
+  try {
+    data = await res.json();
+  } catch {
+    /* non-JSON body */
+  }
+
+  if (!res.ok) {
+    const detail = readErrorDetail(data, res.status);
+    console.error("[apiSuppliers] getEditableSupplier: API error", {
+      status: res.status,
+      detail,
+      url,
+    });
+    return { ok: false, status: res.status, detail };
+  }
+
+  const supplier = mapEditableSupplier(data);
+  if (!supplier) {
+    console.error("[apiSuppliers] getEditableSupplier: unexpected payload", {
+      url,
+    });
+    return { ok: false, status: res.status, detail: "invalid_payload" };
+  }
+
+  return { ok: true, supplier };
+}
+
+/**
+ * Updates the editable supplier bound to a management session
+ * (PATCH /api/suppliers/management).
+ */
+export async function updateEditableSupplier(
+  token: string,
+  payload: EditableSupplierPayload
+): Promise<UpdateEditableSupplierResult> {
+  const sessionToken = token?.trim();
+  if (!sessionToken) {
+    return { ok: false, status: 401, detail: "missing_token" };
+  }
+
+  const apiBase = resolveApiBaseUrl();
+  const url = `${apiBase}/api/suppliers/management`;
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "PATCH",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${sessionToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    console.error("[apiSuppliers] updateEditableSupplier: network error", {
+      err,
+      url,
+    });
+    return { ok: false, status: 0, detail: "network_error" };
+  }
+
+  let data: unknown = null;
+  try {
+    data = await res.json();
+  } catch {
+    /* non-JSON body */
+  }
+
+  if (!res.ok) {
+    const detail = readErrorDetail(data, res.status);
+    console.error("[apiSuppliers] updateEditableSupplier: API error", {
+      status: res.status,
+      detail,
+      url,
+    });
+    return {
+      ok: false,
+      status: res.status,
+      detail,
+      fieldErrors: readFieldErrors(data),
+    };
+  }
+
+  const supplier = mapEditableSupplier(data);
+  if (!supplier) {
+    console.error("[apiSuppliers] updateEditableSupplier: unexpected payload", {
+      url,
+    });
+    return { ok: false, status: res.status, detail: "invalid_payload" };
+  }
+
+  return {
+    ok: true,
+    supplier,
+    emailVerificationPending:
+      isRecord(data) && data.emailVerificationPending === true,
+  };
+}
+
+type ManagementPostResponse = {
+  ok: boolean;
+  status: number;
+  detail: string;
+  data: unknown;
+};
+
+/** Shared POST helper for management-session contact-email endpoints. */
+async function postManagementAction(
+  path: string,
+  token: string,
+  caller: string
+): Promise<ManagementPostResponse> {
+  const sessionToken = token?.trim();
+  if (!sessionToken) {
+    return { ok: false, status: 401, detail: "missing_token", data: null };
+  }
+
+  const apiBase = resolveApiBaseUrl();
+  const url = `${apiBase}${path}`;
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${sessionToken}`,
+      },
+      body: "{}",
+    });
+  } catch (err) {
+    console.error(`[apiSuppliers] ${caller}: network error`, { err, url });
+    return { ok: false, status: 0, detail: "network_error", data: null };
+  }
+
+  let data: unknown = null;
+  try {
+    data = await res.json();
+  } catch {
+    /* non-JSON body */
+  }
+
+  if (!res.ok) {
+    const detail = readErrorDetail(data, res.status);
+    console.error(`[apiSuppliers] ${caller}: API error`, {
+      status: res.status,
+      detail,
+      url,
+    });
+    return { ok: false, status: res.status, detail, data };
+  }
+
+  return { ok: true, status: res.status, detail: "", data };
+}
+
+/**
+ * Sends the pending contact-email verification link again
+ * (POST /api/suppliers/management/contact-email/resend).
+ */
+export async function resendContactEmailVerification(
+  token: string
+): Promise<ContactEmailActionResult> {
+  const result = await postManagementAction(
+    "/api/suppliers/management/contact-email/resend",
+    token,
+    "resendContactEmailVerification"
+  );
+  if (!result.ok) {
+    return { ok: false, status: result.status, detail: result.detail };
+  }
+  return { ok: true };
+}
+
+/**
+ * Drops a pending contact-email change and keeps the verified account email
+ * (POST /api/suppliers/management/contact-email/cancel).
+ */
+export async function cancelPendingContactEmail(
+  token: string
+): Promise<CancelPendingContactEmailResult> {
+  const result = await postManagementAction(
+    "/api/suppliers/management/contact-email/cancel",
+    token,
+    "cancelPendingContactEmail"
+  );
+  if (!result.ok) {
+    return { ok: false, status: result.status, detail: result.detail };
+  }
+
+  const supplier = mapEditableSupplier(result.data);
+  if (!supplier) {
+    console.error(
+      "[apiSuppliers] cancelPendingContactEmail: unexpected payload"
+    );
+    return { ok: false, status: result.status, detail: "invalid_payload" };
+  }
+
+  return { ok: true, supplier };
+}
+
+/**
+ * Confirms a contact-email change from its magic-link token
+ * (POST /api/suppliers/contact-email/verify).
+ */
+export async function verifyContactEmail(
+  magicToken: string
+): Promise<ContactEmailActionResult> {
+  const rawToken = magicToken?.trim();
+  if (!rawToken) {
+    return { ok: false, status: 400, detail: "missing_token" };
+  }
+
+  const apiBase = resolveApiBaseUrl();
+  const url = `${apiBase}/api/suppliers/contact-email/verify`;
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: rawToken }),
+    });
+  } catch (err) {
+    console.error("[apiSuppliers] verifyContactEmail: network error", {
+      err,
+      url,
+    });
+    return { ok: false, status: 0, detail: "network_error" };
+  }
+
+  let data: unknown = null;
+  try {
+    data = await res.json();
+  } catch {
+    /* non-JSON body */
+  }
+
+  if (!res.ok) {
+    const detail = readErrorDetail(data, res.status);
+    console.error("[apiSuppliers] verifyContactEmail: API error", {
+      status: res.status,
+      detail,
+      url,
+    });
+    return { ok: false, status: res.status, detail };
+  }
+
+  return { ok: true };
+}
+
+/**
+ * Logically deactivates the supplier bound to the management session
+ * (POST /api/suppliers/management/deactivate).
+ */
+export async function deactivateManagedSupplier(
+  token: string
+): Promise<ContactEmailActionResult> {
+  const result = await postManagementAction(
+    "/api/suppliers/management/deactivate",
+    token,
+    "deactivateManagedSupplier"
+  );
+  return result.ok ? { ok: true } : result;
+}
+
+export function getSupplierManagementToken(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return localStorage.getItem(SUPPLIER_MANAGEMENT_JWT_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setSupplierManagementToken(token: string): void {
+  localStorage.setItem(SUPPLIER_MANAGEMENT_JWT_KEY, token);
+}
+
+export function clearSupplierManagementToken(): void {
+  try {
+    localStorage.removeItem(SUPPLIER_MANAGEMENT_JWT_KEY);
+  } catch {
+    /* ignore */
+  }
 }
