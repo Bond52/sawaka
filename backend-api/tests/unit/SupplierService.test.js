@@ -2,12 +2,24 @@ jest.mock("../../models/Supplier");
 jest.mock("../../models/MagicLinkToken");
 jest.mock("../../services/MagicLinkService");
 jest.mock("../../services/EmailService");
+jest.mock("../../middleware/supplierManagementSession", () => ({
+  createManagementSession: jest.fn(),
+  requireSupplierManagementSession: jest.fn((req, res, next) => next()),
+  invalidateSessionsForSupplier: jest.fn(),
+  invalidateSessionByJti: jest.fn(),
+  TOKEN_TYPE: "SUPPLIER_MANAGEMENT",
+  MANAGEMENT_SESSION_TTL: "1h",
+  MANAGEMENT_SESSION_TTL_MS: 3600000,
+}));
 
 const mongoose = require("mongoose");
 const Supplier = require("../../models/Supplier");
 const MagicLinkToken = require("../../models/MagicLinkToken");
 const MagicLinkService = require("../../services/MagicLinkService");
 const EmailService = require("../../services/EmailService");
+const {
+  createManagementSession,
+} = require("../../middleware/supplierManagementSession");
 const SupplierService = require("../../services/SupplierService");
 
 describe("SupplierService", () => {
@@ -832,6 +844,77 @@ describe("SupplierService", () => {
       expect(MagicLinkToken.deleteOne).toHaveBeenCalledWith({
         _id: tokenDocId,
       });
+    });
+  });
+
+  describe("establishManagementSession", () => {
+    it("consumes a valid management token and returns a session JWT", async () => {
+      MagicLinkService.validateToken.mockResolvedValue({
+        valid: true,
+        tokenDoc: { supplierId },
+      });
+      MagicLinkService.consumeToken.mockResolvedValue({ isUsed: true });
+      Supplier.findOne.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue({ _id: supplierId }),
+        }),
+      });
+      const expiresAt = new Date(Date.now() + 3600000);
+      createManagementSession.mockResolvedValue({
+        token: "mgmt.jwt.token",
+        expiresAt,
+        jti: "jti-1",
+      });
+
+      const result =
+        await SupplierService.establishManagementSession("raw-token");
+
+      expect(MagicLinkService.validateToken).toHaveBeenCalledWith(
+        "raw-token",
+        "SUPPLIER_MANAGEMENT"
+      );
+      expect(MagicLinkService.consumeToken).toHaveBeenCalledWith(
+        "raw-token",
+        "SUPPLIER_MANAGEMENT"
+      );
+      expect(createManagementSession).toHaveBeenCalledWith(supplierId);
+      expect(result).toEqual({
+        token: "mgmt.jwt.token",
+        supplierId: supplierId.toString(),
+        expiresAt,
+      });
+    });
+
+    it("rejects invalid tokens without creating a session", async () => {
+      MagicLinkService.validateToken.mockResolvedValue({
+        valid: false,
+        reason: "EXPIRED",
+      });
+
+      await expect(
+        SupplierService.establishManagementSession("bad")
+      ).rejects.toMatchObject({ code: "EXPIRED" });
+
+      expect(MagicLinkService.consumeToken).not.toHaveBeenCalled();
+      expect(createManagementSession).not.toHaveBeenCalled();
+    });
+
+    it("rejects when supplier is not active/visible", async () => {
+      MagicLinkService.validateToken.mockResolvedValue({
+        valid: true,
+        tokenDoc: { supplierId },
+      });
+      Supplier.findOne.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue(null),
+        }),
+      });
+
+      await expect(
+        SupplierService.establishManagementSession("raw-token")
+      ).rejects.toMatchObject({ code: "SUPPLIER_UNAVAILABLE" });
+
+      expect(MagicLinkService.consumeToken).not.toHaveBeenCalled();
     });
   });
 });

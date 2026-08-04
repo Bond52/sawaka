@@ -15,6 +15,7 @@ import {
 } from "@/app/lib/supplierDisplay";
 import ContactSupplier from "@/app/components/suppliers/ContactSupplier";
 import SupplierRetrievalError from "@/app/components/suppliers/SupplierRetrievalError";
+import RequestManagementAccess from "@/app/components/suppliers/RequestManagementAccess";
 
 const MAX_VISIBLE_TAGS = 4;
 
@@ -204,6 +205,11 @@ export default function SupplierProfilePage() {
           postalCode={supplier.postalCode}
         />
       </div>
+
+      <RequestManagementAccess
+        supplierId={supplier.id}
+        supplierName={displayName}
+      />
     </div>
   );
 }

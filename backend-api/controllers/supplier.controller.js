@@ -167,10 +167,74 @@ async function requestManagementAccess(req, res) {
   }
 }
 
+/**
+ * POST /api/suppliers/management-session
+ * Exchanges a SUPPLIER_MANAGEMENT magic-link token for a management session JWT.
+ */
+async function establishManagementSession(req, res) {
+  try {
+    const token =
+      req.body && typeof req.body.token === "string" ? req.body.token.trim() : "";
+
+    if (!token) {
+      return res.status(400).json({ error: "Token required" });
+    }
+
+    const session = await SupplierService.establishManagementSession(token);
+
+    return res.status(200).json({
+      token: session.token,
+      supplierId: session.supplierId,
+      expiresAt: session.expiresAt,
+    });
+  } catch (err) {
+    const msg = err.message || "Erreur serveur";
+
+    if (
+      err.code === "SUPPLIER_UNAVAILABLE" ||
+      /unavailable/i.test(msg)
+    ) {
+      return res.status(409).json({ error: msg });
+    }
+
+    const isTokenClientError =
+      /Token required|Invalid magic link|already used|expired|Token cannot be consumed/i.test(
+        msg
+      ) ||
+      [
+        "TOKEN_MISSING",
+        "NOT_FOUND",
+        "ALREADY_USED",
+        "EXPIRED",
+        "PURPOSE_MISMATCH",
+        "EMAIL_MISMATCH",
+      ].includes(err.code);
+
+    if (isTokenClientError) {
+      return res.status(400).json({ error: msg });
+    }
+
+    logSupplierRetrievalError("establishManagementSession", err);
+    return res.status(500).json(SAFE_SERVER_ERROR);
+  }
+}
+
+/**
+ * GET /api/suppliers/management/me
+ * Returns the supplierId bound to the current management session.
+ */
+async function getManagementSession(req, res) {
+  return res.status(200).json({
+    supplierId: req.managementSession.supplierId,
+  });
+}
+
 module.exports = {
   createSupplier,
   activateSupplier,
   getPublicDirectory,
   getPublicProfile,
   requestManagementAccess,
+  establishManagementSession,
+  getManagementSession,
 };

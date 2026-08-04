@@ -3,6 +3,9 @@ const Supplier = require("../models/Supplier");
 const MagicLinkService = require("./MagicLinkService");
 const MagicLinkToken = require("../models/MagicLinkToken");
 const EmailService = require("./EmailService");
+const {
+  createManagementSession,
+} = require("../middleware/supplierManagementSession");
 
 const PUBLIC_DIRECTORY_PROJECTION =
   "name categories country region city address postalCode publicEmail phone website";
@@ -401,6 +404,60 @@ const SupplierService = {
     }
 
     return GENERIC;
+  },
+
+  /**
+   * Exchange a SUPPLIER_MANAGEMENT magic-link token for a short-lived management session.
+   * Consumes the magic-link token (single-use) on success.
+   *
+   * @param {string} rawToken
+   * @returns {Promise<{ token: string, supplierId: string, expiresAt: Date }>}
+   */
+  async establishManagementSession(rawToken) {
+    const purpose = MagicLinkService.PURPOSES.SUPPLIER_MANAGEMENT;
+    const validation = await MagicLinkService.validateToken(rawToken, purpose);
+    if (!validation.valid) {
+      const reason = validation.reason || "INVALID";
+      const message =
+        VALIDATION_REASON_MESSAGES[reason] || "Invalid magic link";
+      const err = new Error(message);
+      err.code = reason;
+      throw err;
+    }
+
+    const supplierId = validation.tokenDoc.supplierId;
+
+    const supplier = await Supplier.findOne({
+      _id: supplierId,
+      status: "Active",
+      isVisible: true,
+    })
+      .select("_id")
+      .lean();
+
+    if (!supplier) {
+      const err = new Error("Supplier management is unavailable");
+      err.code = "SUPPLIER_UNAVAILABLE";
+      throw err;
+    }
+
+    try {
+      await MagicLinkService.consumeToken(rawToken, purpose);
+    } catch (err) {
+      const consumeErr = new Error(
+        VALIDATION_REASON_MESSAGES.ALREADY_USED || "Magic link already used"
+      );
+      consumeErr.code = "ALREADY_USED";
+      throw consumeErr;
+    }
+
+    const session = await createManagementSession(supplier._id);
+
+    return {
+      token: session.token,
+      supplierId: supplier._id.toString(),
+      expiresAt: session.expiresAt,
+    };
   },
 
   parsePublicDirectoryQuery,

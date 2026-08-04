@@ -2,6 +2,9 @@ const express = require("express");
 const router = express.Router();
 const supplierController = require("../controllers/supplier.controller");
 const { createRateLimiter } = require("../middleware/rateLimit");
+const {
+  requireSupplierManagementSession,
+} = require("../middleware/supplierManagementSession");
 
 const managementLinkRateLimit = createRateLimiter({
   windowMs: 15 * 60 * 1000,
@@ -23,6 +26,17 @@ router.get("/", supplierController.getPublicDirectory);
 router.post("/", supplierController.createSupplier);
 
 router.get("/magic-link/:token", supplierController.activateSupplier);
+
+router.post(
+  "/management-session",
+  supplierController.establishManagementSession
+);
+
+router.get(
+  "/management/me",
+  requireSupplierManagementSession,
+  supplierController.getManagementSession
+);
 
 router.post(
   "/:id/management-link",

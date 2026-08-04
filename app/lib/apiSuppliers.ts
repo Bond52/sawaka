@@ -1,6 +1,7 @@
 import { resolveApiBaseUrl } from "./apiBase";
 
 export const SUPPLIER_JWT_KEY = "supplierJwt";
+export const SUPPLIER_MANAGEMENT_JWT_KEY = "supplierManagementJwt";
 
 export type PublicSupplier = {
   id: string;
@@ -266,4 +267,147 @@ export async function activateSupplierWithMagicLink(
   }
 
   return { ok: true, token: jwt };
+}
+
+export type RequestManagementLinkResult =
+  | { ok: true }
+  | { ok: false; status: number; detail: string };
+
+/**
+ * Requests a supplier-management magic link (POST /api/suppliers/:id/management-link).
+ * Success always looks the same whether or not the email matched.
+ */
+export async function requestSupplierManagementLink(
+  supplierId: string,
+  email: string
+): Promise<RequestManagementLinkResult> {
+  const apiBase = resolveApiBaseUrl();
+  const url = `${apiBase}/api/suppliers/${encodeURIComponent(supplierId)}/management-link`;
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+  } catch (err) {
+    console.error("[apiSuppliers] requestSupplierManagementLink: network error", {
+      err,
+      url,
+    });
+    return { ok: false, status: 0, detail: "network_error" };
+  }
+
+  if (!res.ok) {
+    let detail = `HTTP ${res.status}`;
+    try {
+      const data = await res.json();
+      if (typeof data?.error === "string") detail = data.error;
+    } catch {
+      /* ignore */
+    }
+    console.error("[apiSuppliers] requestSupplierManagementLink: API error", {
+      status: res.status,
+      detail,
+      url,
+    });
+    return { ok: false, status: res.status, detail };
+  }
+
+  return { ok: true };
+}
+
+export type EstablishManagementSessionResult =
+  | { ok: true; token: string; supplierId: string; expiresAt?: string }
+  | { ok: false; status: number; detail: string };
+
+/**
+ * Exchanges a management magic-link token for a session JWT
+ * (POST /api/suppliers/management-session).
+ */
+export async function establishSupplierManagementSession(
+  token: string
+): Promise<EstablishManagementSessionResult> {
+  const apiBase = resolveApiBaseUrl();
+  const url = `${apiBase}/api/suppliers/management-session`;
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    });
+  } catch (err) {
+    console.error(
+      "[apiSuppliers] establishSupplierManagementSession: network error",
+      { err, url }
+    );
+    return { ok: false, status: 0, detail: "network_error" };
+  }
+
+  let data: {
+    token?: unknown;
+    supplierId?: unknown;
+    expiresAt?: unknown;
+    error?: unknown;
+  } = {};
+  try {
+    data = await res.json();
+  } catch {
+    /* non-JSON */
+  }
+
+  if (!res.ok) {
+    const detail =
+      (typeof data.error === "string" && data.error) || `HTTP ${res.status}`;
+    console.error(
+      "[apiSuppliers] establishSupplierManagementSession: API error",
+      { status: res.status, detail, url }
+    );
+    return { ok: false, status: res.status, detail };
+  }
+
+  const sessionToken =
+    typeof data.token === "string" && data.token.length > 0 ? data.token : null;
+  const supplierId =
+    typeof data.supplierId === "string" && data.supplierId.length > 0
+      ? data.supplierId
+      : null;
+
+  if (!sessionToken || !supplierId) {
+    return { ok: false, status: res.status, detail: "missing_session" };
+  }
+
+  return {
+    ok: true,
+    token: sessionToken,
+    supplierId,
+    expiresAt:
+      typeof data.expiresAt === "string" ? data.expiresAt : undefined,
+  };
+}
+
+export function getSupplierManagementToken(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return localStorage.getItem(SUPPLIER_MANAGEMENT_JWT_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setSupplierManagementToken(token: string): void {
+  localStorage.setItem(SUPPLIER_MANAGEMENT_JWT_KEY, token);
+}
+
+export function clearSupplierManagementToken(): void {
+  try {
+    localStorage.removeItem(SUPPLIER_MANAGEMENT_JWT_KEY);
+  } catch {
+    /* ignore */
+  }
 }
