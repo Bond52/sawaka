@@ -132,9 +132,45 @@ async function getPublicProfile(req, res) {
   }
 }
 
+/**
+ * POST /api/suppliers/:id/management-link
+ * Requests a management magic link. Always returns a generic confirmation
+ * when inputs are valid (anti-enumeration).
+ */
+async function requestManagementAccess(req, res) {
+  try {
+    const email =
+      req.body && typeof req.body.email === "string"
+        ? req.body.email
+        : req.body && typeof req.body.accountEmail === "string"
+          ? req.body.accountEmail
+          : undefined;
+
+    const result = await SupplierService.requestManagementAccess(
+      req.params.id,
+      email
+    );
+    return res.status(200).json(result);
+  } catch (err) {
+    if (
+      err &&
+      (err.code === "INVALID_SUPPLIER_ID" || err.code === "INVALID_EMAIL")
+    ) {
+      return res.status(400).json({ error: err.message });
+    }
+
+    logSupplierRetrievalError("requestManagementAccess", err, {
+      idPresent: Boolean(req.params && req.params.id),
+      // Do not log submitted email or tokens.
+    });
+    return res.status(500).json(SAFE_SERVER_ERROR);
+  }
+}
+
 module.exports = {
   createSupplier,
   activateSupplier,
   getPublicDirectory,
   getPublicProfile,
+  requestManagementAccess,
 };

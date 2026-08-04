@@ -2,7 +2,11 @@ jest.mock("../../utils/mailer");
 
 const transporter = require("../../utils/mailer");
 const EmailService = require("../../services/EmailService");
-const { buildSupplierActivationUrl } = require("../../utils/supplierActivationUrl");
+const {
+  buildSupplierActivationUrl,
+  buildSupplierManagementUrl,
+  buildContactEmailVerificationUrl,
+} = require("../../utils/supplierActivationUrl");
 
 describe("EmailService", () => {
   beforeEach(() => {
@@ -13,9 +17,12 @@ describe("EmailService", () => {
     delete process.env.BREVO_SMTP_USER;
     delete process.env.BREVO_SMTP_PASSWORD;
     delete process.env.STRIPE_SECRET_KEY;
+    delete process.env.SUPPLIER_MAGIC_LINK_PATH;
+    delete process.env.SUPPLIER_MANAGEMENT_LINK_PATH;
+    delete process.env.SUPPLIER_CONTACT_EMAIL_VERIFY_PATH;
   });
 
-  describe("sendMagicLink", () => {
+  describe("sendMagicLink / sendSupplierActivationEmail", () => {
     it("succeeds and calls transporter.sendMail with from, to, subject and activation link", async () => {
       transporter.sendMail.mockResolvedValue({ messageId: "ok" });
       const token = "magic-token-abc";
@@ -42,6 +49,16 @@ describe("EmailService", () => {
       );
       expect(mailOpts.html).toContain(url);
       expect(mailOpts.html).toContain(`href="${url}"`);
+    });
+
+    it("sendSupplierActivationEmail matches sendMagicLink delivery", async () => {
+      transporter.sendMail.mockResolvedValue({ messageId: "ok" });
+      const token = "activation-raw";
+      await expect(
+        EmailService.sendSupplierActivationEmail("user@example.com", token)
+      ).resolves.toBe(true);
+      const url = buildSupplierActivationUrl(token);
+      expect(transporter.sendMail.mock.calls[0][0].text).toContain(url);
     });
 
     it("retries sendMail on failure then succeeds with the same mail payload each attempt", async () => {
@@ -91,7 +108,7 @@ describe("EmailService", () => {
 
     it("does not include unrelated secrets in text or html bodies", async () => {
       process.env.BREVO_SMTP_PASSWORD = "smtp-secret-do-not-leak";
-      process.env.STRIPE_SECRET_KEY = "sk_test_do_not_leak";
+      process.env.STRIPE_SECRET_KEY = "sk_test_do-not-leak";
       transporter.sendMail.mockResolvedValue({});
 
       await EmailService.sendMagicLink("user@example.com", "public-token");
@@ -99,7 +116,7 @@ describe("EmailService", () => {
       const mailOpts = transporter.sendMail.mock.calls[0][0];
       const combined = `${mailOpts.text}\n${mailOpts.html}`;
       expect(combined).not.toContain("smtp-secret-do-not-leak");
-      expect(combined).not.toContain("sk_test_do_not_leak");
+      expect(combined).not.toContain("sk_test_do-not-leak");
       expect(combined).toContain("public-token");
     });
 
@@ -154,6 +171,42 @@ describe("EmailService", () => {
       );
       expect(result).toBe(false);
       expect(transporter.sendMail).toHaveBeenCalledTimes(3);
+    });
+  });
+
+  describe("sendSupplierManagementEmail", () => {
+    it("sends management access mail with the management URL", async () => {
+      transporter.sendMail.mockResolvedValue({ messageId: "ok" });
+      const token = "mgmt-token";
+      const result = await EmailService.sendSupplierManagementEmail(
+        "owner@example.com",
+        token
+      );
+      expect(result).toBe(true);
+      const mailOpts = transporter.sendMail.mock.calls[0][0];
+      const url = buildSupplierManagementUrl(token);
+      expect(mailOpts.subject).toBe("Access your Sawaka supplier account");
+      expect(mailOpts.text).toContain(url);
+      expect(mailOpts.html).toContain(url);
+      expect(url).toContain("/supplier/manage?token=");
+    });
+  });
+
+  describe("sendContactEmailVerification", () => {
+    it("sends contact-email verification mail with the verify URL", async () => {
+      transporter.sendMail.mockResolvedValue({ messageId: "ok" });
+      const token = "verify-token";
+      const result = await EmailService.sendContactEmailVerification(
+        "contact@example.com",
+        token
+      );
+      expect(result).toBe(true);
+      const mailOpts = transporter.sendMail.mock.calls[0][0];
+      const url = buildContactEmailVerificationUrl(token);
+      expect(mailOpts.subject).toBe("Verify your contact email on Sawaka");
+      expect(mailOpts.text).toContain(url);
+      expect(mailOpts.html).toContain(url);
+      expect(url).toContain("/supplier/verify-email?token=");
     });
   });
 });

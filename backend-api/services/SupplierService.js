@@ -2,8 +2,7 @@ const mongoose = require("mongoose");
 const Supplier = require("../models/Supplier");
 const MagicLinkService = require("./MagicLinkService");
 const MagicLinkToken = require("../models/MagicLinkToken");
-const transporter = require("../utils/mailer");
-const { buildSupplierActivationUrl } = require("../utils/supplierActivationUrl");
+const EmailService = require("./EmailService");
 
 const PUBLIC_DIRECTORY_PROJECTION =
   "name categories country region city address postalCode publicEmail phone website";
@@ -25,6 +24,8 @@ function createSupplierNotFoundError() {
 }
 
 const MAX_DIRECTORY_SEARCH_LENGTH = 200;
+
+const EMAIL_FORMAT = /^.+@.+\..+$/;
 
 const VALID_SUPPLIER_CATEGORIES = new Set([
   "construction_materials",
@@ -148,25 +149,9 @@ const VALIDATION_REASON_MESSAGES = {
   NOT_FOUND: "Invalid magic link",
   ALREADY_USED: "Magic link already used",
   EXPIRED: "Magic link expired",
+  PURPOSE_MISMATCH: "Invalid magic link",
+  EMAIL_MISMATCH: "Invalid magic link",
 };
-
-async function sendMagicLinkEmail(to, token) {
-  const url = buildSupplierActivationUrl(token);
-
-  const from =
-    process.env.MAIL_FROM || process.env.BREVO_SMTP_USER;
-  if (!from) {
-    throw new Error("MAIL_FROM or BREVO_SMTP_USER is required to send email");
-  }
-
-  await transporter.sendMail({
-    from,
-    to,
-    subject: "Activer votre compte fournisseur Sawaka",
-    text: `Activez votre compte : ${url}`,
-    html: `<p>Activez votre compte fournisseur en cliquant sur le lien ci-dessous :</p><p><a href="${url}">${url}</a></p>`,
-  });
-}
 
 const SupplierService = {
   async createSupplier(data) {
@@ -210,8 +195,18 @@ const SupplierService = {
 
     let tokenDoc;
     try {
-      tokenDoc = await MagicLinkService.generateToken(supplier._id);
-      await sendMagicLinkEmail(supplier.accountEmail, tokenDoc.token);
+      const generated = await MagicLinkService.generateToken({
+        supplierId: supplier._id,
+        purpose: MagicLinkService.PURPOSES.SUPPLIER_ACTIVATION,
+      });
+      tokenDoc = generated.tokenDoc;
+      const sent = await EmailService.sendSupplierActivationEmail(
+        supplier.accountEmail,
+        generated.rawToken
+      );
+      if (!sent) {
+        throw new Error("Failed to send activation email");
+      }
     } catch (err) {
       try {
         if (tokenDoc && tokenDoc._id) {
@@ -232,7 +227,8 @@ const SupplierService = {
   },
 
   async activateSupplier(token) {
-    const validation = await MagicLinkService.validateToken(token);
+    const purpose = MagicLinkService.PURPOSES.SUPPLIER_ACTIVATION;
+    const validation = await MagicLinkService.validateToken(token, purpose);
     if (!validation.valid) {
       const reason = validation.reason || "INVALID";
       const message =
@@ -260,7 +256,7 @@ const SupplierService = {
     }
 
     try {
-      await MagicLinkService.consumeToken(token);
+      await MagicLinkService.consumeToken(token, purpose);
     } catch (err) {
       try {
         await Supplier.findByIdAndUpdate(supplierId, {
@@ -305,7 +301,110 @@ const SupplierService = {
     return toPublicSupplierDTO(supplier);
   },
 
+  /**
+   * Request a temporary supplier-management magic link.
+   * Always returns the same generic confirmation whether or not the email matches,
+   * to prevent contact-email enumeration. Only Active + visible suppliers receive a link.
+   *
+   * @param {string} supplierId
+   * @param {string} email Submitted private contact email
+   * @returns {Promise<{ success: true }>}
+   */
+  async requestManagementAccess(supplierId, email) {
+    if (!isValidSupplierObjectId(supplierId)) {
+      const err = new Error("Invalid supplier identifier");
+      err.code = "INVALID_SUPPLIER_ID";
+      throw err;
+    }
+
+    if (typeof email !== "string") {
+      const err = new Error("email is required");
+      err.code = "INVALID_EMAIL";
+      throw err;
+    }
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !EMAIL_FORMAT.test(trimmedEmail)) {
+      const err = new Error("Invalid email format");
+      err.code = "INVALID_EMAIL";
+      throw err;
+    }
+
+    const GENERIC = { success: true };
+
+    let supplier;
+    try {
+      supplier = await Supplier.findOne({
+        _id: supplierId,
+        status: "Active",
+        isVisible: true,
+      })
+        .select("accountEmail")
+        .lean();
+    } catch (err) {
+      console.error("SupplierService.requestManagementAccess lookup:", {
+        operation: "requestManagementAccess",
+        name: err && err.name,
+        message: err && err.message,
+        supplierIdPresent: Boolean(supplierId),
+      });
+      throw err;
+    }
+
+    if (!supplier || typeof supplier.accountEmail !== "string") {
+      return GENERIC;
+    }
+
+    const storedNormalized = supplier.accountEmail.trim().toLowerCase();
+    const submittedNormalized = trimmedEmail.toLowerCase();
+    if (storedNormalized !== submittedNormalized) {
+      return GENERIC;
+    }
+
+    let tokenDoc;
+    try {
+      const generated = await MagicLinkService.generateToken({
+        supplierId: supplier._id,
+        purpose: MagicLinkService.PURPOSES.SUPPLIER_MANAGEMENT,
+      });
+      tokenDoc = generated.tokenDoc;
+
+      const sent = await EmailService.sendSupplierManagementEmail(
+        trimmedEmail,
+        generated.rawToken
+      );
+      if (!sent) {
+        throw new Error("Failed to send management email");
+      }
+    } catch (err) {
+      try {
+        if (tokenDoc && tokenDoc._id) {
+          await MagicLinkToken.deleteOne({ _id: tokenDoc._id });
+        }
+      } catch (cleanupErr) {
+        console.error(
+          "SupplierService.requestManagementAccess cleanup token:",
+          {
+            name: cleanupErr && cleanupErr.name,
+            message: cleanupErr && cleanupErr.message,
+          }
+        );
+      }
+      console.error("SupplierService.requestManagementAccess send:", {
+        operation: "requestManagementAccess",
+        name: err && err.name,
+        message: err && err.message,
+        supplierIdPresent: Boolean(supplierId),
+      });
+      // Still return generic confirmation to avoid email enumeration via error paths.
+      return GENERIC;
+    }
+
+    return GENERIC;
+  },
+
   parsePublicDirectoryQuery,
+  isValidSupplierObjectId,
   SUPPLIER_NOT_FOUND,
 };
 

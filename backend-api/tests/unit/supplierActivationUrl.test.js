@@ -1,5 +1,7 @@
 const {
   buildSupplierActivationUrl,
+  buildSupplierManagementUrl,
+  buildContactEmailVerificationUrl,
   DEFAULT_ORIGIN,
 } = require("../../utils/supplierActivationUrl");
 
@@ -10,6 +12,8 @@ describe("supplierActivationUrl", () => {
     delete process.env.FRONTEND_URL;
     delete process.env.APP_BASE_URL;
     delete process.env.SUPPLIER_MAGIC_LINK_PATH;
+    delete process.env.SUPPLIER_MANAGEMENT_LINK_PATH;
+    delete process.env.SUPPLIER_CONTACT_EMAIL_VERIFY_PATH;
   });
 
   it("builds absolute URL from FRONTEND_URL", () => {
@@ -44,6 +48,16 @@ describe("supplierActivationUrl", () => {
     process.env.SUPPLIER_MAGIC_LINK_PATH = "custom/activate";
     expect(buildSupplierActivationUrl(token)).toBe(
       `https://app.example.com/custom/activate?token=${encodeURIComponent(token)}`
+    );
+  });
+
+  it("builds management and contact-email verification URLs", () => {
+    process.env.FRONTEND_URL = "https://app.example.com";
+    expect(buildSupplierManagementUrl(token)).toBe(
+      `https://app.example.com/supplier/manage?token=${encodeURIComponent(token)}`
+    );
+    expect(buildContactEmailVerificationUrl(token)).toBe(
+      `https://app.example.com/supplier/verify-email?token=${encodeURIComponent(token)}`
     );
   });
 });

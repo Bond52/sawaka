@@ -1,13 +1,13 @@
 jest.mock("../../models/Supplier");
 jest.mock("../../models/MagicLinkToken");
-jest.mock("../../utils/mailer");
 jest.mock("../../services/MagicLinkService");
+jest.mock("../../services/EmailService");
 
 const mongoose = require("mongoose");
 const Supplier = require("../../models/Supplier");
 const MagicLinkToken = require("../../models/MagicLinkToken");
-const transporter = require("../../utils/mailer");
 const MagicLinkService = require("../../services/MagicLinkService");
+const EmailService = require("../../services/EmailService");
 const SupplierService = require("../../services/SupplierService");
 
 describe("SupplierService", () => {
@@ -18,10 +18,15 @@ describe("SupplierService", () => {
     jest.clearAllMocks();
     process.env.FRONTEND_URL = "https://app.example.com";
     process.env.MAIL_FROM = "noreply@example.com";
+    MagicLinkService.PURPOSES = {
+      SUPPLIER_ACTIVATION: "SUPPLIER_ACTIVATION",
+      SUPPLIER_MANAGEMENT: "SUPPLIER_MANAGEMENT",
+      CONTACT_EMAIL_VERIFICATION: "CONTACT_EMAIL_VERIFICATION",
+    };
   });
 
   describe("createSupplier", () => {
-    it("creates supplier, generates token, sends email, returns supplier", async () => {
+    it("creates supplier, generates activation token, sends email via EmailService", async () => {
       const supplierDoc = {
         _id: supplierId,
         accountEmail: "s@example.com",
@@ -29,10 +34,10 @@ describe("SupplierService", () => {
       };
       Supplier.create.mockResolvedValue(supplierDoc);
       MagicLinkService.generateToken.mockResolvedValue({
-        _id: tokenDocId,
-        token: "abc123token",
+        rawToken: "abc123token",
+        tokenDoc: { _id: tokenDocId },
       });
-      transporter.sendMail.mockResolvedValue({ messageId: "1" });
+      EmailService.sendSupplierActivationEmail.mockResolvedValue(true);
 
       const result = await SupplierService.createSupplier({
         accountEmail: "s@example.com",
@@ -51,17 +56,13 @@ describe("SupplierService", () => {
           isVisible: false,
         })
       );
-      expect(MagicLinkService.generateToken).toHaveBeenCalledWith(supplierId);
-      expect(transporter.sendMail).toHaveBeenCalledWith(
-        expect.objectContaining({
-          to: "s@example.com",
-          text: expect.stringContaining(
-            "https://app.example.com/supplier/activate?token=abc123token"
-          ),
-          html: expect.stringContaining(
-            "https://app.example.com/supplier/activate?token=abc123token"
-          ),
-        })
+      expect(MagicLinkService.generateToken).toHaveBeenCalledWith({
+        supplierId,
+        purpose: "SUPPLIER_ACTIVATION",
+      });
+      expect(EmailService.sendSupplierActivationEmail).toHaveBeenCalledWith(
+        "s@example.com",
+        "abc123token"
       );
       expect(result).toBe(supplierDoc);
     });
@@ -75,10 +76,10 @@ describe("SupplierService", () => {
       };
       Supplier.create.mockResolvedValue(supplierDoc);
       MagicLinkService.generateToken.mockResolvedValue({
-        _id: tokenDocId,
-        token: "abc123token",
+        rawToken: "abc123token",
+        tokenDoc: { _id: tokenDocId },
       });
-      transporter.sendMail.mockResolvedValue({ messageId: "1" });
+      EmailService.sendSupplierActivationEmail.mockResolvedValue(true);
 
       const result = await SupplierService.createSupplier({
         accountEmail: "s@example.com",
@@ -201,7 +202,7 @@ describe("SupplierService", () => {
   });
 
   describe("activateSupplier", () => {
-    it("activates supplier and consumes token when validation succeeds", async () => {
+    it("activates supplier and consumes activation token when validation succeeds", async () => {
       const updated = {
         _id: supplierId,
         status: "Active",
@@ -217,14 +218,18 @@ describe("SupplierService", () => {
       const result = await SupplierService.activateSupplier("valid-token");
 
       expect(MagicLinkService.validateToken).toHaveBeenCalledWith(
-        "valid-token"
+        "valid-token",
+        "SUPPLIER_ACTIVATION"
       );
       expect(Supplier.findOneAndUpdate).toHaveBeenCalledWith(
         { _id: supplierId, status: "Invited" },
         { $set: { status: "Active", isVisible: true } },
         { new: true }
       );
-      expect(MagicLinkService.consumeToken).toHaveBeenCalledWith("valid-token");
+      expect(MagicLinkService.consumeToken).toHaveBeenCalledWith(
+        "valid-token",
+        "SUPPLIER_ACTIVATION"
+      );
       expect(result).toEqual(updated);
     });
 
@@ -712,6 +717,121 @@ describe("SupplierService", () => {
       await expect(SupplierService.getPublicProfile(id)).rejects.toThrow(
         "db connection lost"
       );
+    });
+  });
+
+  describe("requestManagementAccess", () => {
+    function mockFindOneLean(result) {
+      Supplier.findOne.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue(result),
+        }),
+      });
+    }
+
+    it("sends a management link when email matches an active visible supplier", async () => {
+      const id = new mongoose.Types.ObjectId();
+      mockFindOneLean({
+        _id: id,
+        accountEmail: "Owner@Example.com",
+      });
+      MagicLinkService.generateToken.mockResolvedValue({
+        rawToken: "mgmt-raw-token",
+        tokenDoc: { _id: tokenDocId },
+      });
+      EmailService.sendSupplierManagementEmail.mockResolvedValue(true);
+
+      const result = await SupplierService.requestManagementAccess(
+        id.toString(),
+        "  owner@example.com  "
+      );
+
+      expect(result).toEqual({ success: true });
+      expect(MagicLinkService.generateToken).toHaveBeenCalledWith({
+        supplierId: id,
+        purpose: "SUPPLIER_MANAGEMENT",
+      });
+      expect(EmailService.sendSupplierManagementEmail).toHaveBeenCalledWith(
+        "owner@example.com",
+        "mgmt-raw-token"
+      );
+      expect(result).not.toHaveProperty("token");
+      expect(result).not.toHaveProperty("rawToken");
+      expect(JSON.stringify(result)).not.toMatch(/Owner@Example|mgmt-raw/i);
+    });
+
+    it("returns the same generic confirmation when email does not match", async () => {
+      const id = new mongoose.Types.ObjectId();
+      mockFindOneLean({
+        _id: id,
+        accountEmail: "owner@example.com",
+      });
+
+      const result = await SupplierService.requestManagementAccess(
+        id.toString(),
+        "other@example.com"
+      );
+
+      expect(result).toEqual({ success: true });
+      expect(MagicLinkService.generateToken).not.toHaveBeenCalled();
+      expect(EmailService.sendSupplierManagementEmail).not.toHaveBeenCalled();
+    });
+
+    it("returns the same generic confirmation for inactive or non-visible suppliers", async () => {
+      const id = new mongoose.Types.ObjectId();
+      mockFindOneLean(null);
+
+      const result = await SupplierService.requestManagementAccess(
+        id.toString(),
+        "owner@example.com"
+      );
+
+      expect(result).toEqual({ success: true });
+      expect(MagicLinkService.generateToken).not.toHaveBeenCalled();
+      expect(EmailService.sendSupplierManagementEmail).not.toHaveBeenCalled();
+    });
+
+    it("rejects an invalid supplier identifier", async () => {
+      await expect(
+        SupplierService.requestManagementAccess("bad-id", "a@b.com")
+      ).rejects.toMatchObject({
+        code: "INVALID_SUPPLIER_ID",
+      });
+      expect(Supplier.findOne).not.toHaveBeenCalled();
+    });
+
+    it("rejects an invalid email format", async () => {
+      const id = new mongoose.Types.ObjectId().toString();
+      await expect(
+        SupplierService.requestManagementAccess(id, "not-an-email")
+      ).rejects.toMatchObject({
+        code: "INVALID_EMAIL",
+      });
+      expect(Supplier.findOne).not.toHaveBeenCalled();
+    });
+
+    it("returns generic confirmation and cleans up when email send fails", async () => {
+      const id = new mongoose.Types.ObjectId();
+      mockFindOneLean({
+        _id: id,
+        accountEmail: "owner@example.com",
+      });
+      MagicLinkService.generateToken.mockResolvedValue({
+        rawToken: "mgmt-raw-token",
+        tokenDoc: { _id: tokenDocId },
+      });
+      EmailService.sendSupplierManagementEmail.mockResolvedValue(false);
+      MagicLinkToken.deleteOne.mockResolvedValue({ deletedCount: 1 });
+
+      const result = await SupplierService.requestManagementAccess(
+        id.toString(),
+        "owner@example.com"
+      );
+
+      expect(result).toEqual({ success: true });
+      expect(MagicLinkToken.deleteOne).toHaveBeenCalledWith({
+        _id: tokenDocId,
+      });
     });
   });
 });
