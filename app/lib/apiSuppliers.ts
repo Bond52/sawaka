@@ -658,9 +658,12 @@ export async function updateEditableSupplier(
   };
 }
 
-type ManagementPostResponse =
-  | { ok: true; data: unknown }
-  | { ok: false; status: number; detail: string };
+type ManagementPostResponse = {
+  ok: boolean;
+  status: number;
+  detail: string;
+  data: unknown;
+};
 
 /** Shared POST helper for management-session contact-email endpoints. */
 async function postManagementAction(
@@ -670,7 +673,7 @@ async function postManagementAction(
 ): Promise<ManagementPostResponse> {
   const sessionToken = token?.trim();
   if (!sessionToken) {
-    return { ok: false, status: 401, detail: "missing_token" };
+    return { ok: false, status: 401, detail: "missing_token", data: null };
   }
 
   const apiBase = resolveApiBaseUrl();
@@ -689,7 +692,7 @@ async function postManagementAction(
     });
   } catch (err) {
     console.error(`[apiSuppliers] ${caller}: network error`, { err, url });
-    return { ok: false, status: 0, detail: "network_error" };
+    return { ok: false, status: 0, detail: "network_error", data: null };
   }
 
   let data: unknown = null;
@@ -706,10 +709,10 @@ async function postManagementAction(
       detail,
       url,
     });
-    return { ok: false, status: res.status, detail };
+    return { ok: false, status: res.status, detail, data };
   }
 
-  return { ok: true, data };
+  return { ok: true, status: res.status, detail: "", data };
 }
 
 /**
@@ -724,7 +727,10 @@ export async function resendContactEmailVerification(
     token,
     "resendContactEmailVerification"
   );
-  return result.ok ? { ok: true } : result;
+  if (!result.ok) {
+    return { ok: false, status: result.status, detail: result.detail };
+  }
+  return { ok: true };
 }
 
 /**
@@ -739,14 +745,16 @@ export async function cancelPendingContactEmail(
     token,
     "cancelPendingContactEmail"
   );
-  if (!result.ok) return result;
+  if (!result.ok) {
+    return { ok: false, status: result.status, detail: result.detail };
+  }
 
   const supplier = mapEditableSupplier(result.data);
   if (!supplier) {
     console.error(
       "[apiSuppliers] cancelPendingContactEmail: unexpected payload"
     );
-    return { ok: false, status: 200, detail: "invalid_payload" };
+    return { ok: false, status: result.status, detail: "invalid_payload" };
   }
 
   return { ok: true, supplier };
@@ -801,6 +809,21 @@ export async function verifyContactEmail(
   }
 
   return { ok: true };
+}
+
+/**
+ * Logically deactivates the supplier bound to the management session
+ * (POST /api/suppliers/management/deactivate).
+ */
+export async function deactivateManagedSupplier(
+  token: string
+): Promise<ContactEmailActionResult> {
+  const result = await postManagementAction(
+    "/api/suppliers/management/deactivate",
+    token,
+    "deactivateManagedSupplier"
+  );
+  return result.ok ? { ok: true } : result;
 }
 
 export function getSupplierManagementToken(): string | null {

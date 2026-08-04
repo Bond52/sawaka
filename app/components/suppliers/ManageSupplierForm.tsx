@@ -18,6 +18,8 @@ import {
 } from "@/app/lib/supplierCategories";
 import {
   cancelPendingContactEmail,
+  clearSupplierManagementToken,
+  deactivateManagedSupplier,
   resendContactEmailVerification,
   updateEditableSupplier,
   type EditableSupplier,
@@ -206,9 +208,13 @@ export default function ManageSupplierForm({
   const [emailAction, setEmailAction] = useState<EmailAction>(null);
   const [emailFeedback, setEmailFeedback] = useState<EmailFeedback>(null);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const [deactivateOpen, setDeactivateOpen] = useState(false);
+  const [deactivating, setDeactivating] = useState(false);
+  const [deactivateError, setDeactivateError] = useState<string | null>(null);
   const saveLockRef = useRef(false);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const confirmRef = useRef<HTMLButtonElement | null>(null);
+  const deactivateConfirmRef = useRef<HTMLButtonElement | null>(null);
 
   const baseForm = useMemo(() => toFormState(baseline), [baseline]);
   const profileHref = `/fournisseurs/${encodeURIComponent(baseline.id)}`;
@@ -1057,6 +1063,119 @@ export default function ManageSupplierForm({
           </div>
         </div>
       </form>
+
+      <section
+        className="mt-10 rounded-2xl border border-red-200 bg-red-50/60 p-6"
+        data-testid="manage-supplier-danger-zone"
+        aria-labelledby="manage-supplier-danger-title"
+      >
+        <h2
+          id="manage-supplier-danger-title"
+          className="text-lg font-semibold text-red-900"
+        >
+          {t("suppliers.manage.dangerZoneTitle")}
+        </h2>
+        <p className="mt-2 text-sm text-red-800/90">
+          {t("suppliers.manage.dangerZoneBody")}
+        </p>
+        <button
+          type="button"
+          data-testid="manage-supplier-deactivate-open"
+          onClick={() => {
+            setDeactivateError(null);
+            setDeactivateOpen(true);
+          }}
+          className="mt-4 min-h-[44px] rounded-xl border border-red-600 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+        >
+          {t("suppliers.manage.deactivate")}
+        </button>
+      </section>
+
+      {deactivateOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 p-4 sm:items-center"
+          role="presentation"
+          onClick={(ev) => {
+            if (ev.target === ev.currentTarget && !deactivating) {
+              setDeactivateOpen(false);
+            }
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="manage-supplier-deactivate-title"
+            aria-describedby="manage-supplier-deactivate-body"
+            data-testid="manage-supplier-deactivate-dialog"
+            className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-soft sm:p-8"
+          >
+            <h2
+              id="manage-supplier-deactivate-title"
+              className="text-lg font-semibold text-slate-900"
+            >
+              {t("suppliers.manage.deactivateTitle").replace(
+                "{name}",
+                baseline.name
+              )}
+            </h2>
+            <p
+              id="manage-supplier-deactivate-body"
+              className="mt-2 text-sm text-slate-600"
+            >
+              {t("suppliers.manage.deactivateBody")}
+            </p>
+            {deactivateError && (
+              <p role="alert" className="mt-3 text-sm text-red-700">
+                {deactivateError}
+              </p>
+            )}
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                data-testid="manage-supplier-deactivate-cancel"
+                disabled={deactivating}
+                onClick={() => setDeactivateOpen(false)}
+                className="btn btn-outline min-h-[44px] rounded-xl font-semibold"
+              >
+                {t("suppliers.manage.deactivateCancel")}
+              </button>
+              <button
+                ref={deactivateConfirmRef}
+                type="button"
+                data-testid="manage-supplier-deactivate-confirm"
+                disabled={deactivating}
+                onClick={async () => {
+                  setDeactivating(true);
+                  setDeactivateError(null);
+                  const result = await deactivateManagedSupplier(token);
+                  if (!result.ok) {
+                    setDeactivating(false);
+                    if (result.status === 401 || result.status === 403) {
+                      onSessionExpired();
+                      return;
+                    }
+                    setDeactivateError(
+                      result.status === 0
+                        ? t("suppliers.manage.deactivateNetworkError")
+                        : t("suppliers.manage.deactivateError")
+                    );
+                    return;
+                  }
+                  clearSupplierManagementToken();
+                  router.push(
+                    `/fournisseurs?deactivated=1&name=${encodeURIComponent(baseline.name)}`
+                  );
+                }}
+                className="min-h-[44px] rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-60"
+              >
+                {deactivating
+                  ? t("suppliers.manage.deactivating")
+                  : t("suppliers.manage.deactivateConfirm")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {pendingHref && (
         <div

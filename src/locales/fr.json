@@ -320,7 +320,18 @@
       "pendingEmailCancelling": "Annulation…",
       "pendingEmailCancelled": "Le changement d’e-mail a été annulé. Votre e-mail de contact reste inchangé.",
       "pendingEmailCancelError": "Impossible d’annuler le changement d’e-mail. Veuillez réessayer.",
-      "pendingEmailNetworkError": "Impossible de se connecter. Vérifiez votre réseau et réessayez."
+      "pendingEmailNetworkError": "Impossible de se connecter. Vérifiez votre réseau et réessayez.",
+      "dangerZoneTitle": "Zone sensible",
+      "dangerZoneBody": "La désactivation retire ce fournisseur de l’annuaire et du profil publics. L’enregistrement est conservé pour audit.",
+      "deactivate": "Désactiver le fournisseur",
+      "deactivateTitle": "Désactiver {name} ?",
+      "deactivateBody": "Ce fournisseur n’apparaîtra plus dans l’annuaire ni sur le profil public. Votre session de gestion prendra fin. Cette action ne peut pas être annulée depuis cette page.",
+      "deactivateConfirm": "Désactiver le fournisseur",
+      "deactivateCancel": "Garder le fournisseur actif",
+      "deactivating": "Désactivation…",
+      "deactivateError": "Impossible de désactiver ce fournisseur. Veuillez réessayer.",
+      "deactivateNetworkError": "Impossible de se connecter. Vérifiez votre réseau et réessayez.",
+      "deactivateSuccess": "Le fournisseur a été désactivé et retiré des listes publiques."
     },
     "verifyEmail": {
       "verifying": "Vérification de votre e-mail de contact…",
