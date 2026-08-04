@@ -146,7 +146,7 @@ describe("GET/PATCH /api/suppliers/management", () => {
     expect(res.body.errors).toBeDefined();
   });
 
-  it("does not persist a changed contact email in this task", async () => {
+  it("stores a changed contact email as pending without replacing the verified email", async () => {
     const supplier = await createActiveSupplier({
       accountEmail: "keep@example.com",
     });
@@ -165,7 +165,10 @@ describe("GET/PATCH /api/suppliers/management", () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body.supplier.accountEmail).toBe("keep@example.com");
+    expect(res.body.supplier.pendingContactEmail).toBe("new-owner@example.com");
+    expect(res.body.emailVerificationPending).toBe(true);
     const stored = await Supplier.findById(supplier._id).lean();
     expect(stored.accountEmail).toBe("keep@example.com");
+    expect(stored.pendingContactEmail).toBe("new-owner@example.com");
   });
 });

@@ -254,12 +254,16 @@ async function getEditableSupplier(req, res) {
  */
 async function updateManagedSupplier(req, res) {
   try {
-    const supplier = await SupplierService.updateManagedSupplier(
+    const result = await SupplierService.updateManagedSupplier(
       req.managementSession.supplierId,
       req.body,
       { sessionId: req.managementSession.jti }
     );
-    return res.status(200).json({ supplier });
+    const body = { supplier: result.supplier };
+    if (result.emailVerificationPending) {
+      body.emailVerificationPending = true;
+    }
+    return res.status(200).json(body);
   } catch (err) {
     if (err && err.code === "SUPPLIER_UNAVAILABLE") {
       return res.status(409).json({ error: err.message });
@@ -274,6 +278,76 @@ async function updateManagedSupplier(req, res) {
   }
 }
 
+async function resendContactEmailVerification(req, res) {
+  try {
+    const result = await SupplierService.resendContactEmailVerification(
+      req.managementSession.supplierId,
+      { sessionId: req.managementSession.jti }
+    );
+    return res.status(200).json(result);
+  } catch (err) {
+    if (err && err.code === "SUPPLIER_UNAVAILABLE") {
+      return res.status(409).json({ error: err.message });
+    }
+    if (err && err.code === "NO_PENDING_EMAIL") {
+      return res.status(400).json({ error: err.message });
+    }
+    logSupplierRetrievalError("resendContactEmailVerification", err);
+    return res.status(500).json(SAFE_SERVER_ERROR);
+  }
+}
+
+async function cancelPendingContactEmail(req, res) {
+  try {
+    const result = await SupplierService.cancelPendingContactEmail(
+      req.managementSession.supplierId,
+      { sessionId: req.managementSession.jti }
+    );
+    return res.status(200).json(result);
+  } catch (err) {
+    if (err && err.code === "SUPPLIER_UNAVAILABLE") {
+      return res.status(409).json({ error: err.message });
+    }
+    logSupplierRetrievalError("cancelPendingContactEmail", err);
+    return res.status(500).json(SAFE_SERVER_ERROR);
+  }
+}
+
+async function verifyContactEmail(req, res) {
+  try {
+    const token =
+      (req.body && typeof req.body.token === "string" && req.body.token.trim()) ||
+      (typeof req.params.token === "string" ? req.params.token.trim() : "") ||
+      (typeof req.query.token === "string" ? req.query.token.trim() : "");
+
+    if (!token) {
+      return res.status(400).json({ error: "Token required" });
+    }
+
+    const result = await SupplierService.verifyContactEmail(token);
+    return res.status(200).json(result);
+  } catch (err) {
+    const msg = err.message || "Erreur serveur";
+    const isTokenClientError =
+      /Token required|Invalid magic link|already used|expired/i.test(msg) ||
+      [
+        "TOKEN_MISSING",
+        "NOT_FOUND",
+        "ALREADY_USED",
+        "EXPIRED",
+        "PURPOSE_MISMATCH",
+        "EMAIL_MISMATCH",
+      ].includes(err.code);
+
+    if (isTokenClientError) {
+      return res.status(400).json({ error: msg });
+    }
+
+    logSupplierRetrievalError("verifyContactEmail", err);
+    return res.status(500).json(SAFE_SERVER_ERROR);
+  }
+}
+
 module.exports = {
   createSupplier,
   activateSupplier,
@@ -284,4 +358,7 @@ module.exports = {
   getManagementSession,
   getEditableSupplier,
   updateManagedSupplier,
+  resendContactEmailVerification,
+  cancelPendingContactEmail,
+  verifyContactEmail,
 };

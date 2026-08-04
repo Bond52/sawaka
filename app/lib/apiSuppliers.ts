@@ -402,6 +402,8 @@ export type EditableSupplier = {
   address?: string;
   postalCode?: string;
   accountEmail: string;
+  /** Contact email awaiting verification; the account email stays active until then. */
+  pendingContactEmail?: string;
   publicEmail?: string;
   phone: string;
   website?: string;
@@ -426,13 +428,26 @@ export type GetEditableSupplierResult =
   | { ok: false; status: number; detail: string };
 
 export type UpdateEditableSupplierResult =
-  | { ok: true; supplier: EditableSupplier }
+  | {
+      ok: true;
+      supplier: EditableSupplier;
+      /** True when the contact email change still needs to be confirmed by email. */
+      emailVerificationPending: boolean;
+    }
   | {
       ok: false;
       status: number;
       detail: string;
       fieldErrors?: Record<string, string>;
     };
+
+export type ContactEmailActionResult =
+  | { ok: true }
+  | { ok: false; status: number; detail: string };
+
+export type CancelPendingContactEmailResult =
+  | { ok: true; supplier: EditableSupplier }
+  | { ok: false; status: number; detail: string };
 
 /** Maps a raw API object to the editable supplier DTO used by the manage form. */
 export function mapEditableSupplier(raw: unknown): EditableSupplier | null {
@@ -464,6 +479,9 @@ export function mapEditableSupplier(raw: unknown): EditableSupplier | null {
 
   const postalCode = asTrimmedString(source.postalCode);
   if (postalCode) supplier.postalCode = postalCode;
+
+  const pendingContactEmail = asTrimmedString(source.pendingContactEmail);
+  if (pendingContactEmail) supplier.pendingContactEmail = pendingContactEmail;
 
   const publicEmail = asTrimmedString(source.publicEmail);
   if (publicEmail) supplier.publicEmail = publicEmail;
@@ -632,7 +650,157 @@ export async function updateEditableSupplier(
     return { ok: false, status: res.status, detail: "invalid_payload" };
   }
 
+  return {
+    ok: true,
+    supplier,
+    emailVerificationPending:
+      isRecord(data) && data.emailVerificationPending === true,
+  };
+}
+
+type ManagementPostResponse =
+  | { ok: true; data: unknown }
+  | { ok: false; status: number; detail: string };
+
+/** Shared POST helper for management-session contact-email endpoints. */
+async function postManagementAction(
+  path: string,
+  token: string,
+  caller: string
+): Promise<ManagementPostResponse> {
+  const sessionToken = token?.trim();
+  if (!sessionToken) {
+    return { ok: false, status: 401, detail: "missing_token" };
+  }
+
+  const apiBase = resolveApiBaseUrl();
+  const url = `${apiBase}${path}`;
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${sessionToken}`,
+      },
+      body: "{}",
+    });
+  } catch (err) {
+    console.error(`[apiSuppliers] ${caller}: network error`, { err, url });
+    return { ok: false, status: 0, detail: "network_error" };
+  }
+
+  let data: unknown = null;
+  try {
+    data = await res.json();
+  } catch {
+    /* non-JSON body */
+  }
+
+  if (!res.ok) {
+    const detail = readErrorDetail(data, res.status);
+    console.error(`[apiSuppliers] ${caller}: API error`, {
+      status: res.status,
+      detail,
+      url,
+    });
+    return { ok: false, status: res.status, detail };
+  }
+
+  return { ok: true, data };
+}
+
+/**
+ * Sends the pending contact-email verification link again
+ * (POST /api/suppliers/management/contact-email/resend).
+ */
+export async function resendContactEmailVerification(
+  token: string
+): Promise<ContactEmailActionResult> {
+  const result = await postManagementAction(
+    "/api/suppliers/management/contact-email/resend",
+    token,
+    "resendContactEmailVerification"
+  );
+  return result.ok ? { ok: true } : result;
+}
+
+/**
+ * Drops a pending contact-email change and keeps the verified account email
+ * (POST /api/suppliers/management/contact-email/cancel).
+ */
+export async function cancelPendingContactEmail(
+  token: string
+): Promise<CancelPendingContactEmailResult> {
+  const result = await postManagementAction(
+    "/api/suppliers/management/contact-email/cancel",
+    token,
+    "cancelPendingContactEmail"
+  );
+  if (!result.ok) return result;
+
+  const supplier = mapEditableSupplier(result.data);
+  if (!supplier) {
+    console.error(
+      "[apiSuppliers] cancelPendingContactEmail: unexpected payload"
+    );
+    return { ok: false, status: 200, detail: "invalid_payload" };
+  }
+
   return { ok: true, supplier };
+}
+
+/**
+ * Confirms a contact-email change from its magic-link token
+ * (POST /api/suppliers/contact-email/verify).
+ */
+export async function verifyContactEmail(
+  magicToken: string
+): Promise<ContactEmailActionResult> {
+  const rawToken = magicToken?.trim();
+  if (!rawToken) {
+    return { ok: false, status: 400, detail: "missing_token" };
+  }
+
+  const apiBase = resolveApiBaseUrl();
+  const url = `${apiBase}/api/suppliers/contact-email/verify`;
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: rawToken }),
+    });
+  } catch (err) {
+    console.error("[apiSuppliers] verifyContactEmail: network error", {
+      err,
+      url,
+    });
+    return { ok: false, status: 0, detail: "network_error" };
+  }
+
+  let data: unknown = null;
+  try {
+    data = await res.json();
+  } catch {
+    /* non-JSON body */
+  }
+
+  if (!res.ok) {
+    const detail = readErrorDetail(data, res.status);
+    console.error("[apiSuppliers] verifyContactEmail: API error", {
+      status: res.status,
+      detail,
+      url,
+    });
+    return { ok: false, status: res.status, detail };
+  }
+
+  return { ok: true };
 }
 
 export function getSupplierManagementToken(): string | null {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Globe, Lock } from "lucide-react";
+import { Globe, Lock, MailWarning } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -17,6 +17,8 @@ import {
   type SupplierCategory,
 } from "@/app/lib/supplierCategories";
 import {
+  cancelPendingContactEmail,
+  resendContactEmailVerification,
   updateEditableSupplier,
   type EditableSupplier,
   type EditableSupplierPayload,
@@ -38,6 +40,13 @@ type FormState = {
   phone: string;
   website: string;
 };
+
+/** Distinguishes a full save from one that still awaits contact-email verification. */
+type SavedState = null | "saved" | "savedPendingEmail";
+
+type EmailAction = null | "resend" | "cancel";
+
+type EmailFeedback = { tone: "success" | "error"; message: string } | null;
 
 type Props = {
   initial: EditableSupplier;
@@ -192,8 +201,10 @@ export default function ManageSupplierForm({
     Record<string, string>
   >({});
   const [serverMessage, setServerMessage] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState<SavedState>(null);
   const [saving, setSaving] = useState(false);
+  const [emailAction, setEmailAction] = useState<EmailAction>(null);
+  const [emailFeedback, setEmailFeedback] = useState<EmailFeedback>(null);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const saveLockRef = useRef(false);
   const dialogRef = useRef<HTMLDivElement | null>(null);
@@ -268,8 +279,10 @@ export default function ManageSupplierForm({
 
   const resetFeedback = useCallback(() => {
     setServerMessage(null);
-    setSaved(false);
+    setSaved(null);
   }, []);
+
+  const pendingEmail = baseline.pendingContactEmail ?? "";
 
   const update =
     (key: keyof FormState) =>
@@ -391,7 +404,10 @@ export default function ManageSupplierForm({
         setTouched({});
         setSubmitAttempted(false);
         setServerFieldErrors({});
-        setSaved(true);
+        setEmailFeedback(null);
+        setSaved(
+          result.emailVerificationPending ? "savedPendingEmail" : "saved"
+        );
         return;
       }
 
@@ -415,6 +431,97 @@ export default function ManageSupplierForm({
     } finally {
       setSaving(false);
       saveLockRef.current = false;
+    }
+  }
+
+  /** Maps a failed contact-email action to a localized message. */
+  const emailActionError = useCallback(
+    (status: number, fallbackKey: string) => {
+      if (status === 0) return t("suppliers.manage.pendingEmailNetworkError");
+      if (status === 429) return t("suppliers.manage.pendingEmailRateLimited");
+      return t(fallbackKey);
+    },
+    [t]
+  );
+
+  async function handleResendVerification() {
+    if (emailAction) return;
+
+    setEmailAction("resend");
+    setEmailFeedback(null);
+    setSaved(null);
+
+    try {
+      const result = await resendContactEmailVerification(token);
+
+      if (result.ok) {
+        setEmailFeedback({
+          tone: "success",
+          message: t("suppliers.manage.pendingEmailResent"),
+        });
+        return;
+      }
+
+      if (result.status === 401 || result.status === 403) {
+        onSessionExpired();
+        return;
+      }
+
+      setEmailFeedback({
+        tone: "error",
+        message: emailActionError(
+          result.status,
+          "suppliers.manage.pendingEmailResendError"
+        ),
+      });
+    } finally {
+      setEmailAction(null);
+    }
+  }
+
+  async function handleCancelEmailChange() {
+    if (emailAction) return;
+
+    setEmailAction("cancel");
+    setEmailFeedback(null);
+    setSaved(null);
+
+    try {
+      const result = await cancelPendingContactEmail(token);
+
+      if (result.ok) {
+        setBaseline(result.supplier);
+        setForm((prev) => ({
+          ...prev,
+          accountEmail: result.supplier.accountEmail,
+        }));
+        setServerFieldErrors((prev) => {
+          if (!("accountEmail" in prev)) return prev;
+          const next = { ...prev };
+          delete next.accountEmail;
+          return next;
+        });
+        setEmailFeedback({
+          tone: "success",
+          message: t("suppliers.manage.pendingEmailCancelled"),
+        });
+        return;
+      }
+
+      if (result.status === 401 || result.status === 403) {
+        onSessionExpired();
+        return;
+      }
+
+      setEmailFeedback({
+        tone: "error",
+        message: emailActionError(
+          result.status,
+          "suppliers.manage.pendingEmailCancelError"
+        ),
+      });
+    } finally {
+      setEmailAction(null);
     }
   }
 
@@ -446,7 +553,7 @@ export default function ManageSupplierForm({
         className="rounded-2xl border border-slate-200/90 bg-white shadow-soft"
       >
         <div className="space-y-8 p-6 sm:p-8 lg:p-10">
-          {saved && (
+          {saved === "saved" && (
             <div
               data-testid="manage-supplier-success"
               role="status"
@@ -454,6 +561,87 @@ export default function ManageSupplierForm({
             >
               {t("suppliers.manage.saved")}
             </div>
+          )}
+
+          {saved === "savedPendingEmail" && (
+            <div
+              data-testid="manage-supplier-saved-pending-email"
+              role="status"
+              className="rounded-xl border border-amber-200/90 bg-amber-50/90 px-4 py-3.5 text-sm font-medium text-amber-900 shadow-sm"
+            >
+              {t("suppliers.manage.savedPendingEmail")}
+            </div>
+          )}
+
+          {pendingEmail && (
+            <section
+              data-testid="manage-supplier-pending-email"
+              aria-labelledby="manage-supplier-pending-email-title"
+              className="rounded-xl border border-amber-200/90 bg-amber-50/70 px-4 py-4 shadow-sm"
+            >
+              <div className="flex items-start gap-3">
+                <MailWarning
+                  className="mt-0.5 h-5 w-5 shrink-0 text-amber-700"
+                  strokeWidth={2}
+                  aria-hidden
+                />
+                <div className="min-w-0 flex-1 space-y-3">
+                  <h3
+                    id="manage-supplier-pending-email-title"
+                    className="text-sm font-semibold text-amber-900"
+                  >
+                    {t("suppliers.manage.pendingEmailTitle")}
+                  </h3>
+                  <p
+                    data-testid="manage-supplier-pending-email-body"
+                    className="break-words text-sm text-amber-900"
+                  >
+                    {t("suppliers.manage.pendingEmailBody", {
+                      pending: pendingEmail,
+                      current: baseline.accountEmail,
+                    })}
+                  </p>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <button
+                      type="button"
+                      data-testid="manage-supplier-pending-email-resend"
+                      onClick={handleResendVerification}
+                      disabled={emailAction !== null}
+                      className="btn btn-outline min-h-[44px] rounded-xl px-4 text-sm font-semibold disabled:pointer-events-none disabled:opacity-50"
+                    >
+                      {emailAction === "resend"
+                        ? t("suppliers.manage.pendingEmailResending")
+                        : t("suppliers.manage.pendingEmailResend")}
+                    </button>
+                    <button
+                      type="button"
+                      data-testid="manage-supplier-pending-email-cancel"
+                      onClick={handleCancelEmailChange}
+                      disabled={emailAction !== null}
+                      className="btn btn-outline min-h-[44px] rounded-xl px-4 text-sm font-semibold disabled:pointer-events-none disabled:opacity-50"
+                    >
+                      {emailAction === "cancel"
+                        ? t("suppliers.manage.pendingEmailCancelling")
+                        : t("suppliers.manage.pendingEmailCancel")}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {emailFeedback && (
+            <p
+              data-testid="manage-supplier-pending-email-feedback"
+              role={emailFeedback.tone === "error" ? "alert" : "status"}
+              className={
+                emailFeedback.tone === "error"
+                  ? "rounded-xl border border-red-200/90 bg-red-50 px-4 py-3.5 text-sm font-medium text-red-900 shadow-sm"
+                  : "rounded-xl border border-emerald-200/90 bg-emerald-50/90 px-4 py-3.5 text-sm font-medium text-emerald-900 shadow-sm"
+              }
+            >
+              {emailFeedback.message}
+            </p>
           )}
 
           {serverMessage && (

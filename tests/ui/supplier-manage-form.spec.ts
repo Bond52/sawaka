@@ -18,14 +18,50 @@ const EDITABLE_SUPPLIER = {
   website: "https://boisplus.cm",
 };
 
-async function mockManagementApis(
-  page: Page,
-  options: { getStatus?: number; patchStatus?: number } = {}
-) {
+const PENDING_EMAIL = "nouveau@boisplus.cm";
+
+type MockOptions = {
+  getStatus?: number;
+  patchStatus?: number;
+  /** Serves the profile with a contact email awaiting verification. */
+  pendingContactEmail?: string;
+  /** Makes PATCH answer with `emailVerificationPending`. */
+  patchPendingEmail?: string;
+  resendStatus?: number;
+  cancelStatus?: number;
+};
+
+async function mockManagementApis(page: Page, options: MockOptions = {}) {
   await page.route("**/api/suppliers/**", async (route: Route) => {
     const request = route.request();
     const url = request.url();
     const method = request.method();
+
+    if (url.includes("/api/suppliers/management/contact-email/resend")) {
+      const status = options.resendStatus ?? 200;
+      await route.fulfill({
+        status,
+        contentType: "application/json",
+        body: JSON.stringify(
+          status === 200 ? { success: true } : { error: "Resend failed" }
+        ),
+      });
+      return;
+    }
+
+    if (url.includes("/api/suppliers/management/contact-email/cancel")) {
+      const status = options.cancelStatus ?? 200;
+      await route.fulfill({
+        status,
+        contentType: "application/json",
+        body: JSON.stringify(
+          status === 200
+            ? { supplier: EDITABLE_SUPPLIER }
+            : { error: "Cancel failed" }
+        ),
+      });
+      return;
+    }
 
     if (url.includes("/api/suppliers/management")) {
       if (method === "GET") {
@@ -35,7 +71,12 @@ async function mockManagementApis(
           contentType: "application/json",
           body: JSON.stringify(
             status === 200
-              ? EDITABLE_SUPPLIER
+              ? options.pendingContactEmail
+                ? {
+                    ...EDITABLE_SUPPLIER,
+                    pendingContactEmail: options.pendingContactEmail,
+                  }
+                : EDITABLE_SUPPLIER
               : { error: "Session expired" }
           ),
         });
@@ -45,13 +86,24 @@ async function mockManagementApis(
       if (method === "PATCH") {
         const status = options.patchStatus ?? 200;
         const patch = request.postDataJSON() as Record<string, unknown>;
+        const pending = options.patchPendingEmail;
         await route.fulfill({
           status,
           contentType: "application/json",
           body: JSON.stringify(
-            status === 200
-              ? { supplier: { ...EDITABLE_SUPPLIER, ...patch } }
-              : { error: "Update failed" }
+            status !== 200
+              ? { error: "Update failed" }
+              : pending
+                ? {
+                    supplier: {
+                      ...EDITABLE_SUPPLIER,
+                      ...patch,
+                      accountEmail: EDITABLE_SUPPLIER.accountEmail,
+                      pendingContactEmail: pending,
+                    },
+                    emailVerificationPending: true,
+                  }
+                : { supplier: { ...EDITABLE_SUPPLIER, ...patch } }
           ),
         });
         return;
@@ -212,6 +264,98 @@ test.describe("Supplier management edit form", () => {
       page.getByTestId("manage-supplier-discard-dialog")
     ).toHaveCount(0);
     await expect(page).toHaveURL(new RegExp(`/fournisseurs/${SUPPLIER_ID}$`));
+  });
+
+  test("shows the pending verification banner for a pending contact email", async ({
+    page,
+  }) => {
+    await mockManagementApis(page, { pendingContactEmail: PENDING_EMAIL });
+    await page.goto("/supplier/manage");
+
+    const banner = page.getByTestId("manage-supplier-pending-email");
+    await expect(banner).toBeVisible({ timeout: 10000 });
+    await expect(
+      page.getByTestId("manage-supplier-pending-email-body")
+    ).toContainText(PENDING_EMAIL);
+    await expect(
+      page.getByTestId("manage-supplier-input-account-email")
+    ).toHaveValue(EDITABLE_SUPPLIER.accountEmail);
+    await expect(
+      page.getByTestId("manage-supplier-input-account-email")
+    ).toBeEditable();
+  });
+
+  test("changing the account email shows the partial success notice", async ({
+    page,
+  }) => {
+    await mockManagementApis(page, { patchPendingEmail: PENDING_EMAIL });
+    await page.goto("/supplier/manage");
+
+    await expect(page.getByTestId("manage-supplier-form")).toBeVisible({
+      timeout: 10000,
+    });
+    await page
+      .getByTestId("manage-supplier-input-account-email")
+      .fill(PENDING_EMAIL);
+    await page.getByTestId("manage-supplier-save").click();
+
+    await expect(
+      page.getByTestId("manage-supplier-saved-pending-email")
+    ).toBeVisible();
+    await expect(page.getByTestId("manage-supplier-success")).toHaveCount(0);
+    await expect(page.getByTestId("manage-supplier-pending-email")).toBeVisible();
+  });
+
+  test("resending the verification email reports success", async ({ page }) => {
+    await mockManagementApis(page, { pendingContactEmail: PENDING_EMAIL });
+    await page.goto("/supplier/manage");
+
+    await expect(page.getByTestId("manage-supplier-pending-email")).toBeVisible({
+      timeout: 10000,
+    });
+    await page.getByTestId("manage-supplier-pending-email-resend").click();
+
+    await expect(
+      page.getByTestId("manage-supplier-pending-email-feedback")
+    ).toBeVisible();
+    await expect(page.getByTestId("manage-supplier-pending-email")).toBeVisible();
+  });
+
+  test("a failed resend reports an error", async ({ page }) => {
+    await mockManagementApis(page, {
+      pendingContactEmail: PENDING_EMAIL,
+      resendStatus: 500,
+    });
+    await page.goto("/supplier/manage");
+
+    await expect(page.getByTestId("manage-supplier-pending-email")).toBeVisible({
+      timeout: 10000,
+    });
+    await page.getByTestId("manage-supplier-pending-email-resend").click();
+
+    const feedback = page.getByTestId("manage-supplier-pending-email-feedback");
+    await expect(feedback).toBeVisible();
+    await expect(feedback).toHaveAttribute("role", "alert");
+  });
+
+  test("cancelling the email change removes the banner", async ({ page }) => {
+    await mockManagementApis(page, { pendingContactEmail: PENDING_EMAIL });
+    await page.goto("/supplier/manage");
+
+    await expect(page.getByTestId("manage-supplier-pending-email")).toBeVisible({
+      timeout: 10000,
+    });
+    await page.getByTestId("manage-supplier-pending-email-cancel").click();
+
+    await expect(page.getByTestId("manage-supplier-pending-email")).toHaveCount(
+      0
+    );
+    await expect(
+      page.getByTestId("manage-supplier-pending-email-feedback")
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("manage-supplier-input-account-email")
+    ).toHaveValue(EDITABLE_SUPPLIER.accountEmail);
   });
 
   test("expired session shows the session expired message", async ({ page }) => {

@@ -21,13 +21,17 @@ const SupplierSchema = new mongoose.Schema(
       required: true,
       match: [/.+\@.+\..+/, "Invalid account email format"],
     },
+    /** New private contact email awaiting ownership verification. */
+    pendingContactEmail: { type: String, default: undefined },
+    contactEmailChangedAt: { type: Date, default: null },
+    contactEmailVerifiedAt: { type: Date, default: null },
     publicEmail: { type: String, default: "" },
     phone: { type: String, required: true, minlength: 6 },
     website: { type: String, default: "" },
 
     status: {
       type: String,
-      enum: ["Invited", "Active", "Deleted"],
+      enum: ["Invited", "Active", "Inactive", "Deleted"],
       default: "Invited",
     },
 
@@ -37,6 +41,7 @@ const SupplierSchema = new mongoose.Schema(
     },
 
     isVisible: { type: Boolean, default: false },
+    deactivatedAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

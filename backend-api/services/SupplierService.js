@@ -12,7 +12,7 @@ const PUBLIC_DIRECTORY_PROJECTION =
   "name categories country region city address postalCode publicEmail phone website";
 
 const EDITABLE_PROJECTION =
-  "name categories country region city address postalCode accountEmail publicEmail phone website";
+  "name categories country region city address postalCode accountEmail pendingContactEmail publicEmail phone website";
 
 const SUPPLIER_NOT_FOUND = "Supplier not found";
 const SUPPLIER_UNAVAILABLE = "Supplier management is unavailable";
@@ -171,6 +171,14 @@ function toEditableSupplierDTO(supplier) {
     phone: supplier.phone || "",
     website: typeof supplier.website === "string" ? supplier.website : "",
   };
+
+  if (
+    typeof supplier.pendingContactEmail === "string" &&
+    supplier.pendingContactEmail.trim()
+  ) {
+    entry.pendingContactEmail = supplier.pendingContactEmail.trim();
+  }
+
   return entry;
 }
 
@@ -178,6 +186,17 @@ function createUnavailableError() {
   const err = new Error(SUPPLIER_UNAVAILABLE);
   err.code = "SUPPLIER_UNAVAILABLE";
   return err;
+}
+
+async function invalidateUnusedVerificationTokens(supplierId) {
+  await MagicLinkToken.updateMany(
+    {
+      supplierId,
+      purpose: MagicLinkService.PURPOSES.CONTACT_EMAIL_VERIFICATION,
+      isUsed: false,
+    },
+    { $set: { isUsed: true } }
+  );
 }
 
 function isValidOptionalUrl(value) {
@@ -195,7 +214,7 @@ function isValidOptionalUrl(value) {
 /**
  * Validate and normalize editable supplier update payload.
  * System fields (status, isVisible, ownerId, timestamps) are stripped.
- * @returns {{ updates: object, changedFields: string[] }}
+ * @returns {{ updates: object, changedFields: string[], pendingContactEmail: string|null }}
  */
 function parseEditableUpdate(data, currentSupplier) {
   if (!data || typeof data !== "object") {
@@ -214,12 +233,16 @@ function parseEditableUpdate(data, currentSupplier) {
     updatedAt: _ua,
     deactivatedAt: _da,
     pendingContactEmail: _pe,
+    contactEmailChangedAt: _cca,
+    contactEmailVerifiedAt: _cva,
     ...raw
   } = data;
 
   const errors = {};
   const updates = {};
   const changedFields = [];
+  /** @type {string|null} */
+  let pendingContactEmail = null;
 
   const name = typeof raw.name === "string" ? raw.name.trim() : "";
   if (!name || name.length < 2) {
@@ -280,8 +303,7 @@ function parseEditableUpdate(data, currentSupplier) {
     if (phone !== (currentSupplier.phone || "")) changedFields.push("phone");
   }
 
-  // Contact email: for management-page task, persist only when unchanged.
-  // Email change/verification is handled in a follow-up task.
+  // Contact email change → pending verification (verified email stays active).
   if (raw.accountEmail !== undefined) {
     if (typeof raw.accountEmail !== "string") {
       errors.accountEmail = "Invalid account email format";
@@ -295,7 +317,8 @@ function parseEditableUpdate(data, currentSupplier) {
             ? currentSupplier.accountEmail.trim()
             : "";
         if (submitted.toLowerCase() !== current.toLowerCase()) {
-          // Ignore change for now; keep verified email. Follow-up task handles pending.
+          pendingContactEmail = submitted;
+          changedFields.push("pendingContactEmail");
         }
       }
     }
@@ -339,7 +362,7 @@ function parseEditableUpdate(data, currentSupplier) {
     throw err;
   }
 
-  return { updates, changedFields };
+  return { updates, changedFields, pendingContactEmail };
 }
 
 const VALIDATION_REASON_MESSAGES = {
@@ -681,9 +704,11 @@ const SupplierService = {
 
   /**
    * Update permitted supplier fields under a management session.
+   * Contact-email changes are stored as pendingContactEmail and verified separately.
    * @param {string} supplierId
    * @param {object} data
    * @param {{ sessionId?: string }} [options]
+   * @returns {Promise<{ supplier: object, emailVerificationPending?: boolean }>}
    */
   async updateManagedSupplier(supplierId, data, options = {}) {
     if (!isValidSupplierObjectId(String(supplierId))) {
@@ -700,10 +725,18 @@ const SupplierService = {
       throw createUnavailableError();
     }
 
-    const { updates, changedFields } = parseEditableUpdate(data, current);
+    const { updates, changedFields, pendingContactEmail } = parseEditableUpdate(
+      data,
+      current
+    );
 
-    if (changedFields.length === 0) {
-      return toEditableSupplierDTO(current);
+    if (pendingContactEmail) {
+      updates.pendingContactEmail = pendingContactEmail;
+      updates.contactEmailChangedAt = new Date();
+    }
+
+    if (changedFields.length === 0 && !pendingContactEmail) {
+      return { supplier: toEditableSupplierDTO(current) };
     }
 
     let updated;
@@ -728,14 +761,278 @@ const SupplierService = {
       throw createUnavailableError();
     }
 
+    const profileChangedFields = changedFields.filter(
+      (f) => f !== "pendingContactEmail"
+    );
+
+    if (profileChangedFields.length > 0) {
+      await recordAuditEvent({
+        action: AUDIT_ACTIONS.SUPPLIER_UPDATED,
+        supplierId,
+        sessionId: options.sessionId || null,
+        metadata: { changedFields: profileChangedFields },
+      });
+    }
+
+    let emailVerificationPending = false;
+    if (pendingContactEmail) {
+      emailVerificationPending = true;
+      try {
+        await invalidateUnusedVerificationTokens(supplierId);
+        const generated = await MagicLinkService.generateToken({
+          supplierId,
+          purpose: MagicLinkService.PURPOSES.CONTACT_EMAIL_VERIFICATION,
+          pendingEmail: pendingContactEmail,
+        });
+        const sent = await EmailService.sendContactEmailVerification(
+          pendingContactEmail,
+          generated.rawToken
+        );
+        if (!sent) {
+          console.error("SupplierService.updateManagedSupplier verify email send failed", {
+            supplierIdPresent: true,
+          });
+        }
+        await recordAuditEvent({
+          action: AUDIT_ACTIONS.SUPPLIER_CONTACT_EMAIL_CHANGE_REQUESTED,
+          supplierId,
+          sessionId: options.sessionId || null,
+          metadata: { hasPendingEmail: true },
+        });
+      } catch (err) {
+        console.error("SupplierService.updateManagedSupplier verify email:", {
+          name: err && err.name,
+          message: err && err.message,
+          supplierIdPresent: true,
+        });
+      }
+    }
+
+    const result = { supplier: toEditableSupplierDTO(updated) };
+    if (emailVerificationPending) {
+      result.emailVerificationPending = true;
+    }
+    return result;
+  },
+
+  /**
+   * Resend contact-email verification link for the current pending email.
+   */
+  async resendContactEmailVerification(supplierId, options = {}) {
+    if (!isValidSupplierObjectId(String(supplierId))) {
+      throw createUnavailableError();
+    }
+
+    const supplier = await Supplier.findOne({
+      _id: supplierId,
+      status: "Active",
+      isVisible: true,
+    })
+      .select("pendingContactEmail accountEmail")
+      .lean();
+
+    if (!supplier) {
+      throw createUnavailableError();
+    }
+
+    const pending =
+      typeof supplier.pendingContactEmail === "string"
+        ? supplier.pendingContactEmail.trim()
+        : "";
+    if (!pending) {
+      const err = new Error("No pending contact email to verify");
+      err.code = "NO_PENDING_EMAIL";
+      throw err;
+    }
+
+    await invalidateUnusedVerificationTokens(supplierId);
+    const generated = await MagicLinkService.generateToken({
+      supplierId,
+      purpose: MagicLinkService.PURPOSES.CONTACT_EMAIL_VERIFICATION,
+      pendingEmail: pending,
+    });
+    const sent = await EmailService.sendContactEmailVerification(
+      pending,
+      generated.rawToken
+    );
+    if (!sent) {
+      throw new Error("Failed to send verification email");
+    }
+
     await recordAuditEvent({
-      action: AUDIT_ACTIONS.SUPPLIER_UPDATED,
+      action: AUDIT_ACTIONS.SUPPLIER_CONTACT_EMAIL_CHANGE_REQUESTED,
       supplierId,
       sessionId: options.sessionId || null,
-      metadata: { changedFields },
+      metadata: { resent: true },
     });
 
-    return toEditableSupplierDTO(updated);
+    return { success: true };
+  },
+
+  /**
+   * Cancel a pending contact-email change.
+   */
+  async cancelPendingContactEmail(supplierId, options = {}) {
+    if (!isValidSupplierObjectId(String(supplierId))) {
+      throw createUnavailableError();
+    }
+
+    const updated = await Supplier.findOneAndUpdate(
+      {
+        _id: supplierId,
+        status: "Active",
+        isVisible: true,
+        pendingContactEmail: { $exists: true, $nin: [null, ""] },
+      },
+      {
+        $unset: { pendingContactEmail: 1 },
+        $set: { contactEmailChangedAt: null },
+      },
+      { new: true }
+    )
+      .select(EDITABLE_PROJECTION)
+      .lean();
+
+    if (!updated) {
+      const stillActive = await Supplier.findOne({
+        _id: supplierId,
+        status: "Active",
+        isVisible: true,
+      })
+        .select(EDITABLE_PROJECTION)
+        .lean();
+      if (!stillActive) throw createUnavailableError();
+      return { supplier: toEditableSupplierDTO(stillActive) };
+    }
+
+    await invalidateUnusedVerificationTokens(supplierId);
+    await recordAuditEvent({
+      action: AUDIT_ACTIONS.SUPPLIER_CONTACT_EMAIL_CHANGE_CANCELLED,
+      supplierId,
+      sessionId: options.sessionId || null,
+    });
+
+    return { supplier: toEditableSupplierDTO(updated) };
+  },
+
+  /**
+   * Consume a CONTACT_EMAIL_VERIFICATION token and activate the pending email.
+   */
+  async verifyContactEmail(rawToken) {
+    const purpose = MagicLinkService.PURPOSES.CONTACT_EMAIL_VERIFICATION;
+
+    if (!rawToken || typeof rawToken !== "string" || !rawToken.trim()) {
+      const err = new Error("Token required");
+      err.code = "TOKEN_MISSING";
+      throw err;
+    }
+
+    const crypto = require("crypto");
+    const tokenHash = crypto
+      .createHash("sha256")
+      .update(rawToken, "utf8")
+      .digest("hex");
+    let tokenDoc = await MagicLinkToken.findOne({ tokenHash });
+    if (!tokenDoc) {
+      tokenDoc = await MagicLinkToken.findOne({ token: rawToken });
+    }
+    if (!tokenDoc) {
+      const err = new Error("Invalid magic link");
+      err.code = "NOT_FOUND";
+      throw err;
+    }
+    if (tokenDoc.purpose !== purpose) {
+      const err = new Error("Invalid magic link");
+      err.code = "PURPOSE_MISMATCH";
+      throw err;
+    }
+    if (tokenDoc.isUsed) {
+      const err = new Error("Magic link already used");
+      err.code = "ALREADY_USED";
+      throw err;
+    }
+    if (tokenDoc.expiresAt.getTime() <= Date.now()) {
+      const err = new Error("Magic link expired");
+      err.code = "EXPIRED";
+      throw err;
+    }
+
+    const supplier = await Supplier.findById(tokenDoc.supplierId).lean();
+    if (
+      !supplier ||
+      typeof supplier.pendingContactEmail !== "string" ||
+      !supplier.pendingContactEmail.trim()
+    ) {
+      const err = new Error("Invalid magic link");
+      err.code = "EMAIL_MISMATCH";
+      throw err;
+    }
+
+    const pending = supplier.pendingContactEmail.trim();
+    const validation = await MagicLinkService.validateToken(rawToken, purpose, {
+      pendingEmail: pending,
+    });
+    if (!validation.valid) {
+      const err = new Error(
+        VALIDATION_REASON_MESSAGES[validation.reason] || "Invalid magic link"
+      );
+      err.code = validation.reason;
+      throw err;
+    }
+
+    const previousEmail = supplier.accountEmail;
+    const updated = await Supplier.findOneAndUpdate(
+      {
+        _id: supplier._id,
+        pendingContactEmail: supplier.pendingContactEmail,
+      },
+      {
+        $set: {
+          accountEmail: pending,
+          contactEmailVerifiedAt: new Date(),
+          contactEmailChangedAt: new Date(),
+        },
+        $unset: { pendingContactEmail: 1 },
+      },
+      { new: true }
+    )
+      .select("_id accountEmail")
+      .lean();
+
+    if (!updated) {
+      const err = new Error("Invalid magic link");
+      err.code = "EMAIL_MISMATCH";
+      throw err;
+    }
+
+    try {
+      await MagicLinkService.consumeToken(rawToken, purpose);
+    } catch (err) {
+      try {
+        await Supplier.findByIdAndUpdate(supplier._id, {
+          $set: {
+            accountEmail: previousEmail,
+            pendingContactEmail: pending,
+            contactEmailVerifiedAt: supplier.contactEmailVerifiedAt || null,
+          },
+        });
+      } catch (rollbackErr) {
+        console.error("SupplierService.verifyContactEmail rollback:", {
+          name: rollbackErr && rollbackErr.name,
+          message: rollbackErr && rollbackErr.message,
+        });
+      }
+      throw err;
+    }
+
+    await invalidateUnusedVerificationTokens(supplier._id);
+    await recordAuditEvent({
+      action: AUDIT_ACTIONS.SUPPLIER_CONTACT_EMAIL_VERIFIED,
+      supplierId: supplier._id,
+      metadata: { verified: true },
+    });
+
+    return { success: true, supplierId: updated._id.toString() };
   },
 
   parsePublicDirectoryQuery,
