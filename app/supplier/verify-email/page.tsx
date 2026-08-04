@@ -6,13 +6,14 @@ import { useSearchParams } from "next/navigation";
 import { useTranslation } from "@/src/i18n/I18nProvider";
 import { verifyContactEmail } from "@/app/lib/apiSuppliers";
 
-type Phase = "loading" | "success" | "error";
+type Phase = "loading" | "success" | "error" | "networkError";
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const { t } = useTranslation();
   const token = searchParams.get("token")?.trim() ?? "";
   const [phase, setPhase] = useState<Phase>(() => (token ? "loading" : "error"));
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     if (!token) {
@@ -26,13 +27,18 @@ function VerifyEmailContent() {
     (async () => {
       const result = await verifyContactEmail(token);
       if (cancelled) return;
-      setPhase(result.ok ? "success" : "error");
+      if (result.ok) {
+        setPhase("success");
+        return;
+      }
+      const fail = result as { ok: false; status: number; detail: string };
+      setPhase(fail.status === 0 ? "networkError" : "error");
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [retryKey, token]);
 
   return (
     <div className="flex min-h-[calc(100vh-8rem)] flex-col items-center justify-center px-4 py-12 sm:py-16">
@@ -93,7 +99,7 @@ function VerifyEmailContent() {
           </div>
         )}
 
-        {phase === "error" && (
+        {(phase === "error" || phase === "networkError") && (
           <div
             role="alert"
             className="space-y-6"
@@ -116,18 +122,34 @@ function VerifyEmailContent() {
               </svg>
             </div>
             <p className="text-base font-semibold text-red-900">
-              {t("suppliers.verifyEmail.error")}
+              {phase === "networkError"
+                ? t("suppliers.verifyEmail.networkError")
+                : t("suppliers.verifyEmail.error")}
             </p>
-            <p className="text-sm text-slate-600">
-              {t("suppliers.verifyEmail.errorHint")}
-            </p>
-            <Link
-              href="/fournisseurs"
-              className="btn btn-outline inline-flex w-full min-h-[48px] items-center justify-center rounded-xl font-semibold"
-              data-testid="supplier-verify-email-directory"
-            >
-              {t("suppliers.backToDirectory")}
-            </Link>
+            {phase === "error" && (
+              <p className="text-sm text-slate-600">
+                {t("suppliers.verifyEmail.errorHint")}
+              </p>
+            )}
+            <div className="space-y-3">
+              {token && (
+                <button
+                  type="button"
+                  onClick={() => setRetryKey((key) => key + 1)}
+                  className="btn btn-primary inline-flex w-full min-h-[48px] items-center justify-center rounded-xl font-semibold"
+                  data-testid="supplier-verify-email-retry"
+                >
+                  {t("suppliers.verifyEmail.retry")}
+                </button>
+              )}
+              <Link
+                href="/fournisseurs"
+                className="btn btn-outline inline-flex w-full min-h-[48px] items-center justify-center rounded-xl font-semibold"
+                data-testid="supplier-verify-email-directory"
+              >
+                {t("suppliers.backToDirectory")}
+              </Link>
+            </div>
           </div>
         )}
       </div>
