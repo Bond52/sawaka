@@ -45,9 +45,10 @@ export default function RequestManagementAccess({
 
     const result = await requestSupplierManagementLink(supplierId, trimmed);
     if (!result.ok) {
-      if (result.status === 429) {
+      const fail = result as { ok: false; status: number; detail: string };
+      if (fail.status === 429) {
         setErrorKey("suppliers.manage.requestRateLimited");
-      } else if (result.status === 0) {
+      } else if (fail.status === 0) {
         setErrorKey("suppliers.manage.requestNetworkError");
       } else {
         setErrorKey("suppliers.manage.requestError");

@@ -107,7 +107,8 @@ function SupplierManageContent() {
       if (cancelled) return;
 
       if (!loaded.ok) {
-        if (loaded.status === 401 || loaded.status === 403) {
+        const fail = loaded as { ok: false; status: number; detail: string };
+        if (fail.status === 401 || fail.status === 403) {
           clearSupplierManagementToken();
           setPhase("expired");
           return;

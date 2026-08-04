@@ -22,8 +22,11 @@ import {
   deactivateManagedSupplier,
   resendContactEmailVerification,
   updateEditableSupplier,
+  type CancelPendingContactEmailResult,
+  type ContactEmailActionResult,
   type EditableSupplier,
   type EditableSupplierPayload,
+  type UpdateEditableSupplierResult,
 } from "@/app/lib/apiSuppliers";
 
 type Category = SupplierCategory;
@@ -417,20 +420,24 @@ export default function ManageSupplierForm({
         return;
       }
 
-      if (result.status === 401 || result.status === 403) {
+      const fail = result as Extract<
+        UpdateEditableSupplierResult,
+        { ok: false }
+      >;
+      if (fail.status === 401 || fail.status === 403) {
         onSessionExpired();
         return;
       }
 
-      if (result.fieldErrors) {
-        setServerFieldErrors(result.fieldErrors);
+      if (fail.fieldErrors) {
+        setServerFieldErrors(fail.fieldErrors);
         setServerMessage(t("suppliers.manage.saveValidationError"));
-        queueMicrotask(() => focusFirstFieldError(result.fieldErrors ?? {}));
+        queueMicrotask(() => focusFirstFieldError(fail.fieldErrors ?? {}));
         return;
       }
 
       setServerMessage(
-        result.status === 0
+        fail.status === 0
           ? t("suppliers.manage.saveNetworkError")
           : t("suppliers.manage.saveError")
       );
@@ -468,7 +475,8 @@ export default function ManageSupplierForm({
         return;
       }
 
-      if (result.status === 401 || result.status === 403) {
+      const fail = result as Extract<ContactEmailActionResult, { ok: false }>;
+      if (fail.status === 401 || fail.status === 403) {
         onSessionExpired();
         return;
       }
@@ -476,7 +484,7 @@ export default function ManageSupplierForm({
       setEmailFeedback({
         tone: "error",
         message: emailActionError(
-          result.status,
+          fail.status,
           "suppliers.manage.pendingEmailResendError"
         ),
       });
@@ -514,7 +522,11 @@ export default function ManageSupplierForm({
         return;
       }
 
-      if (result.status === 401 || result.status === 403) {
+      const fail = result as Extract<
+        CancelPendingContactEmailResult,
+        { ok: false }
+      >;
+      if (fail.status === 401 || fail.status === 403) {
         onSessionExpired();
         return;
       }
@@ -522,7 +534,7 @@ export default function ManageSupplierForm({
       setEmailFeedback({
         tone: "error",
         message: emailActionError(
-          result.status,
+          fail.status,
           "suppliers.manage.pendingEmailCancelError"
         ),
       });
@@ -1150,12 +1162,16 @@ export default function ManageSupplierForm({
                   const result = await deactivateManagedSupplier(token);
                   if (!result.ok) {
                     setDeactivating(false);
-                    if (result.status === 401 || result.status === 403) {
+                    const fail = result as Extract<
+                      ContactEmailActionResult,
+                      { ok: false }
+                    >;
+                    if (fail.status === 401 || fail.status === 403) {
                       onSessionExpired();
                       return;
                     }
                     setDeactivateError(
-                      result.status === 0
+                      fail.status === 0
                         ? t("suppliers.manage.deactivateNetworkError")
                         : t("suppliers.manage.deactivateError")
                     );
