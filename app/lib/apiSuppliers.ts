@@ -391,6 +391,250 @@ export async function establishSupplierManagementSession(
   };
 }
 
+/** Supplier fields the owner may edit from the management area. */
+export type EditableSupplier = {
+  id: string;
+  name: string;
+  categories: string[];
+  country: string;
+  region?: string;
+  city?: string;
+  address?: string;
+  postalCode?: string;
+  accountEmail: string;
+  publicEmail?: string;
+  phone: string;
+  website?: string;
+};
+
+export type EditableSupplierPayload = {
+  name?: string;
+  categories?: string[];
+  country?: string;
+  region?: string;
+  city?: string;
+  address?: string;
+  postalCode?: string;
+  accountEmail?: string;
+  publicEmail?: string;
+  phone?: string;
+  website?: string;
+};
+
+export type GetEditableSupplierResult =
+  | { ok: true; supplier: EditableSupplier }
+  | { ok: false; status: number; detail: string };
+
+export type UpdateEditableSupplierResult =
+  | { ok: true; supplier: EditableSupplier }
+  | {
+      ok: false;
+      status: number;
+      detail: string;
+      fieldErrors?: Record<string, string>;
+    };
+
+/** Maps a raw API object to the editable supplier DTO used by the manage form. */
+export function mapEditableSupplier(raw: unknown): EditableSupplier | null {
+  const source =
+    isRecord(raw) && isRecord(raw.supplier) ? raw.supplier : raw;
+  if (!isRecord(source)) return null;
+
+  const id = asTrimmedString(source.id) || asTrimmedString(source._id);
+  const name = asTrimmedString(source.name);
+  if (!id || !name) return null;
+
+  const supplier: EditableSupplier = {
+    id,
+    name,
+    categories: asStringArray(source.categories),
+    country: asTrimmedString(source.country) || "",
+    accountEmail: asTrimmedString(source.accountEmail) || "",
+    phone: asTrimmedString(source.phone) || "",
+  };
+
+  const region = asTrimmedString(source.region);
+  if (region) supplier.region = region;
+
+  const city = asTrimmedString(source.city);
+  if (city) supplier.city = city;
+
+  const address = asTrimmedString(source.address);
+  if (address) supplier.address = address;
+
+  const postalCode = asTrimmedString(source.postalCode);
+  if (postalCode) supplier.postalCode = postalCode;
+
+  const publicEmail = asTrimmedString(source.publicEmail);
+  if (publicEmail) supplier.publicEmail = publicEmail;
+
+  const website = asTrimmedString(source.website);
+  if (website) supplier.website = website;
+
+  return supplier;
+}
+
+function readErrorDetail(data: unknown, status: number): string {
+  if (isRecord(data)) {
+    const error = asTrimmedString(data.error);
+    if (error) return error;
+    const message = asTrimmedString(data.message);
+    if (message) return message;
+  }
+  return `HTTP ${status}`;
+}
+
+/** Extracts a `{ field: message }` map from a backend validation payload. */
+function readFieldErrors(data: unknown): Record<string, string> | undefined {
+  if (!isRecord(data) || !isRecord(data.errors)) return undefined;
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(data.errors)) {
+    if (typeof value === "string" && value.trim()) {
+      out[key] = value.trim();
+      continue;
+    }
+    if (Array.isArray(value)) {
+      const first = value.find(
+        (item) => typeof item === "string" && item.trim()
+      );
+      if (typeof first === "string") out[key] = first.trim();
+      continue;
+    }
+    if (isRecord(value)) {
+      const message = asTrimmedString(value.message);
+      if (message) out[key] = message;
+    }
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/**
+ * Fetches the editable supplier bound to a management session
+ * (GET /api/suppliers/management).
+ */
+export async function getEditableSupplier(
+  token: string
+): Promise<GetEditableSupplierResult> {
+  const sessionToken = token?.trim();
+  if (!sessionToken) {
+    return { ok: false, status: 401, detail: "missing_token" };
+  }
+
+  const apiBase = resolveApiBaseUrl();
+  const url = `${apiBase}/api/suppliers/management`;
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "GET",
+      credentials: "include",
+      cache: "no-store",
+      headers: { Authorization: `Bearer ${sessionToken}` },
+    });
+  } catch (err) {
+    console.error("[apiSuppliers] getEditableSupplier: network error", {
+      err,
+      url,
+    });
+    return { ok: false, status: 0, detail: "network_error" };
+  }
+
+  let data: unknown = null;
+  try {
+    data = await res.json();
+  } catch {
+    /* non-JSON body */
+  }
+
+  if (!res.ok) {
+    const detail = readErrorDetail(data, res.status);
+    console.error("[apiSuppliers] getEditableSupplier: API error", {
+      status: res.status,
+      detail,
+      url,
+    });
+    return { ok: false, status: res.status, detail };
+  }
+
+  const supplier = mapEditableSupplier(data);
+  if (!supplier) {
+    console.error("[apiSuppliers] getEditableSupplier: unexpected payload", {
+      url,
+    });
+    return { ok: false, status: res.status, detail: "invalid_payload" };
+  }
+
+  return { ok: true, supplier };
+}
+
+/**
+ * Updates the editable supplier bound to a management session
+ * (PATCH /api/suppliers/management).
+ */
+export async function updateEditableSupplier(
+  token: string,
+  payload: EditableSupplierPayload
+): Promise<UpdateEditableSupplierResult> {
+  const sessionToken = token?.trim();
+  if (!sessionToken) {
+    return { ok: false, status: 401, detail: "missing_token" };
+  }
+
+  const apiBase = resolveApiBaseUrl();
+  const url = `${apiBase}/api/suppliers/management`;
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "PATCH",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${sessionToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    console.error("[apiSuppliers] updateEditableSupplier: network error", {
+      err,
+      url,
+    });
+    return { ok: false, status: 0, detail: "network_error" };
+  }
+
+  let data: unknown = null;
+  try {
+    data = await res.json();
+  } catch {
+    /* non-JSON body */
+  }
+
+  if (!res.ok) {
+    const detail = readErrorDetail(data, res.status);
+    console.error("[apiSuppliers] updateEditableSupplier: API error", {
+      status: res.status,
+      detail,
+      url,
+    });
+    return {
+      ok: false,
+      status: res.status,
+      detail,
+      fieldErrors: readFieldErrors(data),
+    };
+  }
+
+  const supplier = mapEditableSupplier(data);
+  if (!supplier) {
+    console.error("[apiSuppliers] updateEditableSupplier: unexpected payload", {
+      url,
+    });
+    return { ok: false, status: res.status, detail: "invalid_payload" };
+  }
+
+  return { ok: true, supplier };
+}
+
 export function getSupplierManagementToken(): string | null {
   if (typeof window === "undefined") return null;
   try {

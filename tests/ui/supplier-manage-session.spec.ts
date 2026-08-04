@@ -24,6 +24,15 @@ async function mockSupplierApis(
     const url = request.url();
     const method = request.method();
 
+    if (method === "GET" && url.includes("/api/suppliers/management")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ ...PROFILE, accountEmail: "compte@boisplus.cm" }),
+      });
+      return;
+    }
+
     if (method === "GET" && url.includes(`/api/suppliers/${SUPPLIER_ID}`)) {
       await route.fulfill({
         status: 200,
@@ -95,7 +104,7 @@ test.describe("Supplier management access & session", () => {
     await mockSupplierApis(page);
     await page.goto("/supplier/manage?token=valid-raw-token");
 
-    await expect(page.getByTestId("supplier-manage-success")).toBeVisible({
+    await expect(page.getByTestId("manage-supplier-form")).toBeVisible({
       timeout: 10000,
     });
     const stored = await page.evaluate(() =>

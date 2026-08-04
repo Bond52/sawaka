@@ -229,6 +229,51 @@ async function getManagementSession(req, res) {
   });
 }
 
+/**
+ * GET /api/suppliers/management
+ * Editable supplier payload for the session-bound supplier.
+ */
+async function getEditableSupplier(req, res) {
+  try {
+    const supplier = await SupplierService.getEditableSupplier(
+      req.managementSession.supplierId
+    );
+    return res.status(200).json(supplier);
+  } catch (err) {
+    if (err && err.code === "SUPPLIER_UNAVAILABLE") {
+      return res.status(409).json({ error: err.message });
+    }
+    logSupplierRetrievalError("getEditableSupplier", err);
+    return res.status(500).json(SAFE_SERVER_ERROR);
+  }
+}
+
+/**
+ * PATCH /api/suppliers/management
+ * Update permitted fields for the session-bound supplier.
+ */
+async function updateManagedSupplier(req, res) {
+  try {
+    const supplier = await SupplierService.updateManagedSupplier(
+      req.managementSession.supplierId,
+      req.body,
+      { sessionId: req.managementSession.jti }
+    );
+    return res.status(200).json({ supplier });
+  } catch (err) {
+    if (err && err.code === "SUPPLIER_UNAVAILABLE") {
+      return res.status(409).json({ error: err.message });
+    }
+    if (err && err.code === "VALIDATION_ERROR") {
+      const body = { error: err.message || "Validation failed" };
+      if (err.errors) body.errors = err.errors;
+      return res.status(400).json(body);
+    }
+    logSupplierRetrievalError("updateManagedSupplier", err);
+    return res.status(500).json(SAFE_SERVER_ERROR);
+  }
+}
+
 module.exports = {
   createSupplier,
   activateSupplier,
@@ -237,4 +282,6 @@ module.exports = {
   requestManagementAccess,
   establishManagementSession,
   getManagementSession,
+  getEditableSupplier,
+  updateManagedSupplier,
 };

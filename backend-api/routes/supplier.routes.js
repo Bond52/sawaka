@@ -38,6 +38,18 @@ router.get(
   supplierController.getManagementSession
 );
 
+router.get(
+  "/management",
+  requireSupplierManagementSession,
+  supplierController.getEditableSupplier
+);
+
+router.patch(
+  "/management",
+  requireSupplierManagementSession,
+  supplierController.updateManagedSupplier
+);
+
 router.post(
   "/:id/management-link",
   managementLinkRateLimit,

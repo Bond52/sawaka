@@ -6,11 +6,18 @@ const EmailService = require("./EmailService");
 const {
   createManagementSession,
 } = require("../middleware/supplierManagementSession");
+const { recordAuditEvent, AUDIT_ACTIONS } = require("./AuditService");
 
 const PUBLIC_DIRECTORY_PROJECTION =
   "name categories country region city address postalCode publicEmail phone website";
 
+const EDITABLE_PROJECTION =
+  "name categories country region city address postalCode accountEmail publicEmail phone website";
+
 const SUPPLIER_NOT_FOUND = "Supplier not found";
+const SUPPLIER_UNAVAILABLE = "Supplier management is unavailable";
+
+const EMAIL_FORMAT_STRICT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function isValidSupplierObjectId(id) {
   return (
@@ -145,6 +152,194 @@ function toPublicSupplierDTO(supplier) {
   }
 
   return entry;
+}
+
+function toEditableSupplierDTO(supplier) {
+  const entry = {
+    id: supplier._id.toString(),
+    name: supplier.name || "",
+    categories: Array.isArray(supplier.categories) ? supplier.categories : [],
+    country: supplier.country || "",
+    region: typeof supplier.region === "string" ? supplier.region : "",
+    city: typeof supplier.city === "string" ? supplier.city : "",
+    address: typeof supplier.address === "string" ? supplier.address : "",
+    postalCode:
+      typeof supplier.postalCode === "string" ? supplier.postalCode : "",
+    accountEmail: supplier.accountEmail || "",
+    publicEmail:
+      typeof supplier.publicEmail === "string" ? supplier.publicEmail : "",
+    phone: supplier.phone || "",
+    website: typeof supplier.website === "string" ? supplier.website : "",
+  };
+  return entry;
+}
+
+function createUnavailableError() {
+  const err = new Error(SUPPLIER_UNAVAILABLE);
+  err.code = "SUPPLIER_UNAVAILABLE";
+  return err;
+}
+
+function isValidOptionalUrl(value) {
+  if (!value) return true;
+  try {
+    const withProto = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+    // eslint-disable-next-line no-new
+    new URL(withProto);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Validate and normalize editable supplier update payload.
+ * System fields (status, isVisible, ownerId, timestamps) are stripped.
+ * @returns {{ updates: object, changedFields: string[] }}
+ */
+function parseEditableUpdate(data, currentSupplier) {
+  if (!data || typeof data !== "object") {
+    const err = new Error("Invalid supplier data");
+    err.code = "VALIDATION_ERROR";
+    throw err;
+  }
+
+  const {
+    status: _st,
+    isVisible: _vis,
+    ownerId: _own,
+    _id: _id,
+    id: _clientId,
+    createdAt: _ca,
+    updatedAt: _ua,
+    deactivatedAt: _da,
+    pendingContactEmail: _pe,
+    ...raw
+  } = data;
+
+  const errors = {};
+  const updates = {};
+  const changedFields = [];
+
+  const name = typeof raw.name === "string" ? raw.name.trim() : "";
+  if (!name || name.length < 2) {
+    errors.name = !name
+      ? "name is required"
+      : "name must be at least 2 characters";
+  } else {
+    updates.name = name;
+    if (name !== (currentSupplier.name || "")) changedFields.push("name");
+  }
+
+  let categories = raw.categories;
+  if (!Array.isArray(categories) || categories.length === 0) {
+    errors.categories = "At least one category is required";
+  } else {
+    const normalized = [
+      ...new Set(
+        categories
+          .filter((c) => typeof c === "string")
+          .map((c) => c.trim())
+          .filter(Boolean)
+      ),
+    ];
+    if (
+      normalized.length === 0 ||
+      normalized.some((c) => !VALID_SUPPLIER_CATEGORIES.has(c))
+    ) {
+      errors.categories = "Invalid category";
+    } else {
+      updates.categories = normalized;
+      const prev = Array.isArray(currentSupplier.categories)
+        ? currentSupplier.categories
+        : [];
+      if (
+        normalized.length !== prev.length ||
+        normalized.some((c, i) => c !== prev[i])
+      ) {
+        changedFields.push("categories");
+      }
+    }
+  }
+
+  const country = typeof raw.country === "string" ? raw.country.trim() : "";
+  if (!country) {
+    errors.country = "country is required";
+  } else {
+    updates.country = country;
+    if (country !== (currentSupplier.country || "")) changedFields.push("country");
+  }
+
+  const phone = typeof raw.phone === "string" ? raw.phone.trim() : "";
+  if (!phone) {
+    errors.phone = "phone is required";
+  } else if (phone.length < 6) {
+    errors.phone = "phone must be at least 6 characters";
+  } else {
+    updates.phone = phone;
+    if (phone !== (currentSupplier.phone || "")) changedFields.push("phone");
+  }
+
+  // Contact email: for management-page task, persist only when unchanged.
+  // Email change/verification is handled in a follow-up task.
+  if (raw.accountEmail !== undefined) {
+    if (typeof raw.accountEmail !== "string") {
+      errors.accountEmail = "Invalid account email format";
+    } else {
+      const submitted = raw.accountEmail.trim();
+      if (!submitted || !EMAIL_FORMAT_STRICT.test(submitted)) {
+        errors.accountEmail = "Invalid account email format";
+      } else {
+        const current =
+          typeof currentSupplier.accountEmail === "string"
+            ? currentSupplier.accountEmail.trim()
+            : "";
+        if (submitted.toLowerCase() !== current.toLowerCase()) {
+          // Ignore change for now; keep verified email. Follow-up task handles pending.
+        }
+      }
+    }
+  }
+
+  const optionalStringFields = [
+    "region",
+    "city",
+    "address",
+    "postalCode",
+    "publicEmail",
+    "website",
+  ];
+  for (const field of optionalStringFields) {
+    if (raw[field] === undefined) continue;
+    if (typeof raw[field] !== "string") {
+      errors[field] = `${field} must be a string`;
+      continue;
+    }
+    const trimmed = raw[field].trim();
+    if (field === "publicEmail" && trimmed && !EMAIL_FORMAT_STRICT.test(trimmed)) {
+      errors.publicEmail = "Invalid public email format";
+      continue;
+    }
+    if (field === "website" && trimmed && !isValidOptionalUrl(trimmed)) {
+      errors.website = "Invalid website URL";
+      continue;
+    }
+    updates[field] = trimmed;
+    const prev =
+      typeof currentSupplier[field] === "string"
+        ? currentSupplier[field].trim()
+        : "";
+    if (trimmed !== prev) changedFields.push(field);
+  }
+
+  if (Object.keys(errors).length > 0) {
+    const err = new Error("Validation failed");
+    err.code = "VALIDATION_ERROR";
+    err.errors = errors;
+    throw err;
+  }
+
+  return { updates, changedFields };
 }
 
 const VALIDATION_REASON_MESSAGES = {
@@ -460,9 +655,95 @@ const SupplierService = {
     };
   },
 
+  /**
+   * Retrieve editable supplier fields for a management session's supplierId.
+   * @param {string} supplierId
+   */
+  async getEditableSupplier(supplierId) {
+    if (!isValidSupplierObjectId(String(supplierId))) {
+      throw createUnavailableError();
+    }
+
+    const supplier = await Supplier.findOne({
+      _id: supplierId,
+      status: "Active",
+      isVisible: true,
+    })
+      .select(EDITABLE_PROJECTION)
+      .lean();
+
+    if (!supplier) {
+      throw createUnavailableError();
+    }
+
+    return toEditableSupplierDTO(supplier);
+  },
+
+  /**
+   * Update permitted supplier fields under a management session.
+   * @param {string} supplierId
+   * @param {object} data
+   * @param {{ sessionId?: string }} [options]
+   */
+  async updateManagedSupplier(supplierId, data, options = {}) {
+    if (!isValidSupplierObjectId(String(supplierId))) {
+      throw createUnavailableError();
+    }
+
+    const current = await Supplier.findOne({
+      _id: supplierId,
+      status: "Active",
+      isVisible: true,
+    }).lean();
+
+    if (!current) {
+      throw createUnavailableError();
+    }
+
+    const { updates, changedFields } = parseEditableUpdate(data, current);
+
+    if (changedFields.length === 0) {
+      return toEditableSupplierDTO(current);
+    }
+
+    let updated;
+    try {
+      updated = await Supplier.findOneAndUpdate(
+        { _id: supplierId, status: "Active", isVisible: true },
+        { $set: updates },
+        { new: true, runValidators: true }
+      )
+        .select(EDITABLE_PROJECTION)
+        .lean();
+    } catch (err) {
+      if (err && err.name === "ValidationError") {
+        const validationErr = new Error(err.message);
+        validationErr.code = "VALIDATION_ERROR";
+        throw validationErr;
+      }
+      throw err;
+    }
+
+    if (!updated) {
+      throw createUnavailableError();
+    }
+
+    await recordAuditEvent({
+      action: AUDIT_ACTIONS.SUPPLIER_UPDATED,
+      supplierId,
+      sessionId: options.sessionId || null,
+      metadata: { changedFields },
+    });
+
+    return toEditableSupplierDTO(updated);
+  },
+
   parsePublicDirectoryQuery,
   isValidSupplierObjectId,
+  parseEditableUpdate,
   SUPPLIER_NOT_FOUND,
+  SUPPLIER_UNAVAILABLE,
+  AUDIT_ACTIONS,
 };
 
 module.exports = SupplierService;

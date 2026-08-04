@@ -1,147 +1,268 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "@/src/i18n/I18nProvider";
+import ManageSupplierForm from "@/app/components/suppliers/ManageSupplierForm";
 import {
+  clearSupplierManagementToken,
   establishSupplierManagementSession,
+  getEditableSupplier,
+  getSupplierManagementToken,
   setSupplierManagementToken,
+  type EditableSupplier,
 } from "@/app/lib/apiSuppliers";
 
-type Phase = "loading" | "success" | "error";
+type Phase =
+  | "exchanging"
+  | "loading"
+  | "ready"
+  | "invalidLink"
+  | "expired"
+  | "loadError";
 
-function SupplierManageContent() {
-  const searchParams = useSearchParams();
-  const { t } = useTranslation();
-  const token = searchParams.get("token")?.trim() ?? "";
-  const [phase, setPhase] = useState<Phase>(() => (token ? "loading" : "error"));
-  const [supplierId, setSupplierId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!token) {
-      console.error("[supplier/manage] missing token in URL");
-      setPhase("error");
-      return;
-    }
-
-    let cancelled = false;
-    setPhase("loading");
-
-    (async () => {
-      const result = await establishSupplierManagementSession(token);
-      if (cancelled) return;
-
-      if (!result.ok) {
-        setPhase("error");
-        return;
-      }
-
-      try {
-        setSupplierManagementToken(result.token);
-        setSupplierId(result.supplierId);
-        setPhase("success");
-      } catch (err) {
-        console.error("[supplier/manage] failed to persist session", err);
-        setPhase("error");
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
-
+function CenteredCard({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-[calc(100vh-8rem)] flex-col items-center justify-center px-4 py-12 sm:py-16">
       <div
         className="w-full max-w-md rounded-2xl border border-slate-200/90 bg-white p-8 text-center shadow-soft sm:p-10"
         data-testid="supplier-manage-page"
       >
-        {phase === "loading" && (
-          <>
-            <div
-              className="mx-auto mb-6 h-11 w-11 animate-spin rounded-full border-2 border-sawaka-200 border-t-sawaka-600"
-              aria-hidden
-            />
-            <p className="text-base font-semibold text-slate-900">
-              {t("suppliers.manage.establishing")}
-            </p>
-            <p className="mt-2 text-sm text-slate-500">
-              {t("suppliers.manage.pleaseWait")}
-            </p>
-          </>
-        )}
+        {children}
+      </div>
+    </div>
+  );
+}
 
-        {phase === "success" && (
-          <div role="status" className="space-y-6" data-testid="supplier-manage-success">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-              <svg
-                className="h-7 w-7"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-                aria-hidden
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            </div>
-            <p className="text-lg font-semibold text-slate-900">
-              {t("suppliers.manage.sessionReady")}
-            </p>
-            <p className="text-sm text-slate-600">
-              {t("suppliers.manage.sessionReadyHint")}
-            </p>
-            {supplierId && (
-              <Link
-                href={`/fournisseurs/${encodeURIComponent(supplierId)}`}
-                className="btn btn-outline inline-flex w-full min-h-[48px] items-center justify-center rounded-xl font-semibold"
-                data-testid="supplier-manage-view-profile"
-              >
-                {t("suppliers.manage.viewProfile")}
-              </Link>
-            )}
-          </div>
-        )}
+function ErrorIcon() {
+  return (
+    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-100 text-red-600">
+      <svg
+        className="h-7 w-7"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+        aria-hidden
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M6 18L18 6M6 6l12 12"
+        />
+      </svg>
+    </div>
+  );
+}
 
-        {phase === "error" && (
-          <div role="alert" className="space-y-6" data-testid="supplier-manage-error">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-100 text-red-600">
-              <svg
-                className="h-7 w-7"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-                aria-hidden
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </div>
-            <p className="text-base font-semibold text-red-900">
-              {t("suppliers.manage.invalidLink")}
-            </p>
-            <p className="text-sm text-slate-600">
-              {t("suppliers.manage.invalidLinkHint")}
-            </p>
+function SupplierManageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { t } = useTranslation();
+  const urlToken = searchParams.get("token")?.trim() ?? "";
+
+  const [phase, setPhase] = useState<Phase>(() =>
+    urlToken ? "exchanging" : "loading"
+  );
+  const [token, setToken] = useState<string | null>(null);
+  const [supplier, setSupplier] = useState<EditableSupplier | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    setPhase(urlToken ? "exchanging" : "loading");
+
+    (async () => {
+      let sessionToken: string | null = null;
+
+      if (urlToken) {
+        const session = await establishSupplierManagementSession(urlToken);
+        if (cancelled) return;
+
+        if (!session.ok) {
+          setPhase("invalidLink");
+          return;
+        }
+
+        try {
+          setSupplierManagementToken(session.token);
+        } catch (err) {
+          console.error("[supplier/manage] failed to persist session", err);
+        }
+        sessionToken = session.token;
+        // Drop single-use token from the URL so refresh uses the session JWT.
+        router.replace("/supplier/manage");
+      } else {
+        sessionToken = getSupplierManagementToken();
+      }
+
+      if (!sessionToken) {
+        setPhase("expired");
+        return;
+      }
+
+      setPhase("loading");
+      const loaded = await getEditableSupplier(sessionToken);
+      if (cancelled) return;
+
+      if (!loaded.ok) {
+        if (loaded.status === 401 || loaded.status === 403) {
+          clearSupplierManagementToken();
+          setPhase("expired");
+          return;
+        }
+        setPhase("loadError");
+        return;
+      }
+
+      setToken(sessionToken);
+      setSupplier(loaded.supplier);
+      setPhase("ready");
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadKey, urlToken, router]);
+
+  const handleSessionExpired = useCallback(() => {
+    clearSupplierManagementToken();
+    setToken(null);
+    setSupplier(null);
+    setPhase("expired");
+  }, []);
+
+  if (phase === "exchanging" || phase === "loading") {
+    return (
+      <CenteredCard>
+        <div
+          className="mx-auto mb-6 h-11 w-11 animate-spin rounded-full border-2 border-sawaka-200 border-t-sawaka-600"
+          aria-hidden
+        />
+        <p
+          className="text-base font-semibold text-slate-900"
+          data-testid="supplier-manage-loading"
+        >
+          {phase === "exchanging"
+            ? t("suppliers.manage.establishing")
+            : t("suppliers.manage.loadingProfile")}
+        </p>
+        <p className="mt-2 text-sm text-slate-500">
+          {t("suppliers.manage.pleaseWait")}
+        </p>
+      </CenteredCard>
+    );
+  }
+
+  if (phase === "invalidLink") {
+    return (
+      <CenteredCard>
+        <div
+          role="alert"
+          className="space-y-6"
+          data-testid="supplier-manage-error"
+        >
+          <ErrorIcon />
+          <p className="text-base font-semibold text-red-900">
+            {t("suppliers.manage.invalidLink")}
+          </p>
+          <p className="text-sm text-slate-600">
+            {t("suppliers.manage.invalidLinkHint")}
+          </p>
+          <Link
+            href="/fournisseurs"
+            className="btn btn-outline inline-flex min-h-[48px] w-full items-center justify-center rounded-xl font-semibold"
+            data-testid="supplier-manage-back-directory"
+          >
+            {t("suppliers.backToDirectory")}
+          </Link>
+        </div>
+      </CenteredCard>
+    );
+  }
+
+  if (phase === "expired") {
+    return (
+      <CenteredCard>
+        <div
+          role="alert"
+          className="space-y-6"
+          data-testid="supplier-manage-session-expired"
+        >
+          <ErrorIcon />
+          <p className="text-base font-semibold text-red-900">
+            {t("suppliers.manage.sessionExpired")}
+          </p>
+          <p className="text-sm text-slate-600">
+            {t("suppliers.manage.sessionExpiredHint")}
+          </p>
+          <Link
+            href="/fournisseurs"
+            className="btn btn-outline inline-flex min-h-[48px] w-full items-center justify-center rounded-xl font-semibold"
+            data-testid="supplier-manage-back-directory"
+          >
+            {t("suppliers.backToDirectory")}
+          </Link>
+        </div>
+      </CenteredCard>
+    );
+  }
+
+  if (phase === "loadError" || !supplier || !token) {
+    return (
+      <CenteredCard>
+        <div
+          role="alert"
+          className="space-y-6"
+          data-testid="supplier-manage-load-error"
+        >
+          <ErrorIcon />
+          <p className="text-base font-semibold text-red-900">
+            {t("suppliers.manage.loadError")}
+          </p>
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setReloadKey((key) => key + 1)}
+              className="btn btn-primary inline-flex min-h-[48px] w-full items-center justify-center rounded-xl font-semibold"
+              data-testid="supplier-manage-retry"
+            >
+              {t("suppliers.manage.retry")}
+            </button>
             <Link
               href="/fournisseurs"
-              className="btn btn-outline inline-flex w-full min-h-[48px] items-center justify-center rounded-xl font-semibold"
+              className="btn btn-outline inline-flex min-h-[48px] w-full items-center justify-center rounded-xl font-semibold"
               data-testid="supplier-manage-back-directory"
             >
               {t("suppliers.backToDirectory")}
             </Link>
           </div>
-        )}
+        </div>
+      </CenteredCard>
+    );
+  }
+
+  return (
+    <div className="py-10 md:py-14" data-testid="supplier-manage-page">
+      <div className="wrap max-w-3xl">
+        <h1
+          data-testid="supplier-manage-title"
+          className="mb-2 text-2xl font-bold text-sawaka-800 md:text-3xl"
+        >
+          {t("suppliers.manage.pageTitle")}
+        </h1>
+        <p
+          data-testid="supplier-manage-subtitle"
+          className="mb-8 text-sm text-sawaka-700 md:text-base"
+        >
+          {t("suppliers.manage.pageSubtitle")}
+        </p>
+        <ManageSupplierForm
+          initial={supplier}
+          token={token}
+          onSessionExpired={handleSessionExpired}
+        />
       </div>
     </div>
   );
