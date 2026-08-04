@@ -348,6 +348,22 @@ async function verifyContactEmail(req, res) {
   }
 }
 
+async function deactivateManagedSupplier(req, res) {
+  try {
+    const result = await SupplierService.deactivateManagedSupplier(
+      req.managementSession.supplierId,
+      { sessionId: req.managementSession.jti }
+    );
+    return res.status(200).json(result);
+  } catch (err) {
+    if (err && err.code === "SUPPLIER_UNAVAILABLE") {
+      return res.status(409).json({ error: err.message });
+    }
+    logSupplierRetrievalError("deactivateManagedSupplier", err);
+    return res.status(500).json(SAFE_SERVER_ERROR);
+  }
+}
+
 module.exports = {
   createSupplier,
   activateSupplier,
@@ -361,4 +377,5 @@ module.exports = {
   resendContactEmailVerification,
   cancelPendingContactEmail,
   verifyContactEmail,
+  deactivateManagedSupplier,
 };

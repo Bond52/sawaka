@@ -5,6 +5,7 @@ const MagicLinkToken = require("../models/MagicLinkToken");
 const EmailService = require("./EmailService");
 const {
   createManagementSession,
+  invalidateSessionsForSupplier,
 } = require("../middleware/supplierManagementSession");
 const { recordAuditEvent, AUDIT_ACTIONS } = require("./AuditService");
 
@@ -1033,6 +1034,52 @@ const SupplierService = {
     });
 
     return { success: true, supplierId: updated._id.toString() };
+  },
+
+  /**
+   * Logically deactivate a supplier: Inactive, not visible, record deactivatedAt,
+   * audit, invalidate management sessions. Record is retained.
+   */
+  async deactivateManagedSupplier(supplierId, options = {}) {
+    if (!isValidSupplierObjectId(String(supplierId))) {
+      throw createUnavailableError();
+    }
+
+    const updated = await Supplier.findOneAndUpdate(
+      {
+        _id: supplierId,
+        status: "Active",
+        isVisible: true,
+      },
+      {
+        $set: {
+          status: "Inactive",
+          isVisible: false,
+          deactivatedAt: new Date(),
+        },
+      },
+      { new: true }
+    )
+      .select("_id name status isVisible deactivatedAt")
+      .lean();
+
+    if (!updated) {
+      throw createUnavailableError();
+    }
+
+    await invalidateSessionsForSupplier(supplierId);
+    await recordAuditEvent({
+      action: AUDIT_ACTIONS.SUPPLIER_DEACTIVATED,
+      supplierId,
+      sessionId: options.sessionId || null,
+      metadata: { status: "Inactive", isVisible: false },
+    });
+
+    return {
+      success: true,
+      supplierId: updated._id.toString(),
+      name: updated.name || "",
+    };
   },
 
   parsePublicDirectoryQuery,

@@ -83,6 +83,12 @@ router.post(
 );
 
 router.post(
+  "/management/deactivate",
+  requireSupplierManagementSession,
+  supplierController.deactivateManagedSupplier
+);
+
+router.post(
   "/:id/management-link",
   managementLinkRateLimit,
   supplierController.requestManagementAccess
