@@ -310,7 +310,6 @@
       "savedPendingEmail": "Votre profil a été enregistré. Le nouvel e-mail de contact doit encore être vérifié.",
       "pendingEmailTitle": "Changement d’e-mail de contact en attente de vérification",
       "pendingEmailBody": "Un lien de vérification a été envoyé à {pending}. Votre e-mail de contact actuel {current} reste actif tant que le nouveau n’est pas confirmé.",
-      "pendingEmailRegion": "Vérification de l’e-mail de contact",
       "pendingEmailResend": "Renvoyer l’e-mail de vérification",
       "pendingEmailResending": "Envoi…",
       "pendingEmailResent": "E-mail de vérification envoyé. Consultez la nouvelle boîte de réception.",

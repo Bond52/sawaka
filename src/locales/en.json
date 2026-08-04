@@ -310,7 +310,6 @@
       "savedPendingEmail": "Your profile has been saved. The new contact email still needs to be verified.",
       "pendingEmailTitle": "Contact email change awaiting verification",
       "pendingEmailBody": "We sent a verification link to {pending}. Your current contact email {current} stays active until the new one is confirmed.",
-      "pendingEmailRegion": "Contact email verification",
       "pendingEmailResend": "Resend verification email",
       "pendingEmailResending": "Sending…",
       "pendingEmailResent": "Verification email sent. Check the new inbox.",

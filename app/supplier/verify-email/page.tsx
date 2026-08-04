@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useTranslation } from "@/src/i18n/I18nProvider";
@@ -14,6 +14,10 @@ function VerifyEmailContent() {
   const token = searchParams.get("token")?.trim() ?? "";
   const [phase, setPhase] = useState<Phase>(() => (token ? "loading" : "error"));
   const [retryKey, setRetryKey] = useState(0);
+  const attemptRef = useRef<{
+    id: string;
+    request: ReturnType<typeof verifyContactEmail>;
+  } | null>(null);
 
   useEffect(() => {
     if (!token) {
@@ -21,11 +25,20 @@ function VerifyEmailContent() {
       return;
     }
 
+    // The token is single-use, so an attempt must reach the API only once even
+    // when the effect is replayed (strict mode, remounts).
+    const attemptId = `${retryKey}:${token}`;
+    if (!attemptRef.current || attemptRef.current.id !== attemptId) {
+      attemptRef.current = {
+        id: attemptId,
+        request: verifyContactEmail(token),
+      };
+    }
+
     let cancelled = false;
     setPhase("loading");
 
-    (async () => {
-      const result = await verifyContactEmail(token);
+    attemptRef.current.request.then((result) => {
       if (cancelled) return;
       if (result.ok) {
         setPhase("success");
@@ -33,7 +46,7 @@ function VerifyEmailContent() {
       }
       const fail = result as { ok: false; status: number; detail: string };
       setPhase(fail.status === 0 ? "networkError" : "error");
-    })();
+    });
 
     return () => {
       cancelled = true;
