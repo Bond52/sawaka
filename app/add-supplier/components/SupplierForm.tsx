@@ -355,21 +355,20 @@ export default function SupplierForm() {
     }
   }
 
-  const labelClass = "block text-sm font-semibold text-slate-700 mb-2";
-  const inputClass =
-    "w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition-shadow focus:border-sawaka-500 focus:outline-none focus:ring-2 focus:ring-sawaka-500/25";
+  const labelClass = "field-label";
+  const inputClass = "field";
 
   return (
     <form
       data-testid="supplier-form"
       onSubmit={handleSubmit}
-      className="rounded-2xl border border-slate-200/90 bg-white shadow-soft"
+      className="card !overflow-visible shadow-soft"
     >
       <div className="p-6 sm:p-8 lg:p-10 space-y-8">
         {success && (
           <div
             data-testid="supplier-success"
-            className="rounded-xl border border-emerald-200/90 bg-emerald-50/90 px-4 py-3.5 text-sm font-medium text-emerald-900 shadow-sm"
+            className="alert alert-success"
             role="status"
           >
             {t("suppliers.success")}
@@ -378,7 +377,7 @@ export default function SupplierForm() {
 
         {serverMessage && (
           <div
-            className="rounded-xl border border-red-200/90 bg-red-50 px-4 py-3.5 text-sm font-medium text-red-900 shadow-sm"
+            className="alert alert-error"
             role="alert"
           >
             {serverMessage}
@@ -388,30 +387,30 @@ export default function SupplierForm() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
           <h2
             data-testid="supplier-form-title"
-            className="text-2xl font-bold tracking-tight text-slate-900"
+            className="font-display text-2xl font-semibold tracking-tight text-foreground"
           >
             {t("suppliers.formTitle")}
           </h2>
           <div
-            className="inline-flex shrink-0 items-center gap-2 self-start rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600"
+            className="inline-flex shrink-0 items-center gap-2 self-start rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-muted-foreground"
             aria-hidden
           >
-            <Globe className="h-4 w-4 text-slate-500" strokeWidth={1.75} />
+            <Globe className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
             <span>EN | FR</span>
           </div>
         </div>
 
-        <div className="h-px bg-slate-100" aria-hidden />
+        <div className="h-px bg-border" aria-hidden />
 
         {/* General Information */}
         <section className="space-y-6">
-          <h3 className="text-lg font-semibold text-slate-900">
+          <h3 className="font-display text-lg font-semibold text-foreground">
             {t("suppliers.sectionGeneral")}
           </h3>
 
           <div className="space-y-2">
             <label htmlFor="supplier-name" className={labelClass}>
-              {t("suppliers.name")} <span className="text-red-600">*</span>
+              {t("suppliers.name")} <span className="text-destructive">*</span>
             </label>
             <input
               id="supplier-name"
@@ -429,7 +428,7 @@ export default function SupplierForm() {
               <p
                 id="err-name"
                 data-testid="supplier-error-name"
-                className="mt-1.5 text-sm font-medium text-red-600"
+                className="field-error"
               >
                 {fieldErrors.name}
               </p>
@@ -439,7 +438,7 @@ export default function SupplierForm() {
           <div className="space-y-3">
             <span className={`${labelClass} mb-0`}>
               {t("suppliers.categorySingle")}{" "}
-              <span className="text-red-600">*</span>
+              <span className="text-destructive">*</span>
             </span>
             <div
               id="supplier-categories"
@@ -460,10 +459,10 @@ export default function SupplierForm() {
                     data-testid={`supplier-category-${opt.value}`}
                     onClick={() => toggleCategory(opt.value)}
                     className={[
-                      "rounded-full border px-3.5 py-2 text-xs font-medium transition-all md:text-[13px]",
+                      "chip !rounded-full px-3.5 py-2 text-xs md:text-[13px]",
                       selected
-                        ? "border-sawaka-600 bg-sawaka-50 text-sawaka-900 shadow-sm ring-1 ring-sawaka-600/20"
-                        : "border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50",
+                        ? "chip-active border-primary"
+                        : "border-border bg-card text-foreground hover:border-primary/50 hover:bg-secondary",
                     ].join(" ")}
                   >
                     {t(`suppliers.categoryOptions.${opt.value}`)}
@@ -475,7 +474,7 @@ export default function SupplierForm() {
               <p
                 id="err-categories"
                 data-testid="supplier-error-categories"
-                className="mt-1.5 text-sm font-medium text-red-600"
+                className="field-error"
               >
                 {fieldErrors.categories}
               </p>
@@ -483,16 +482,16 @@ export default function SupplierForm() {
           </div>
         </section>
 
-        <div className="h-px bg-slate-100" aria-hidden />
+        <div className="h-px bg-border" aria-hidden />
 
         {/* Location */}
         <section className="space-y-6">
-          <h3 className="text-lg font-semibold text-slate-900">{t("suppliers.sectionLocation")}</h3>
+          <h3 className="font-display text-lg font-semibold text-foreground">{t("suppliers.sectionLocation")}</h3>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             <div className="space-y-2">
               <label htmlFor="supplier-country" className={labelClass}>
-                {t("suppliers.country")} <span className="text-red-600">*</span>
+                {t("suppliers.country")} <span className="text-destructive">*</span>
               </label>
               <input
                 id="supplier-country"
@@ -512,7 +511,7 @@ export default function SupplierForm() {
                 <p
                   id="err-country"
                   data-testid="supplier-error-country"
-                  className="mt-1.5 text-sm font-medium text-red-600"
+                  className="field-error"
                 >
                   {fieldErrors.country}
                 </p>
@@ -582,18 +581,18 @@ export default function SupplierForm() {
           </div>
         </section>
 
-        <div className="h-px bg-slate-100" aria-hidden />
+        <div className="h-px bg-border" aria-hidden />
 
         {/* Account Access */}
         <section className="space-y-6">
-          <h3 className="text-lg font-semibold text-slate-900">
+          <h3 className="font-display text-lg font-semibold text-foreground">
             {t("suppliers.sectionAccount")}
           </h3>
 
           <div className="space-y-2">
             <label htmlFor="supplier-account-email" className={labelClass}>
               {t("suppliers.accountEmail")}{" "}
-              <span className="text-red-600">*</span>
+              <span className="text-destructive">*</span>
             </label>
             <input
               id="supplier-account-email"
@@ -614,28 +613,28 @@ export default function SupplierForm() {
               <p
                 id="err-accountEmail"
                 data-testid="supplier-error-account-email"
-                className="mt-1.5 text-sm font-medium text-red-600"
+                className="field-error"
               >
                 {fieldErrors.accountEmail}
               </p>
             )}
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">
                 <Lock className="h-3.5 w-3.5" strokeWidth={2} />
                 {t("suppliers.privateBadge")}
               </span>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 {t("suppliers.privateHint")}
               </p>
             </div>
           </div>
         </section>
 
-        <div className="h-px bg-slate-100" aria-hidden />
+        <div className="h-px bg-border" aria-hidden />
 
         {/* Public Contact Information */}
         <section className="space-y-6">
-          <h3 className="text-lg font-semibold text-slate-900">
+          <h3 className="font-display text-lg font-semibold text-foreground">
             {t("suppliers.sectionContact")}
           </h3>
 
@@ -657,7 +656,7 @@ export default function SupplierForm() {
               }
             />
             {fieldErrors.publicEmail && (
-              <p id="err-publicEmail" className="mt-1.5 text-sm font-medium text-red-600">
+              <p id="err-publicEmail" className="field-error">
                 {fieldErrors.publicEmail}
               </p>
             )}
@@ -666,7 +665,7 @@ export default function SupplierForm() {
                 <Globe className="h-3.5 w-3.5" strokeWidth={2} />
                 {t("suppliers.publicBadge")}
               </span>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 {t("suppliers.publicHint")}
               </p>
             </div>
@@ -674,7 +673,7 @@ export default function SupplierForm() {
 
           <div className="space-y-2">
             <label htmlFor="supplier-phone" className={labelClass}>
-              {t("suppliers.phone")} <span className="text-red-600">*</span>
+              {t("suppliers.phone")} <span className="text-destructive">*</span>
             </label>
             <input
               id="supplier-phone"
@@ -693,7 +692,7 @@ export default function SupplierForm() {
               <p
                 id="err-phone"
                 data-testid="supplier-error-phone"
-                className="mt-1.5 text-sm font-medium text-red-600"
+                className="field-error"
               >
                 {fieldErrors.phone}
               </p>
@@ -718,7 +717,7 @@ export default function SupplierForm() {
               }
             />
             {fieldErrors.website && (
-              <p id="err-website" className="mt-1.5 text-sm font-medium text-red-600">
+              <p id="err-website" className="field-error">
                 {fieldErrors.website}
               </p>
             )}
@@ -730,7 +729,7 @@ export default function SupplierForm() {
             type="submit"
             data-testid="supplier-submit"
             disabled={submitting}
-            className="btn btn-primary w-full min-h-[48px] rounded-xl px-6 py-3 text-base font-semibold shadow-sm disabled:pointer-events-none disabled:opacity-50 sm:w-auto sm:min-w-[220px]"
+            className="btn btn-primary w-full text-base sm:w-auto sm:min-w-[220px]"
           >
             {submitting ? t("suppliers.submitting") : t("suppliers.submit")}
           </button>

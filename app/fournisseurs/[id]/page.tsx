@@ -83,7 +83,7 @@ export default function SupplierProfilePage() {
   if (loading) {
     return (
       <div className="wrap py-12" data-testid="supplier-profile-loading">
-        <p className="text-lg text-sawaka-600" role="status" aria-live="polite">
+        <p className="text-lg text-muted-foreground" role="status" aria-live="polite">
           {t("suppliers.profileLoading")}
         </p>
       </div>
@@ -102,7 +102,7 @@ export default function SupplierProfilePage() {
         <Link
           href="/fournisseurs"
           data-testid="supplier-profile-back"
-          className="mt-4 inline-flex items-center gap-1.5 text-sawaka-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sawaka-500"
+          className="mt-4 inline-flex items-center gap-1.5 text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden strokeWidth={2} />
           {t("suppliers.backToDirectory")}
@@ -114,11 +114,11 @@ export default function SupplierProfilePage() {
   if (error === "not_found" || !supplier) {
     return (
       <div className="wrap py-12" data-testid="supplier-profile-not-found">
-        <p className="text-sawaka-700">{t("suppliers.profileNotFound")}</p>
+        <p className="text-muted-foreground">{t("suppliers.profileNotFound")}</p>
         <Link
           href="/fournisseurs"
           data-testid="supplier-profile-back"
-          className="mt-4 inline-flex items-center gap-1.5 text-sawaka-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sawaka-500"
+          className="mt-4 inline-flex items-center gap-1.5 text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden strokeWidth={2} />
           {t("suppliers.backToDirectory")}
@@ -143,7 +143,7 @@ export default function SupplierProfilePage() {
       <Link
         href="/fournisseurs"
         data-testid="supplier-profile-back"
-        className="mb-8 inline-flex items-center gap-1.5 text-sm font-medium text-sawaka-600 hover:text-sawaka-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-sawaka-500"
+        className="mb-8 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden strokeWidth={2} />
         {t("suppliers.backToDirectory")}
@@ -156,14 +156,14 @@ export default function SupplierProfilePage() {
               className="mb-3"
               data-testid="supplier-profile-primary-category"
             >
-              <span className="inline-flex rounded-full bg-cream-100 px-3 py-1 text-xs font-medium text-sawaka-700">
+              <span className="inline-flex rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
                 {categoryLabel(primaryCategory, t)}
               </span>
             </p>
           )}
 
           <h1
-            className="text-3xl font-bold text-sawaka-900 md:text-4xl"
+            className="font-display text-3xl text-foreground md:text-4xl"
             data-testid="supplier-profile-name"
           >
             {displayName}
@@ -178,13 +178,13 @@ export default function SupplierProfilePage() {
               {visibleTags.map((tag) => (
                 <span
                   key={tag}
-                  className="inline-flex rounded-full bg-sawaka-100 px-2.5 py-1 text-xs font-medium text-sawaka-800"
+                  className="inline-flex rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-foreground"
                 >
                   {tag}
                 </span>
               ))}
               {overflowCount > 0 && (
-                <span className="inline-flex rounded-full bg-sawaka-100 px-2.5 py-1 text-xs font-medium text-sawaka-700">
+                <span className="inline-flex rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">
                   +{overflowCount}
                 </span>
               )}

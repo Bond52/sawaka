@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Menu, X } from "lucide-react";
 import LoginModal from "./ui/LoginModal";
 import LanguageSwitcher from "@/src/i18n/LanguageSwitcher";
 import { useTranslation } from "@/src/i18n/I18nProvider";
@@ -65,42 +66,45 @@ export default function Header() {
     <div className="relative">
       <button
         onClick={() => setShowUserMenu(!showUserMenu)}
-        className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-gray-100"
+        className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-secondary"
       >
-        <div className="w-8 h-8 bg-sawaka-500 rounded-full flex items-center justify-center text-white">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
           {user.firstName?.charAt(0) || user.username.charAt(0)}
         </div>
-        <span className="text-sm hidden lg:inline">
+        <span className="hidden text-sm text-foreground lg:inline">
           {user.firstName || user.username}
         </span>
       </button>
 
       {showUserMenu && (
-        <div className="absolute right-0 top-full mt-2 w-56 bg-white border rounded-lg shadow-lg py-2 z-50">
-          <Link href="/profile" className="block px-4 py-2 hover:bg-gray-50">
+        <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-lg border border-border bg-card py-2 shadow-soft">
+          <Link
+            href="/profile"
+            className="block px-4 py-2 text-foreground hover:bg-secondary"
+          >
             {t("navigation.profile")}
           </Link>
           <Link
             href="/vendeur/articles"
-            className="block px-4 py-2 hover:bg-gray-50"
+            className="block px-4 py-2 text-foreground hover:bg-secondary"
           >
             {t("navigation.myCreations")}
           </Link>
           {isAdmin && (
             <>
-              <hr className="my-2" />
+              <hr className="my-2 border-border" />
               <Link
                 href="/admin"
-                className="block px-4 py-2 hover:bg-gray-50 font-semibold text-sawaka-700"
+                className="block px-4 py-2 font-semibold text-foreground hover:bg-secondary"
               >
                 {t("navigation.admin")}
               </Link>
             </>
           )}
-          <hr className="my-2" />
+          <hr className="my-2 border-border" />
           <button
             onClick={handleLogout}
-            className="block w-full text-left px-4 py-2 text-red-600 hover:bg-red-50"
+            className="block w-full px-4 py-2 text-left text-destructive hover:bg-red-50"
           >
             {t("navigation.logout")}
           </button>
@@ -111,13 +115,13 @@ export default function Header() {
     <>
       <button
         onClick={() => showAuthUnavailable("login")}
-        className="text-sm font-medium hover:underline whitespace-nowrap"
+        className="whitespace-nowrap text-sm font-medium text-foreground transition-colors hover:text-primary"
       >
         {t("navigation.login")}
       </button>
       <button
         onClick={() => showAuthUnavailable("register")}
-        className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition whitespace-nowrap"
+        className="btn btn-primary whitespace-nowrap px-5 py-2 text-sm"
       >
         {t("navigation.register")}
       </button>
@@ -126,101 +130,134 @@ export default function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white border-b border-gray-200">
-        <div className="wrap h-16 flex items-center gap-3 sm:gap-4">
+      <header className="sticky top-0 z-40 border-b border-border bg-card">
+        <div className="wrap flex h-16 items-center gap-3 sm:gap-4 lg:h-20">
           <Link
             href="/"
-            className="flex shrink-0 items-center gap-2 font-bold text-lg text-sawaka-700"
+            className="flex shrink-0 items-center gap-2 text-lg font-semibold text-foreground"
           >
-            <span className="w-9 h-9 rounded-lg bg-orange-500 text-white flex items-center justify-center">
+            <span className="flex h-10 w-10 items-center justify-center rounded bg-primary text-xl font-bold text-primary-foreground">
               S
             </span>
-            <span className="hidden sm:inline">{t("common.brand")}</span>
+            <span className="hidden font-display sm:inline">
+              {t("common.brand")}
+            </span>
           </Link>
 
-          <nav className="hidden lg:flex flex-1 items-center justify-center gap-8 text-sm font-medium text-gray-700 min-w-0">
-            <Link href="/" className="hover:text-sawaka-900 whitespace-nowrap">
+          <nav className="hidden min-w-0 flex-1 items-center justify-center gap-6 text-sm font-medium xl:gap-8 lg:flex">
+            <Link
+              href="/"
+              className="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
+            >
               {t("navigation.home")}
             </Link>
             <Link
               href="/produits"
-              className="hover:text-sawaka-900 whitespace-nowrap"
+              className="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
             >
               {t("navigation.market")}
             </Link>
             <Link
+              href="/fournisseurs"
+              className="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {t("navigation.suppliers")}
+            </Link>
+            <Link
               href="/projets"
-              className="hover:text-sawaka-900 whitespace-nowrap"
+              className="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
             >
               {t("navigation.projects")}
             </Link>
             <button
               onClick={showConcoursUnavailable}
-              className="hover:text-sawaka-900 text-left whitespace-nowrap"
+              className="whitespace-nowrap text-left text-muted-foreground transition-colors hover:text-foreground"
             >
               {t("navigation.contest")}
             </button>
             <Link
               href="/reseau"
-              className="hover:text-sawaka-900 whitespace-nowrap"
+              className="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
             >
               {t("navigation.network")}
             </Link>
           </nav>
 
-          <div className="hidden lg:flex shrink-0 items-center gap-3 ml-auto">
+          <div className="ml-auto hidden shrink-0 items-center gap-3 lg:flex">
             <LanguageSwitcher />
             {authActions}
           </div>
 
-          <div className="flex lg:hidden shrink-0 items-center gap-2 sm:gap-3 ml-auto">
+          <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3 lg:hidden">
             <LanguageSwitcher />
             <button
               type="button"
-              className="text-2xl leading-none p-1"
+              className="rounded-md p-2 hover:bg-secondary"
               onClick={() => setShowMobileMenu(true)}
               aria-label={t("common.openMenu")}
             >
-              ☰
+              <Menu className="h-6 w-6 text-foreground" aria-hidden />
             </button>
           </div>
         </div>
       </header>
 
       {showMobileMenu && (
-        <div className="fixed inset-0 z-50 bg-black/40" onClick={closeMobileMenu}>
+        <div
+          className="dialog-overlay !items-stretch !justify-end !p-0"
+          onClick={closeMobileMenu}
+        >
           <div
-            className="absolute right-0 top-0 h-full w-4/5 max-w-sm bg-white p-6 flex flex-col gap-6"
+            className="flex h-full w-4/5 max-w-sm flex-col gap-6 border-l border-border bg-card p-6"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-between items-center">
-              <span className="font-bold text-lg text-sawaka-700">
+            <div className="flex items-center justify-between">
+              <span className="font-display text-lg font-semibold text-foreground">
                 {t("common.menu")}
               </span>
               <button
                 onClick={closeMobileMenu}
-                className="text-2xl"
+                className="rounded-md p-2 hover:bg-secondary"
                 aria-label={t("common.closeMenu")}
               >
-                ✕
+                <X className="h-6 w-6 text-foreground" aria-hidden />
               </button>
             </div>
 
-            <div className="pb-4 border-b border-gray-100">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
+            <div className="border-b border-border pb-4">
+              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {t("language.switcher")}
               </p>
               <LanguageSwitcher />
             </div>
 
-            <nav className="flex flex-col gap-4 text-base font-medium">
-              <Link href="/" onClick={closeMobileMenu}>
+            <nav className="flex flex-col gap-1 text-base font-medium">
+              <Link
+                href="/"
+                onClick={closeMobileMenu}
+                className="rounded-md px-3 py-2 text-foreground hover:bg-secondary"
+              >
                 {t("navigation.home")}
               </Link>
-              <Link href="/produits" onClick={closeMobileMenu}>
+              <Link
+                href="/produits"
+                onClick={closeMobileMenu}
+                className="rounded-md px-3 py-2 text-foreground hover:bg-secondary"
+              >
                 {t("navigation.market")}
               </Link>
-              <Link href="/projets" onClick={closeMobileMenu}>
+              <Link
+                href="/fournisseurs"
+                onClick={closeMobileMenu}
+                className="rounded-md px-3 py-2 text-foreground hover:bg-secondary"
+              >
+                {t("navigation.suppliers")}
+              </Link>
+              <Link
+                href="/projets"
+                onClick={closeMobileMenu}
+                className="rounded-md px-3 py-2 text-foreground hover:bg-secondary"
+              >
                 {t("navigation.projects")}
               </Link>
               <button
@@ -228,31 +265,38 @@ export default function Header() {
                   showConcoursUnavailable();
                   closeMobileMenu();
                 }}
-                className="text-left"
+                className="rounded-md px-3 py-2 text-left text-foreground hover:bg-secondary"
               >
                 {t("navigation.contest")}
               </button>
-              <Link href="/reseau" onClick={closeMobileMenu}>
+              <Link
+                href="/reseau"
+                onClick={closeMobileMenu}
+                className="rounded-md px-3 py-2 text-foreground hover:bg-secondary"
+              >
                 {t("navigation.network")}
               </Link>
             </nav>
 
-            <div className="mt-auto border-t pt-4">
+            <div className="mt-auto border-t border-border pt-4">
               {user ? (
                 <button
                   onClick={handleLogout}
-                  className="text-red-600 font-medium"
+                  className="font-medium text-destructive"
                 >
                   {t("navigation.logout")}
                 </button>
               ) : (
                 <div className="flex flex-col gap-3">
-                  <button onClick={() => showAuthUnavailable("login")}>
+                  <button
+                    onClick={() => showAuthUnavailable("login")}
+                    className="rounded-md px-3 py-2 text-left text-foreground hover:bg-secondary"
+                  >
                     {t("navigation.login")}
                   </button>
                   <button
                     onClick={() => showAuthUnavailable("register")}
-                    className="bg-orange-500 text-white rounded-lg py-2"
+                    className="btn btn-primary w-full"
                   >
                     {t("navigation.register")}
                   </button>

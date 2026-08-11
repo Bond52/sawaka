@@ -35,10 +35,10 @@ function primaryContactHref(contact: NormalizedSupplierContact): string | null {
 }
 
 const actionLinkClass =
-  "inline-flex items-center gap-2 text-sm font-medium text-sawaka-800 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-sawaka-500 focus-visible:ring-offset-2 rounded";
+  "inline-flex items-center gap-2 rounded text-sm font-medium text-foreground underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
 
 const inlineLinkClass =
-  "inline-flex items-center gap-2 rounded-lg border border-cream-300 bg-white px-3 py-2 text-sm font-medium text-sawaka-800 transition hover:border-sawaka-300 hover:bg-cream-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-sawaka-500 focus-visible:ring-offset-2";
+  "btn btn-outline gap-2 !min-h-[40px] px-3 py-2 text-sm";
 
 export default function ContactSupplier({
   publicEmail,
@@ -72,18 +72,18 @@ export default function ContactSupplier({
   if (isPanel && !hasActions && !hasLocation) {
     return (
       <section
-        className="rounded-2xl border border-cream-200 bg-cream-50 p-5 sm:p-6"
+        className="card p-5 sm:p-6"
         data-testid="contact-supplier"
         aria-labelledby="contact-supplier-heading"
       >
         <h2
           id="contact-supplier-heading"
-          className="font-display mb-4 text-xl font-semibold text-sawaka-900"
+          className="font-display mb-4 text-xl font-semibold text-foreground"
         >
           {t("suppliers.contactDetails")}
         </h2>
         <p
-          className="text-sm text-sawaka-500"
+          className="text-sm text-muted-foreground"
           data-testid="contact-supplier-unavailable"
         >
           {t("suppliers.contactUnavailable")}
@@ -101,12 +101,12 @@ export default function ContactSupplier({
       >
         <h2
           id="contact-supplier-heading"
-          className="mb-3 text-lg font-semibold text-sawaka-800"
+          className="mb-3 font-display text-lg font-semibold text-foreground"
         >
           {t("suppliers.contactSupplier")}
         </h2>
         <p
-          className="text-sm text-sawaka-500"
+          className="text-sm text-muted-foreground"
           data-testid="contact-supplier-unavailable"
         >
           {t("suppliers.contactUnavailable")}
@@ -129,7 +129,7 @@ export default function ContactSupplier({
         <li className={isPanel ? "flex items-start gap-3" : undefined}>
           {isPanel && (
             <Phone
-              className="mt-0.5 h-5 w-5 shrink-0 text-sawaka-600"
+              className="mt-0.5 h-5 w-5 shrink-0 text-primary"
               aria-hidden
               strokeWidth={2}
             />
@@ -152,7 +152,7 @@ export default function ContactSupplier({
         <li className={isPanel ? "flex items-start gap-3" : undefined}>
           {isPanel && (
             <Mail
-              className="mt-0.5 h-5 w-5 shrink-0 text-sawaka-600"
+              className="mt-0.5 h-5 w-5 shrink-0 text-primary"
               aria-hidden
               strokeWidth={2}
             />
@@ -175,7 +175,7 @@ export default function ContactSupplier({
         <li className={isPanel ? "flex items-start gap-3" : undefined}>
           {isPanel && (
             <Globe
-              className="mt-0.5 h-5 w-5 shrink-0 text-sawaka-600"
+              className="mt-0.5 h-5 w-5 shrink-0 text-primary"
               aria-hidden
               strokeWidth={2}
             />
@@ -207,7 +207,7 @@ export default function ContactSupplier({
       >
         <h2
           id="contact-supplier-heading"
-          className="mb-3 text-lg font-semibold text-sawaka-800"
+          className="mb-3 font-display text-lg font-semibold text-foreground"
         >
           {t("suppliers.contactSupplier")}
         </h2>
@@ -218,13 +218,13 @@ export default function ContactSupplier({
 
   return (
     <section
-      className="rounded-2xl border border-cream-200 bg-cream-50 p-5 sm:p-6"
+      className="card p-5 sm:p-6"
       data-testid="contact-supplier"
       aria-labelledby="contact-supplier-heading"
     >
       <h2
         id="contact-supplier-heading"
-        className="font-display mb-5 text-xl font-semibold text-sawaka-900"
+        className="font-display mb-5 text-xl font-semibold text-foreground"
       >
         {t("suppliers.contactDetails")}
       </h2>
@@ -236,13 +236,13 @@ export default function ContactSupplier({
             data-testid="supplier-profile-location"
           >
             <MapPin
-              className="mt-0.5 h-5 w-5 shrink-0 text-sawaka-600"
+              className="mt-0.5 h-5 w-5 shrink-0 text-primary"
               aria-hidden
               strokeWidth={2}
             />
-            <div className="space-y-0.5 text-sm text-sawaka-800">
+            <div className="space-y-0.5 text-sm text-foreground">
               {locationLines.map((line) => (
-                <p key={line} className="!text-sm !leading-snug !text-sawaka-800">
+                <p key={line} className="!text-sm !leading-snug !text-foreground">
                   {line}
                 </p>
               ))}
@@ -257,7 +257,7 @@ export default function ContactSupplier({
         <a
           href={primaryHref}
           data-testid="contact-supplier-cta"
-          className="btn-primary mt-6 flex w-full items-center justify-center text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-sawaka-500 focus-visible:ring-offset-2"
+          className="btn btn-primary mt-6 flex w-full items-center justify-center text-center"
           {...(contact.website && primaryHref === contact.website.href
             ? { target: "_blank", rel: "noopener noreferrer" }
             : {})}

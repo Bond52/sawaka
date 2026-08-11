@@ -48,13 +48,18 @@ export default function FeaturedProjects() {
 
   return (
     <section>
-      <div className="flex items-center justify-between mb-8">
-        <h2 className="text-2xl font-bold text-sawaka-800">
-          {t("home.featuredProjects")}
-        </h2>
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h2 className="text-2xl font-bold text-sawaka-800">
+            {t("home.featuredProjects")}
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground md:text-base">
+            {t("home.featuredProjectsSubtitle")}
+          </p>
+        </div>
         <Link
           href="/projets"
-          className="text-sm font-medium text-orange-600 border border-orange-500 px-4 py-2 rounded-lg hover:bg-orange-50 transition"
+          className="shrink-0 self-start text-sm font-medium text-orange-600 border border-orange-500 px-4 py-2 rounded-lg hover:bg-orange-50 transition"
         >
           {t("home.seeAll")}
         </Link>

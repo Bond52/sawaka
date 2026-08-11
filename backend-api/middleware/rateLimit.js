@@ -4,12 +4,19 @@
  */
 
 /**
+ * Builds the rate-limit bucket key from an Express request.
+ * @callback RateLimitKeyGenerator
+ * @param {object} req Express request
+ * @returns {string}
+ */
+
+/**
  * @param {object} options
  * @param {number} [options.windowMs=900000] Window length in milliseconds
  * @param {number} [options.max=10] Max requests per key per window
- * @param {(req: import("express").Request) => string} [options.keyGenerator]
+ * @param {RateLimitKeyGenerator} [options.keyGenerator]
  * @param {string} [options.message="Too many requests. Please try again later."]
- * @returns {import("express").RequestHandler}
+ * @returns {function(object, object, function(*): void): void} Express request handler
  */
 function createRateLimiter(options = {}) {
   const windowMs = options.windowMs ?? 15 * 60 * 1000;

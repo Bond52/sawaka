@@ -48,7 +48,7 @@ async function createManagementSession(supplierId) {
 
 /**
  * Invalidate all active management sessions for a supplier.
- * @param {string|import("mongoose").Types.ObjectId} supplierId
+ * @param {string|mongoose.Types.ObjectId} supplierId
  */
 async function invalidateSessionsForSupplier(supplierId) {
   await SupplierManagementSession.updateMany(
