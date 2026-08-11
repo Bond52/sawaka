@@ -144,7 +144,7 @@ export default function Header() {
             </span>
           </Link>
 
-          <nav className="hidden min-w-0 flex-1 items-center justify-center gap-8 text-sm font-medium lg:flex">
+          <nav className="hidden min-w-0 flex-1 items-center justify-center gap-6 text-sm font-medium xl:gap-8 lg:flex">
             <Link
               href="/"
               className="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
@@ -156,6 +156,12 @@ export default function Header() {
               className="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
             >
               {t("navigation.market")}
+            </Link>
+            <Link
+              href="/fournisseurs"
+              className="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {t("navigation.suppliers")}
             </Link>
             <Link
               href="/projets"
@@ -239,6 +245,13 @@ export default function Header() {
                 className="rounded-md px-3 py-2 text-foreground hover:bg-secondary"
               >
                 {t("navigation.market")}
+              </Link>
+              <Link
+                href="/fournisseurs"
+                onClick={closeMobileMenu}
+                className="rounded-md px-3 py-2 text-foreground hover:bg-secondary"
+              >
+                {t("navigation.suppliers")}
               </Link>
               <Link
                 href="/projets"

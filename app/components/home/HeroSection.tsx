@@ -24,7 +24,7 @@ export default function HeroSection() {
           </p>
           <Link
             href="/projets"
-            className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg font-semibold transition"
+            className="btn btn-primary inline-flex items-center gap-2 px-6 py-3"
           >
             {t("home.exploreProjects")}
           </Link>
