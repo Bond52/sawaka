@@ -103,10 +103,19 @@
   }
 
   a {
-    color: var(--primary);
+    color: inherit;
     transition: color 0.2s ease;
   }
   a:hover {
+    color: inherit;
+  }
+
+  .prose a,
+  .link-accent {
+    color: var(--primary);
+  }
+  .prose a:hover,
+  .link-accent:hover {
     color: var(--accent);
   }
 

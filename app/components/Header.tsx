@@ -144,34 +144,34 @@ export default function Header() {
             </span>
           </Link>
 
-          <nav className="hidden min-w-0 flex-1 items-center justify-center gap-8 text-sm font-medium text-muted-foreground lg:flex">
+          <nav className="hidden min-w-0 flex-1 items-center justify-center gap-8 text-sm font-medium lg:flex">
             <Link
               href="/"
-              className="whitespace-nowrap transition-colors hover:text-foreground"
+              className="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
             >
               {t("navigation.home")}
             </Link>
             <Link
               href="/produits"
-              className="whitespace-nowrap transition-colors hover:text-foreground"
+              className="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
             >
               {t("navigation.market")}
             </Link>
             <Link
               href="/projets"
-              className="whitespace-nowrap transition-colors hover:text-foreground"
+              className="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
             >
               {t("navigation.projects")}
             </Link>
             <button
               onClick={showConcoursUnavailable}
-              className="whitespace-nowrap text-left transition-colors hover:text-foreground"
+              className="whitespace-nowrap text-left text-muted-foreground transition-colors hover:text-foreground"
             >
               {t("navigation.contest")}
             </button>
             <Link
               href="/reseau"
-              className="whitespace-nowrap transition-colors hover:text-foreground"
+              className="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
             >
               {t("navigation.network")}
             </Link>
