@@ -69,14 +69,14 @@ export default function RequestManagementAccess({
           setOpen(true);
           reset();
         }}
-        className="text-sm font-medium text-sawaka-700 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-sawaka-500"
+        className="text-sm font-medium text-primary underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         {t("suppliers.manage.editSupplier")}
       </button>
 
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 p-4 sm:items-center"
+          className="dialog-overlay"
           role="presentation"
           onClick={(ev) => {
             if (ev.target === ev.currentTarget) close();
@@ -87,15 +87,15 @@ export default function RequestManagementAccess({
             aria-modal="true"
             aria-labelledby="supplier-manage-request-title"
             data-testid="supplier-manage-request-dialog"
-            className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-soft sm:p-8"
+            className="dialog-panel"
           >
             <h2
               id="supplier-manage-request-title"
-              className="text-lg font-semibold text-slate-900"
+              className="dialog-title"
             >
               {t("suppliers.manage.requestTitle")}
             </h2>
-            <p className="mt-2 text-sm text-slate-600">
+            <p className="dialog-description">
               {t("suppliers.manage.requestDescription").replace(
                 "{name}",
                 supplierName
@@ -104,13 +104,13 @@ export default function RequestManagementAccess({
 
             {phase === "sent" ? (
               <div className="mt-6 space-y-4" role="status" data-testid="supplier-manage-request-sent">
-                <p className="text-sm text-slate-800">
+                <p className="text-sm text-foreground">
                   {t("suppliers.manage.requestSent")}
                 </p>
                 <button
                   type="button"
                   onClick={close}
-                  className="btn btn-primary w-full min-h-[44px] rounded-xl font-semibold"
+                  className="btn btn-primary w-full"
                 >
                   {t("suppliers.manage.close")}
                 </button>
@@ -120,7 +120,7 @@ export default function RequestManagementAccess({
                 <div>
                   <label
                     htmlFor="supplier-manage-email"
-                    className="block text-sm font-medium text-slate-800"
+                    className="field-label"
                   >
                     {t("suppliers.manage.contactEmailLabel")}
                   </label>
@@ -133,7 +133,7 @@ export default function RequestManagementAccess({
                     value={email}
                     disabled={phase === "submitting"}
                     onChange={(ev) => setEmail(ev.target.value)}
-                    className="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-900 focus:border-sawaka-500 focus:outline-none focus:ring-2 focus:ring-sawaka-500"
+                    className="field"
                     placeholder={t("suppliers.manage.contactEmailPlaceholder")}
                   />
                 </div>
@@ -142,7 +142,7 @@ export default function RequestManagementAccess({
                   <p
                     role="alert"
                     data-testid="supplier-manage-request-error"
-                    className="text-sm text-red-700"
+                    className="field-error"
                   >
                     {t(errorKey || "suppliers.manage.requestError")}
                   </p>
@@ -153,7 +153,7 @@ export default function RequestManagementAccess({
                     type="button"
                     onClick={close}
                     disabled={phase === "submitting"}
-                    className="btn btn-outline min-h-[44px] rounded-xl font-semibold"
+                    className="btn btn-outline"
                   >
                     {t("suppliers.manage.cancel")}
                   </button>
@@ -161,7 +161,7 @@ export default function RequestManagementAccess({
                     type="submit"
                     data-testid="supplier-manage-request-submit"
                     disabled={phase === "submitting"}
-                    className="btn btn-primary min-h-[44px] rounded-xl font-semibold"
+                    className="btn btn-primary"
                   >
                     {phase === "submitting"
                       ? t("suppliers.manage.requestSubmitting")

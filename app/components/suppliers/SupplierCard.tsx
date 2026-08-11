@@ -47,7 +47,7 @@ export default function SupplierCard({
       data-testid="supplier-card"
       data-supplier-id={id}
       aria-label={profileAria}
-      className="group block rounded-xl border border-cream-300 bg-white p-5 shadow-sm transition-all hover:border-sawaka-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-sawaka-500 focus-visible:ring-offset-2"
+      className="group flex h-full flex-col rounded-lg border border-border bg-card p-5 shadow-card transition-all hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
     >
       {safeCategories.length > 0 && (
         <div
@@ -62,7 +62,7 @@ export default function SupplierCard({
             return (
               <span
                 key={category}
-                className="inline-flex rounded-full bg-cream-100 px-2.5 py-1 text-xs font-medium text-sawaka-700"
+                className="inline-flex rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground"
               >
                 {display}
               </span>
@@ -72,7 +72,7 @@ export default function SupplierCard({
       )}
 
       <h2
-        className="text-xl font-bold text-sawaka-800 group-hover:text-sawaka-700"
+        className="font-display text-xl font-semibold text-foreground transition-colors group-hover:text-primary"
         data-testid="supplier-card-name"
       >
         {displayName}
@@ -80,11 +80,11 @@ export default function SupplierCard({
 
       {location && (
         <p
-          className="mt-3 flex items-start gap-1.5 text-sm text-sawaka-600"
+          className="mt-3 flex items-start gap-1.5 text-sm text-muted-foreground"
           data-testid="supplier-card-location"
         >
           <MapPin
-            className="mt-0.5 h-4 w-4 shrink-0 text-sawaka-500"
+            className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground"
             aria-hidden
             strokeWidth={2}
           />
@@ -94,14 +94,14 @@ export default function SupplierCard({
 
       {safeResources.length > 0 && (
         <div className="mt-4" data-testid="supplier-card-resources">
-          <p className="mb-2 text-sm font-medium text-sawaka-700">
+          <p className="mb-2 text-xs text-muted-foreground">
             {t("suppliers.productsLabel")}
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1">
             {safeResources.map((resource) => (
               <span
                 key={resource}
-                className="inline-flex rounded-md border border-cream-300 bg-cream-50 px-2 py-1 text-xs text-sawaka-700"
+                className="inline-flex rounded bg-secondary px-2 py-1 text-xs text-foreground"
               >
                 {resource}
               </span>

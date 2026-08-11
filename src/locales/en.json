@@ -239,6 +239,7 @@
   "suppliers": {
     "loading": "Loading suppliers...",
     "title": "Suppliers",
+    "subtitle": "Find reliable suppliers for your projects",
     "searchPlaceholder": "Search for a supplier...",
     "allCategories": "All categories",
     "productsLabel": "Products:",

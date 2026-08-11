@@ -113,71 +113,80 @@ function SupplierDirectoryContent() {
   }, [loadSuppliers]);
 
   return (
-    <div className="wrap py-12" data-testid="supplier-directory-page">
-      <h1
-        className="mb-6 text-3xl font-bold text-sawaka-700"
-        data-testid="supplier-directory-title"
-      >
-        {t("suppliers.title")}
-      </h1>
-
-      <SupplierSearch
-        search={searchInput}
-        category={urlCategory}
-        onSearchChange={setSearchInput}
-        onCategoryChange={setCategory}
-        onClear={clearFilters}
-      />
-
-      {loading ? (
-        <p
-          className="text-lg text-sawaka-600"
-          data-testid="supplier-directory-loading"
-          role="status"
-          aria-live="polite"
-        >
-          {t("suppliers.loading")}
-        </p>
-      ) : error ? (
-        <SupplierRetrievalError
-          testId="supplier-directory-error"
-          message={
-            urlSearch || urlCategory !== "all"
-              ? t("suppliers.searchLoadError")
-              : t("suppliers.loadError")
-          }
-          onRetry={() => {
-            void loadSuppliers();
-          }}
-          retryLabel={t("suppliers.retry")}
-        />
-      ) : suppliers.length === 0 ? (
-        <p
-          className="mt-6 text-center text-gray-500"
-          data-testid="supplier-directory-empty"
-        >
-          {urlSearch || urlCategory !== "all"
-            ? t("suppliers.noResults")
-            : t("suppliers.empty")}
-        </p>
-      ) : (
-        <div
-          className="mt-4 grid gap-6 md:grid-cols-2 lg:grid-cols-3"
-          data-testid="supplier-directory-list"
-        >
-          {suppliers.map((supplier) => (
-            <SupplierCard
-              key={supplier.id}
-              id={supplier.id}
-              name={supplier.name}
-              categories={supplier.categories}
-              city={supplier.city}
-              country={supplier.country}
-              resources={supplier.resources}
-            />
-          ))}
+    <div data-testid="supplier-directory-page">
+      <div className="border-b border-border bg-card">
+        <div className="wrap py-8 lg:py-12">
+          <h1
+            className="font-display text-3xl text-foreground lg:text-4xl"
+            data-testid="supplier-directory-title"
+          >
+            {t("suppliers.title")}
+          </h1>
+          <p className="mt-2 max-w-2xl text-muted-foreground">
+            {t("suppliers.subtitle")}
+          </p>
         </div>
-      )}
+      </div>
+
+      <div className="wrap py-8">
+        <SupplierSearch
+          search={searchInput}
+          category={urlCategory}
+          onSearchChange={setSearchInput}
+          onCategoryChange={setCategory}
+          onClear={clearFilters}
+        />
+
+        {loading ? (
+          <p
+            className="text-lg text-muted-foreground"
+            data-testid="supplier-directory-loading"
+            role="status"
+            aria-live="polite"
+          >
+            {t("suppliers.loading")}
+          </p>
+        ) : error ? (
+          <SupplierRetrievalError
+            testId="supplier-directory-error"
+            message={
+              urlSearch || urlCategory !== "all"
+                ? t("suppliers.searchLoadError")
+                : t("suppliers.loadError")
+            }
+            onRetry={() => {
+              void loadSuppliers();
+            }}
+            retryLabel={t("suppliers.retry")}
+          />
+        ) : suppliers.length === 0 ? (
+          <p
+            className="mt-6 text-center text-muted-foreground"
+            data-testid="supplier-directory-empty"
+          >
+            {urlSearch || urlCategory !== "all"
+              ? t("suppliers.noResults")
+              : t("suppliers.empty")}
+          </p>
+        ) : (
+          <div
+            className="mt-4 grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+            data-testid="supplier-directory-list"
+          >
+            {suppliers.map((supplier) => (
+              <SupplierCard
+                key={supplier.id}
+                id={supplier.id}
+                name={supplier.name}
+                categories={supplier.categories}
+                city={supplier.city}
+                country={supplier.country}
+                resources={supplier.resources}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -185,14 +194,16 @@ function SupplierDirectoryContent() {
 function SupplierDirectoryFallback() {
   const { t } = useTranslation();
   return (
-    <div className="wrap py-12" data-testid="supplier-directory-page">
-      <p
-        className="text-lg text-sawaka-600"
-        data-testid="supplier-directory-loading"
-        role="status"
-      >
-        {t("suppliers.loading")}
-      </p>
+    <div data-testid="supplier-directory-page">
+      <div className="wrap py-12">
+        <p
+          className="text-lg text-muted-foreground"
+          data-testid="supplier-directory-loading"
+          role="status"
+        >
+          {t("suppliers.loading")}
+        </p>
+      </div>
     </div>
   );
 }

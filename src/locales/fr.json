@@ -239,6 +239,7 @@
   "suppliers": {
     "loading": "Chargement des fournisseurs...",
     "title": "Fournisseurs",
+    "subtitle": "Trouvez des fournisseurs fiables pour vos projets",
     "searchPlaceholder": "Rechercher un fournisseur...",
     "allCategories": "Toutes les catégories",
     "productsLabel": "Produits :",
