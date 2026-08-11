@@ -56,19 +56,19 @@ function VerifyEmailContent() {
   return (
     <div className="flex min-h-[calc(100vh-8rem)] flex-col items-center justify-center px-4 py-12 sm:py-16">
       <div
-        className="w-full max-w-md rounded-2xl border border-slate-200/90 bg-white p-8 text-center shadow-soft sm:p-10"
+        className="card w-full max-w-md p-8 text-center shadow-soft sm:p-10"
         data-testid="supplier-verify-email-page"
       >
         {phase === "loading" && (
           <>
             <div
-              className="mx-auto mb-6 h-11 w-11 animate-spin rounded-full border-2 border-sawaka-200 border-t-sawaka-600"
+              className="mx-auto mb-6 h-11 w-11 animate-spin rounded-full border-2 border-muted border-t-primary"
               aria-hidden
             />
-            <p className="text-base font-semibold text-slate-900">
+            <p className="text-base font-semibold text-foreground">
               {t("suppliers.verifyEmail.verifying")}
             </p>
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="mt-2 text-sm text-muted-foreground">
               {t("suppliers.verifyEmail.pleaseWait")}
             </p>
           </>
@@ -96,15 +96,15 @@ function VerifyEmailContent() {
                 />
               </svg>
             </div>
-            <p className="text-lg font-semibold text-slate-900">
+            <p className="text-lg font-semibold text-foreground">
               {t("suppliers.verifyEmail.success")}
             </p>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-muted-foreground">
               {t("suppliers.verifyEmail.successHint")}
             </p>
             <Link
               href="/supplier/manage"
-              className="btn btn-primary inline-flex w-full min-h-[48px] items-center justify-center rounded-xl font-semibold"
+              className="btn btn-primary inline-flex w-full items-center justify-center"
               data-testid="supplier-verify-email-manage"
             >
               {t("suppliers.verifyEmail.goToManage")}
@@ -134,13 +134,13 @@ function VerifyEmailContent() {
                 />
               </svg>
             </div>
-            <p className="text-base font-semibold text-red-900">
+            <p className="text-base font-semibold text-destructive">
               {phase === "networkError"
                 ? t("suppliers.verifyEmail.networkError")
                 : t("suppliers.verifyEmail.error")}
             </p>
             {phase === "error" && (
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-muted-foreground">
                 {t("suppliers.verifyEmail.errorHint")}
               </p>
             )}
@@ -149,7 +149,7 @@ function VerifyEmailContent() {
                 <button
                   type="button"
                   onClick={() => setRetryKey((key) => key + 1)}
-                  className="btn btn-primary inline-flex w-full min-h-[48px] items-center justify-center rounded-xl font-semibold"
+                  className="btn btn-primary inline-flex w-full items-center justify-center"
                   data-testid="supplier-verify-email-retry"
                 >
                   {t("suppliers.verifyEmail.retry")}
@@ -157,7 +157,7 @@ function VerifyEmailContent() {
               )}
               <Link
                 href="/fournisseurs"
-                className="btn btn-outline inline-flex w-full min-h-[48px] items-center justify-center rounded-xl font-semibold"
+                className="btn btn-outline inline-flex w-full items-center justify-center"
                 data-testid="supplier-verify-email-directory"
               >
                 {t("suppliers.backToDirectory")}
@@ -174,12 +174,12 @@ function VerifyEmailFallback() {
   const { t } = useTranslation();
   return (
     <div className="flex min-h-[calc(100vh-8rem)] flex-col items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md rounded-2xl border border-slate-200/90 bg-white p-8 text-center shadow-soft">
+      <div className="card w-full max-w-md p-8 text-center shadow-soft">
         <div
-          className="mx-auto mb-6 h-11 w-11 animate-spin rounded-full border-2 border-sawaka-200 border-t-sawaka-600"
+          className="mx-auto mb-6 h-11 w-11 animate-spin rounded-full border-2 border-muted border-t-primary"
           aria-hidden
         />
-        <p className="text-base font-semibold text-slate-900">
+        <p className="text-base font-semibold text-foreground">
           {t("suppliers.verifyEmail.verifying")}
         </p>
       </div>
@@ -189,7 +189,7 @@ function VerifyEmailFallback() {
 
 export default function SupplierVerifyEmailPage() {
   return (
-    <div className="min-h-screen bg-cream-100">
+    <div className="min-h-screen bg-background">
       <Suspense fallback={<VerifyEmailFallback />}>
         <VerifyEmailContent />
       </Suspense>

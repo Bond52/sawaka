@@ -543,10 +543,9 @@ export default function ManageSupplierForm({
     }
   }
 
-  const labelClass = "block text-sm font-semibold text-slate-700 mb-2";
-  const inputClass =
-    "w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition-shadow focus:border-sawaka-500 focus:outline-none focus:ring-2 focus:ring-sawaka-500/25";
-  const errorClass = "mt-1.5 text-sm font-medium text-red-600";
+  const labelClass = "field-label";
+  const inputClass = "field";
+  const errorClass = "field-error";
 
   const saveDisabled = saving || !isDirty || !isValid;
 
@@ -557,7 +556,7 @@ export default function ManageSupplierForm({
           type="button"
           data-testid="manage-supplier-back"
           onClick={() => leaveTo(profileHref)}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-sawaka-700 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-sawaka-500"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <span aria-hidden>←</span>
           {t("suppliers.manage.back")}
@@ -568,14 +567,14 @@ export default function ManageSupplierForm({
         data-testid="manage-supplier-form"
         onSubmit={handleSubmit}
         noValidate
-        className="rounded-2xl border border-slate-200/90 bg-white shadow-soft"
+        className="card !overflow-visible shadow-soft"
       >
         <div className="space-y-8 p-6 sm:p-8 lg:p-10">
           {saved === "saved" && (
             <div
               data-testid="manage-supplier-success"
               role="status"
-              className="rounded-xl border border-emerald-200/90 bg-emerald-50/90 px-4 py-3.5 text-sm font-medium text-emerald-900 shadow-sm"
+              className="alert alert-success"
             >
               {t("suppliers.manage.saved")}
             </div>
@@ -585,7 +584,7 @@ export default function ManageSupplierForm({
             <div
               data-testid="manage-supplier-saved-pending-email"
               role="status"
-              className="rounded-xl border border-amber-200/90 bg-amber-50/90 px-4 py-3.5 text-sm font-medium text-amber-900 shadow-sm"
+              className="alert alert-warning"
             >
               {t("suppliers.manage.savedPendingEmail")}
             </div>
@@ -595,7 +594,7 @@ export default function ManageSupplierForm({
             <section
               data-testid="manage-supplier-pending-email"
               aria-labelledby="manage-supplier-pending-email-title"
-              className="rounded-xl border border-amber-200/90 bg-amber-50/70 px-4 py-4 shadow-sm"
+              className="alert alert-warning !py-4"
             >
               <div className="flex items-start gap-3">
                 <MailWarning
@@ -625,7 +624,7 @@ export default function ManageSupplierForm({
                       data-testid="manage-supplier-pending-email-resend"
                       onClick={handleResendVerification}
                       disabled={emailAction !== null}
-                      className="btn btn-outline min-h-[44px] rounded-xl px-4 text-sm font-semibold disabled:pointer-events-none disabled:opacity-50"
+                      className="btn btn-outline text-sm"
                     >
                       {emailAction === "resend"
                         ? t("suppliers.manage.pendingEmailResending")
@@ -636,7 +635,7 @@ export default function ManageSupplierForm({
                       data-testid="manage-supplier-pending-email-cancel"
                       onClick={handleCancelEmailChange}
                       disabled={emailAction !== null}
-                      className="btn btn-outline min-h-[44px] rounded-xl px-4 text-sm font-semibold disabled:pointer-events-none disabled:opacity-50"
+                      className="btn btn-outline text-sm"
                     >
                       {emailAction === "cancel"
                         ? t("suppliers.manage.pendingEmailCancelling")
@@ -654,8 +653,8 @@ export default function ManageSupplierForm({
               role={emailFeedback.tone === "error" ? "alert" : "status"}
               className={
                 emailFeedback.tone === "error"
-                  ? "rounded-xl border border-red-200/90 bg-red-50 px-4 py-3.5 text-sm font-medium text-red-900 shadow-sm"
-                  : "rounded-xl border border-emerald-200/90 bg-emerald-50/90 px-4 py-3.5 text-sm font-medium text-emerald-900 shadow-sm"
+                  ? "alert alert-error"
+                  : "alert alert-success"
               }
             >
               {emailFeedback.message}
@@ -666,7 +665,7 @@ export default function ManageSupplierForm({
             <div
               data-testid="manage-supplier-error"
               role="alert"
-              className="rounded-xl border border-red-200/90 bg-red-50 px-4 py-3.5 text-sm font-medium text-red-900 shadow-sm"
+              className="alert alert-error"
             >
               {serverMessage}
             </div>
@@ -674,22 +673,22 @@ export default function ManageSupplierForm({
 
           <h2
             data-testid="manage-supplier-form-title"
-            className="text-2xl font-bold tracking-tight text-slate-900"
+            className="font-display text-2xl font-semibold tracking-tight text-foreground"
           >
             {t("suppliers.manage.formTitle")}
           </h2>
 
-          <div className="h-px bg-slate-100" aria-hidden />
+          <div className="h-px bg-border" aria-hidden />
 
           {/* Supplier information */}
           <section className="space-y-6">
-            <h3 className="text-lg font-semibold text-slate-900">
+            <h3 className="font-display text-lg font-semibold text-foreground">
               {t("suppliers.manage.sectionInformation")}
             </h3>
 
             <div className="space-y-2">
               <label htmlFor="manage-supplier-name" className={labelClass}>
-                {t("suppliers.name")} <span className="text-red-600">*</span>
+                {t("suppliers.name")} <span className="text-destructive">*</span>
               </label>
               <input
                 id="manage-supplier-name"
@@ -720,7 +719,7 @@ export default function ManageSupplierForm({
             <div className="space-y-3">
               <span className={`${labelClass} mb-0`}>
                 {t("suppliers.categorySingle")}{" "}
-                <span className="text-red-600">*</span>
+                <span className="text-destructive">*</span>
               </span>
               <div
                 id="manage-supplier-categories"
@@ -742,10 +741,10 @@ export default function ManageSupplierForm({
                       aria-pressed={selected}
                       onClick={() => toggleCategory(opt.value)}
                       className={[
-                        "rounded-full border px-3.5 py-2 text-xs font-medium transition-all md:text-[13px]",
+                        "chip !rounded-full px-3.5 py-2 text-xs md:text-[13px]",
                         selected
-                          ? "border-sawaka-600 bg-sawaka-50 text-sawaka-900 shadow-sm ring-1 ring-sawaka-600/20"
-                          : "border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50",
+                          ? "chip-active border-primary"
+                          : "border-border bg-card text-foreground hover:border-primary/50 hover:bg-secondary",
                       ].join(" ")}
                     >
                       {t(`suppliers.categoryOptions.${opt.value}`)}
@@ -766,11 +765,11 @@ export default function ManageSupplierForm({
             </div>
           </section>
 
-          <div className="h-px bg-slate-100" aria-hidden />
+          <div className="h-px bg-border" aria-hidden />
 
           {/* Location */}
           <section className="space-y-6">
-            <h3 className="text-lg font-semibold text-slate-900">
+            <h3 className="font-display text-lg font-semibold text-foreground">
               {t("suppliers.manage.sectionLocation")}
             </h3>
 
@@ -778,7 +777,7 @@ export default function ManageSupplierForm({
               <div className="space-y-2">
                 <label htmlFor="manage-supplier-country" className={labelClass}>
                   {t("suppliers.country")}{" "}
-                  <span className="text-red-600">*</span>
+                  <span className="text-destructive">*</span>
                 </label>
                 <input
                   id="manage-supplier-country"
@@ -873,17 +872,17 @@ export default function ManageSupplierForm({
             </div>
           </section>
 
-          <div className="h-px bg-slate-100" aria-hidden />
+          <div className="h-px bg-border" aria-hidden />
 
           {/* Contact */}
           <section className="space-y-6">
-            <h3 className="text-lg font-semibold text-slate-900">
+            <h3 className="font-display text-lg font-semibold text-foreground">
               {t("suppliers.manage.sectionContact")}
             </h3>
 
             <div className="space-y-2">
               <label htmlFor="manage-supplier-phone" className={labelClass}>
-                {t("suppliers.phone")} <span className="text-red-600">*</span>
+                {t("suppliers.phone")} <span className="text-destructive">*</span>
               </label>
               <input
                 id="manage-supplier-phone"
@@ -918,7 +917,7 @@ export default function ManageSupplierForm({
                 className={labelClass}
               >
                 {t("suppliers.accountEmail")}{" "}
-                <span className="text-red-600">*</span>
+                <span className="text-destructive">*</span>
               </label>
               <input
                 id="manage-supplier-account-email"
@@ -948,13 +947,13 @@ export default function ManageSupplierForm({
                 </p>
               )}
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">
                   <Lock className="h-3.5 w-3.5" strokeWidth={2} />
                   {t("suppliers.privateBadge")}
                 </span>
                 <p
                   id="manage-hint-accountEmail"
-                  className="text-xs text-slate-500"
+                  className="text-xs text-muted-foreground"
                 >
                   {t("suppliers.manage.accountEmailHint")}
                 </p>
@@ -999,7 +998,7 @@ export default function ManageSupplierForm({
                   <Globe className="h-3.5 w-3.5" strokeWidth={2} />
                   {t("suppliers.publicBadge")}
                 </span>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   {t("suppliers.publicHint")}
                 </p>
               </div>
@@ -1036,7 +1035,7 @@ export default function ManageSupplierForm({
             </div>
           </section>
 
-          <div className="h-px bg-slate-100" aria-hidden />
+          <div className="h-px bg-border" aria-hidden />
 
           <div className="space-y-3">
             <div className="flex flex-col gap-3 sm:flex-row-reverse sm:justify-start">
@@ -1047,7 +1046,7 @@ export default function ManageSupplierForm({
                 aria-describedby={
                   !isDirty && !saving ? "manage-supplier-save-hint" : undefined
                 }
-                className="btn btn-primary min-h-[48px] w-full rounded-xl px-6 py-3 text-base font-semibold shadow-sm disabled:pointer-events-none disabled:opacity-50 sm:w-auto sm:min-w-[220px]"
+                className="btn btn-primary w-full text-base sm:w-auto sm:min-w-[220px]"
               >
                 {saving
                   ? t("suppliers.manage.saving")
@@ -1058,7 +1057,7 @@ export default function ManageSupplierForm({
                 data-testid="manage-supplier-cancel"
                 disabled={saving}
                 onClick={() => leaveTo(profileHref)}
-                className="btn btn-outline min-h-[48px] w-full rounded-xl px-6 py-3 text-base font-semibold disabled:pointer-events-none disabled:opacity-50 sm:w-auto sm:min-w-[160px]"
+                className="btn btn-outline w-full text-base sm:w-auto sm:min-w-[160px]"
               >
                 {t("suppliers.manage.cancel")}
               </button>
@@ -1067,7 +1066,7 @@ export default function ManageSupplierForm({
               <p
                 id="manage-supplier-save-hint"
                 data-testid="manage-supplier-save-hint"
-                className="text-xs text-slate-500"
+                className="text-xs text-muted-foreground"
               >
                 {t("suppliers.manage.noChangesHint")}
               </p>
@@ -1077,17 +1076,17 @@ export default function ManageSupplierForm({
       </form>
 
       <section
-        className="mt-10 rounded-2xl border border-red-200 bg-red-50/60 p-6"
+        className="alert alert-error mt-10 !p-6"
         data-testid="manage-supplier-danger-zone"
         aria-labelledby="manage-supplier-danger-title"
       >
         <h2
           id="manage-supplier-danger-title"
-          className="text-lg font-semibold text-red-900"
+          className="font-display text-lg font-semibold text-destructive"
         >
           {t("suppliers.manage.dangerZoneTitle")}
         </h2>
-        <p className="mt-2 text-sm text-red-800/90">
+        <p className="mt-2 text-sm text-destructive/90">
           {t("suppliers.manage.dangerZoneBody")}
         </p>
         <button
@@ -1097,7 +1096,7 @@ export default function ManageSupplierForm({
             setDeactivateError(null);
             setDeactivateOpen(true);
           }}
-          className="mt-4 min-h-[44px] rounded-xl border border-red-600 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+          className="btn btn-outline mt-4 border-destructive text-destructive hover:bg-red-50 focus-visible:ring-destructive"
         >
           {t("suppliers.manage.deactivate")}
         </button>
@@ -1105,7 +1104,7 @@ export default function ManageSupplierForm({
 
       {deactivateOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 p-4 sm:items-center"
+          className="dialog-overlay"
           role="presentation"
           onClick={(ev) => {
             if (ev.target === ev.currentTarget && !deactivating) {
@@ -1119,11 +1118,11 @@ export default function ManageSupplierForm({
             aria-labelledby="manage-supplier-deactivate-title"
             aria-describedby="manage-supplier-deactivate-body"
             data-testid="manage-supplier-deactivate-dialog"
-            className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-soft sm:p-8"
+            className="dialog-panel"
           >
             <h2
               id="manage-supplier-deactivate-title"
-              className="text-lg font-semibold text-slate-900"
+              className="font-display text-lg font-semibold text-foreground"
             >
               {t("suppliers.manage.deactivateTitle").replace(
                 "{name}",
@@ -1132,12 +1131,12 @@ export default function ManageSupplierForm({
             </h2>
             <p
               id="manage-supplier-deactivate-body"
-              className="mt-2 text-sm text-slate-600"
+              className="dialog-description"
             >
               {t("suppliers.manage.deactivateBody")}
             </p>
             {deactivateError && (
-              <p role="alert" className="mt-3 text-sm text-red-700">
+              <p role="alert" className="field-error mt-3">
                 {deactivateError}
               </p>
             )}
@@ -1147,7 +1146,7 @@ export default function ManageSupplierForm({
                 data-testid="manage-supplier-deactivate-cancel"
                 disabled={deactivating}
                 onClick={() => setDeactivateOpen(false)}
-                className="btn btn-outline min-h-[44px] rounded-xl font-semibold"
+                className="btn btn-outline"
               >
                 {t("suppliers.manage.deactivateCancel")}
               </button>
@@ -1182,7 +1181,7 @@ export default function ManageSupplierForm({
                     `/fournisseurs?deactivated=1&name=${encodeURIComponent(baseline.name)}`
                   );
                 }}
-                className="min-h-[44px] rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-60"
+                className="btn btn-destructive"
               >
                 {deactivating
                   ? t("suppliers.manage.deactivating")
@@ -1195,7 +1194,7 @@ export default function ManageSupplierForm({
 
       {pendingHref && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 p-4 sm:items-center"
+          className="dialog-overlay"
           role="presentation"
           onClick={(ev) => {
             if (ev.target === ev.currentTarget) setPendingHref(null);
@@ -1208,17 +1207,17 @@ export default function ManageSupplierForm({
             aria-labelledby="manage-supplier-discard-title"
             aria-describedby="manage-supplier-discard-body"
             data-testid="manage-supplier-discard-dialog"
-            className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-soft sm:p-8"
+            className="dialog-panel"
           >
             <h2
               id="manage-supplier-discard-title"
-              className="text-lg font-semibold text-slate-900"
+              className="font-display text-lg font-semibold text-foreground"
             >
               {t("suppliers.manage.discardTitle")}
             </h2>
             <p
               id="manage-supplier-discard-body"
-              className="mt-2 text-sm text-slate-600"
+              className="dialog-description"
             >
               {t("suppliers.manage.discardBody")}
             </p>
@@ -1227,7 +1226,7 @@ export default function ManageSupplierForm({
                 type="button"
                 data-testid="manage-supplier-discard-cancel"
                 onClick={() => setPendingHref(null)}
-                className="btn btn-outline min-h-[44px] rounded-xl font-semibold"
+                className="btn btn-outline"
               >
                 {t("suppliers.manage.discardKeepEditing")}
               </button>
@@ -1240,7 +1239,7 @@ export default function ManageSupplierForm({
                   setPendingHref(null);
                   router.push(href);
                 }}
-                className="btn btn-primary min-h-[44px] rounded-xl font-semibold"
+                className="btn btn-primary"
               >
                 {t("suppliers.manage.discardConfirm")}
               </button>

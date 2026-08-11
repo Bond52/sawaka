@@ -26,7 +26,7 @@ function CenteredCard({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-[calc(100vh-8rem)] flex-col items-center justify-center px-4 py-12 sm:py-16">
       <div
-        className="w-full max-w-md rounded-2xl border border-slate-200/90 bg-white p-8 text-center shadow-soft sm:p-10"
+        className="card w-full max-w-md p-8 text-center shadow-soft sm:p-10"
         data-testid="supplier-manage-page"
       >
         {children}
@@ -138,18 +138,18 @@ function SupplierManageContent() {
     return (
       <CenteredCard>
         <div
-          className="mx-auto mb-6 h-11 w-11 animate-spin rounded-full border-2 border-sawaka-200 border-t-sawaka-600"
+          className="mx-auto mb-6 h-11 w-11 animate-spin rounded-full border-2 border-muted border-t-primary"
           aria-hidden
         />
         <p
-          className="text-base font-semibold text-slate-900"
+          className="text-base font-semibold text-foreground"
           data-testid="supplier-manage-loading"
         >
           {phase === "exchanging"
             ? t("suppliers.manage.establishing")
             : t("suppliers.manage.loadingProfile")}
         </p>
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-2 text-sm text-muted-foreground">
           {t("suppliers.manage.pleaseWait")}
         </p>
       </CenteredCard>
@@ -165,15 +165,15 @@ function SupplierManageContent() {
           data-testid="supplier-manage-error"
         >
           <ErrorIcon />
-          <p className="text-base font-semibold text-red-900">
+          <p className="text-base font-semibold text-destructive">
             {t("suppliers.manage.invalidLink")}
           </p>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-muted-foreground">
             {t("suppliers.manage.invalidLinkHint")}
           </p>
           <Link
             href="/fournisseurs"
-            className="btn btn-outline inline-flex min-h-[48px] w-full items-center justify-center rounded-xl font-semibold"
+            className="btn btn-outline inline-flex w-full items-center justify-center"
             data-testid="supplier-manage-back-directory"
           >
             {t("suppliers.backToDirectory")}
@@ -192,15 +192,15 @@ function SupplierManageContent() {
           data-testid="supplier-manage-session-expired"
         >
           <ErrorIcon />
-          <p className="text-base font-semibold text-red-900">
+          <p className="text-base font-semibold text-destructive">
             {t("suppliers.manage.sessionExpired")}
           </p>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-muted-foreground">
             {t("suppliers.manage.sessionExpiredHint")}
           </p>
           <Link
             href="/fournisseurs"
-            className="btn btn-outline inline-flex min-h-[48px] w-full items-center justify-center rounded-xl font-semibold"
+            className="btn btn-outline inline-flex w-full items-center justify-center"
             data-testid="supplier-manage-back-directory"
           >
             {t("suppliers.backToDirectory")}
@@ -219,21 +219,21 @@ function SupplierManageContent() {
           data-testid="supplier-manage-load-error"
         >
           <ErrorIcon />
-          <p className="text-base font-semibold text-red-900">
+          <p className="text-base font-semibold text-destructive">
             {t("suppliers.manage.loadError")}
           </p>
           <div className="space-y-3">
             <button
               type="button"
               onClick={() => setReloadKey((key) => key + 1)}
-              className="btn btn-primary inline-flex min-h-[48px] w-full items-center justify-center rounded-xl font-semibold"
+              className="btn btn-primary inline-flex w-full items-center justify-center"
               data-testid="supplier-manage-retry"
             >
               {t("suppliers.manage.retry")}
             </button>
             <Link
               href="/fournisseurs"
-              className="btn btn-outline inline-flex min-h-[48px] w-full items-center justify-center rounded-xl font-semibold"
+              className="btn btn-outline inline-flex w-full items-center justify-center"
               data-testid="supplier-manage-back-directory"
             >
               {t("suppliers.backToDirectory")}
@@ -249,13 +249,13 @@ function SupplierManageContent() {
       <div className="wrap max-w-3xl">
         <h1
           data-testid="supplier-manage-title"
-          className="mb-2 text-2xl font-bold text-sawaka-800 md:text-3xl"
+          className="mb-2 font-display text-2xl text-foreground md:text-3xl"
         >
           {t("suppliers.manage.pageTitle")}
         </h1>
         <p
           data-testid="supplier-manage-subtitle"
-          className="mb-8 text-sm text-sawaka-700 md:text-base"
+          className="mb-8 text-sm text-muted-foreground md:text-base"
         >
           {t("suppliers.manage.pageSubtitle")}
         </p>
@@ -273,12 +273,12 @@ function SupplierManageFallback() {
   const { t } = useTranslation();
   return (
     <div className="flex min-h-[calc(100vh-8rem)] flex-col items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md rounded-2xl border border-slate-200/90 bg-white p-8 text-center shadow-soft">
+      <div className="card w-full max-w-md p-8 text-center shadow-soft">
         <div
-          className="mx-auto mb-6 h-11 w-11 animate-spin rounded-full border-2 border-sawaka-200 border-t-sawaka-600"
+          className="mx-auto mb-6 h-11 w-11 animate-spin rounded-full border-2 border-muted border-t-primary"
           aria-hidden
         />
-        <p className="text-base font-semibold text-slate-900">
+        <p className="text-base font-semibold text-foreground">
           {t("suppliers.manage.establishing")}
         </p>
       </div>
@@ -288,7 +288,7 @@ function SupplierManageFallback() {
 
 export default function SupplierManagePage() {
   return (
-    <div className="min-h-screen bg-cream-100">
+    <div className="min-h-screen bg-background">
       <Suspense fallback={<SupplierManageFallback />}>
         <SupplierManageContent />
       </Suspense>
