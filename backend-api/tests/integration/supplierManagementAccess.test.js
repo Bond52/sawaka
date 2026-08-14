@@ -5,6 +5,9 @@ const Supplier = require("../../models/Supplier");
 const MagicLinkToken = require("../../models/MagicLinkToken");
 const EmailService = require("../../services/EmailService");
 const supplierRoutes = require("../../routes/supplier.routes");
+const {
+  ensureMagicLinkTokenIndexCompatibility,
+} = require("../../services/MagicLinkTokenIndexService");
 
 jest.mock("../../services/EmailService", () => ({
   sendSupplierActivationEmail: jest.fn(),
@@ -100,6 +103,85 @@ describe("POST /api/suppliers/:id/management-link", () => {
       supplierA._id.toString(),
     ]);
     expect(new Set(tokens.map((token) => token.tokenHash)).size).toBe(3);
+    expect(EmailService.sendSupplierManagementEmail).toHaveBeenCalledTimes(3);
+  });
+
+  it("repairs the legacy token index before persisting sequential A-B-A links", async () => {
+    await MagicLinkToken.collection.insertOne({ migrationFixture: true });
+    await MagicLinkToken.collection.deleteOne({ migrationFixture: true });
+    const existing = await MagicLinkToken.collection.indexes();
+    const existingTokenIndex = existing.find(
+      (index) => index.name === "token_1" && index.key.token === 1
+    );
+    if (existingTokenIndex) {
+      await MagicLinkToken.collection.dropIndex(existingTokenIndex.name);
+    }
+    await MagicLinkToken.collection.createIndex(
+      { token: 1 },
+      { name: "token_1", unique: true }
+    );
+
+    const before = await MagicLinkToken.collection.indexes();
+    const legacyTokenIndex = before.find((index) => index.name === "token_1");
+    expect(legacyTokenIndex).toMatchObject({
+      key: { token: 1 },
+      unique: true,
+    });
+    expect(legacyTokenIndex.sparse).not.toBe(true);
+
+    const supplierA = await Supplier.create({
+      ...baseSupplier,
+      accountEmail: "legacy-a@example.com",
+      status: "Active",
+      isVisible: true,
+    });
+    const supplierB = await Supplier.create({
+      ...baseSupplier,
+      accountEmail: "legacy-b@example.com",
+      status: "Active",
+      isVisible: true,
+    });
+
+    const first = await request(app)
+      .post(`/api/suppliers/${supplierA._id}/management-link`)
+      .send({ email: "legacy-a@example.com" });
+    expect(first.statusCode).toBe(200);
+    expect(EmailService.sendSupplierManagementEmail).toHaveBeenCalledTimes(1);
+
+    const second = await request(app)
+      .post(`/api/suppliers/${supplierB._id}/management-link`)
+      .send({ email: "legacy-b@example.com" });
+    expect(second.statusCode).toBe(200);
+    expect(EmailService.sendSupplierManagementEmail).toHaveBeenCalledTimes(1);
+    expect(
+      await MagicLinkToken.countDocuments({
+        purpose: "SUPPLIER_MANAGEMENT",
+      })
+    ).toBe(1);
+
+    await expect(ensureMagicLinkTokenIndexCompatibility()).resolves.toBe(true);
+    const after = await MagicLinkToken.collection.indexes();
+    expect(after.find((index) => index.name === "token_1")).toMatchObject({
+      key: { token: 1 },
+      unique: true,
+      sparse: true,
+    });
+
+    for (const [supplier, email] of [
+      [supplierB, "legacy-b@example.com"],
+      [supplierA, "legacy-a@example.com"],
+    ]) {
+      const res = await request(app)
+        .post(`/api/suppliers/${supplier._id}/management-link`)
+        .send({ email });
+      expect(res.statusCode).toBe(200);
+    }
+
+    const tokens = await MagicLinkToken.find({
+      purpose: "SUPPLIER_MANAGEMENT",
+    }).sort({ createdAt: 1 });
+    expect(tokens).toHaveLength(3);
+    expect(tokens.every((token) => token.tokenHash && !token.token)).toBe(true);
     expect(EmailService.sendSupplierManagementEmail).toHaveBeenCalledTimes(3);
   });
 
