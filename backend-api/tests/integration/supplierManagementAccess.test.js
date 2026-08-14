@@ -28,7 +28,32 @@ describe("POST /api/suppliers/:id/management-link", () => {
     if (supplierRoutes.managementLinkRateLimit?.reset) {
       supplierRoutes.managementLinkRateLimit.reset();
     }
+    EmailService.sendSupplierActivationEmail.mockResolvedValue(true);
     EmailService.sendSupplierManagementEmail.mockResolvedValue(true);
+  });
+
+  it("creates a supplier and persists its activation token", async () => {
+    const res = await request(app).post("/api/suppliers").send({
+      name: "New Supplier",
+      categories: ["construction_materials"],
+      country: "CM",
+      accountEmail: "new-supplier@example.com",
+      phone: "0612345678",
+    });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.accountEmail).toBe("new-supplier@example.com");
+    expect(res.body.status).toBe("Invited");
+    expect(res.body.isVisible).toBe(false);
+    expect(EmailService.sendSupplierActivationEmail).toHaveBeenCalledTimes(1);
+
+    const tokens = await MagicLinkToken.find({
+      supplierId: res.body._id,
+      purpose: "SUPPLIER_ACTIVATION",
+    });
+    expect(tokens).toHaveLength(1);
+    expect(tokens[0].tokenHash).toBeTruthy();
+    expect(tokens[0].token).toBeFalsy();
   });
 
   it("returns a generic confirmation and sends email when contact email matches", async () => {
