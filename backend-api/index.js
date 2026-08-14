@@ -168,7 +168,11 @@ async function connectMongo() {
   if (!process.env.MONGO_URI) return;
 
   await mongoose.connect(process.env.MONGO_URI);
-  await ensureMagicLinkTokenIndexCompatibility();
+  const migratedMagicLinkTokenIndex =
+    await ensureMagicLinkTokenIndexCompatibility();
+  if (migratedMagicLinkTokenIndex) {
+    console.log("✅ MagicLinkToken token_1 index migrated to sparse unique");
+  }
 
   if (!isTestOrCI) console.log("✅ Connecté à MongoDB");
 }
