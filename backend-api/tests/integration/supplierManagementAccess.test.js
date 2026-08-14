@@ -63,6 +63,46 @@ describe("POST /api/suppliers/:id/management-link", () => {
     expect(tokens[0].token).toBeFalsy();
   });
 
+  it("generates independent links for repeated requests across suppliers", async () => {
+    const supplierA = await Supplier.create({
+      ...baseSupplier,
+      accountEmail: "supplier-a@example.com",
+      status: "Active",
+      isVisible: true,
+    });
+    const supplierB = await Supplier.create({
+      ...baseSupplier,
+      accountEmail: "supplier-b@example.com",
+      status: "Active",
+      isVisible: true,
+    });
+
+    for (const [supplier, email] of [
+      [supplierA, "supplier-a@example.com"],
+      [supplierB, "supplier-b@example.com"],
+      [supplierA, "supplier-a@example.com"],
+    ]) {
+      const res = await request(app)
+        .post(`/api/suppliers/${supplier._id}/management-link`)
+        .send({ email });
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toEqual({ success: true });
+    }
+
+    const tokens = await MagicLinkToken.find({
+      purpose: "SUPPLIER_MANAGEMENT",
+    }).sort({ createdAt: 1 });
+
+    expect(tokens).toHaveLength(3);
+    expect(tokens.map((token) => token.supplierId.toString())).toEqual([
+      supplierA._id.toString(),
+      supplierB._id.toString(),
+      supplierA._id.toString(),
+    ]);
+    expect(new Set(tokens.map((token) => token.tokenHash)).size).toBe(3);
+    expect(EmailService.sendSupplierManagementEmail).toHaveBeenCalledTimes(3);
+  });
+
   it("returns the same confirmation without sending when email does not match", async () => {
     const supplier = await Supplier.create({
       ...baseSupplier,
