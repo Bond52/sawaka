@@ -3,6 +3,9 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
+const {
+  ensureMagicLinkTokenIndexCompatibility,
+} = require("./services/MagicLinkTokenIndexService");
 
 dotenv.config();
 const app = express();
@@ -165,6 +168,11 @@ async function connectMongo() {
   if (!process.env.MONGO_URI) return;
 
   await mongoose.connect(process.env.MONGO_URI);
+  const migratedMagicLinkTokenIndex =
+    await ensureMagicLinkTokenIndexCompatibility();
+  if (migratedMagicLinkTokenIndex) {
+    console.log("✅ MagicLinkToken token_1 index migrated to sparse unique");
+  }
 
   if (!isTestOrCI) console.log("✅ Connecté à MongoDB");
 }
