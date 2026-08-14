@@ -39,4 +39,16 @@ describe("ensureMagicLinkTokenIndexCompatibility", () => {
     expect(MagicLinkToken.collection.dropIndex).not.toHaveBeenCalled();
     expect(MagicLinkToken.collection.createIndex).not.toHaveBeenCalled();
   });
+
+  it("skips migration when the collection has not been created yet", async () => {
+    MagicLinkToken.collection.indexes.mockRejectedValue({
+      code: 26,
+      codeName: "NamespaceNotFound",
+    });
+
+    await expect(ensureMagicLinkTokenIndexCompatibility()).resolves.toBe(false);
+
+    expect(MagicLinkToken.collection.dropIndex).not.toHaveBeenCalled();
+    expect(MagicLinkToken.collection.createIndex).not.toHaveBeenCalled();
+  });
 });
