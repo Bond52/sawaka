@@ -13,7 +13,17 @@ const MagicLinkToken = require("../models/MagicLinkToken");
  */
 async function ensureMagicLinkTokenIndexCompatibility() {
   const collection = MagicLinkToken.collection;
-  const indexes = await collection.indexes();
+  let indexes;
+  try {
+    indexes = await collection.indexes();
+  } catch (err) {
+    // A fresh database has no collection yet. Mongoose creates its declared
+    // sparse indexes when the collection is first used.
+    if (err && (err.code === 26 || err.codeName === "NamespaceNotFound")) {
+      return false;
+    }
+    throw err;
+  }
   const tokenIndex = indexes.find(
     (index) =>
       index &&
