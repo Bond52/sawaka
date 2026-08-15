@@ -254,6 +254,7 @@
     "filterAll": "All",
     "clearFilters": "Clear filters",
     "cardProfileAria": "View {name} profile",
+    "cardMoreCategories": "+{count} more",
     "profileLoading": "Loading supplier profile...",
     "profileNotFound": "This supplier is not available.",
     "profileLoadError": "Unable to load this profile. Please try again later.",

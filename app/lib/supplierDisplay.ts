@@ -63,3 +63,24 @@ export function formatSupplierCityCountry(
   if (parts.length === 0) return undefined;
   return parts.join(", ");
 }
+
+/** Max category badges shown on Supplier Directory cards. */
+export const SUPPLIER_CARD_MAX_VISIBLE_CATEGORIES = 3;
+
+/**
+ * Limits category badges for compact card layout without altering stored data.
+ * Returns the first `maxVisible` categories and how many remain hidden.
+ */
+export function splitVisibleCategories(
+  categories: readonly string[],
+  maxVisible: number = SUPPLIER_CARD_MAX_VISIBLE_CATEGORIES
+): { visible: string[]; hiddenCount: number } {
+  const limit = Number.isFinite(maxVisible) && maxVisible > 0 ? maxVisible : 0;
+  if (categories.length <= limit) {
+    return { visible: [...categories], hiddenCount: 0 };
+  }
+  return {
+    visible: categories.slice(0, limit),
+    hiddenCount: categories.length - limit,
+  };
+}

@@ -133,6 +133,50 @@ test.describe("Supplier Profile page", () => {
     expect(html).not.toContain("mailto:secret@private.cm");
   });
 
+  test("displays the complete category list on the detail page", async ({
+    page,
+  }) => {
+    const manyCategories = [
+      "import_wholesale_distribution",
+      "packaging_containers",
+      "transport_logistics",
+      "construction_materials",
+      "wood_lumber",
+      "metal_steel",
+      "electrical_supplies",
+      "plumbing_supplies",
+      "paints_finishes",
+      "hardware_fasteners",
+      "hand_tools",
+      "power_tools",
+      "industrial_machinery",
+      "safety_equipment",
+      "textiles_fabrics",
+      "leather_accessories",
+      "art_craft_materials",
+      "agro_raw_materials",
+    ];
+
+    await mockProfile(page, {
+      body: {
+        categories: manyCategories,
+        resources: [],
+      },
+    });
+
+    await page.goto(`/fournisseurs/${SUPPLIER_ID}`);
+
+    await expect(
+      page.getByTestId("supplier-profile-primary-category")
+    ).toContainText("Import / distribution en gros");
+
+    const tags = page.getByTestId("supplier-profile-categories");
+    await expect(tags).toContainText("Emballages et contenants");
+    await expect(tags).toContainText("Transport et logistique");
+    await expect(tags).toContainText("Matières premières agricoles");
+    await expect(tags).not.toContainText("+");
+  });
+
   test("hides missing optional fields", async ({ page }) => {
     await mockProfile(page, {
       body: {
