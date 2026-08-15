@@ -17,8 +17,6 @@ import ContactSupplier from "@/app/components/suppliers/ContactSupplier";
 import SupplierRetrievalError from "@/app/components/suppliers/SupplierRetrievalError";
 import RequestManagementAccess from "@/app/components/suppliers/RequestManagementAccess";
 
-const MAX_VISIBLE_TAGS = 4;
-
 function categoryLabel(
   category: string,
   t: (key: string) => string
@@ -131,12 +129,11 @@ export default function SupplierProfilePage() {
   const categories = optionalStringList(supplier.categories);
   const primaryCategory = categories[0];
   const resourceTags = optionalStringList(supplier.resources);
+  // Detail page shows the complete category list (no truncation).
   const secondaryTags = [
     ...categories.slice(1).map((c) => categoryLabel(c, t)),
     ...resourceTags,
   ];
-  const visibleTags = secondaryTags.slice(0, MAX_VISIBLE_TAGS);
-  const overflowCount = Math.max(0, secondaryTags.length - visibleTags.length);
 
   return (
     <div className="wrap py-10 md:py-12" data-testid="supplier-profile-page">
@@ -169,13 +166,13 @@ export default function SupplierProfilePage() {
             {displayName}
           </h1>
 
-          {(visibleTags.length > 0 || overflowCount > 0) && (
+          {secondaryTags.length > 0 && (
             <div
               className="mt-4 flex flex-wrap gap-2"
               data-testid="supplier-profile-categories"
               aria-label={t("suppliers.categoriesAria")}
             >
-              {visibleTags.map((tag) => (
+              {secondaryTags.map((tag) => (
                 <span
                   key={tag}
                   className="inline-flex rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-foreground"
@@ -183,11 +180,6 @@ export default function SupplierProfilePage() {
                   {tag}
                 </span>
               ))}
-              {overflowCount > 0 && (
-                <span className="inline-flex rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">
-                  +{overflowCount}
-                </span>
-              )}
             </div>
           )}
         </div>

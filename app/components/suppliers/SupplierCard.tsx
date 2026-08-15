@@ -7,6 +7,7 @@ import {
   formatSupplierCityCountry,
   optionalStringList,
   optionalText,
+  splitVisibleCategories,
 } from "@/app/lib/supplierDisplay";
 
 export type SupplierCardProps = {
@@ -34,6 +35,8 @@ export default function SupplierCard({
 
   const displayName = optionalText(name) ?? "";
   const safeCategories = optionalStringList(categories);
+  const { visible: visibleCategories, hiddenCount } =
+    splitVisibleCategories(safeCategories);
   const safeResources = optionalStringList(resources);
   const location = formatSupplierCityCountry(city, country);
   const href = supplierProfilePath(id);
@@ -54,7 +57,7 @@ export default function SupplierCard({
           className="mb-3 flex flex-wrap gap-2"
           data-testid="supplier-card-categories"
         >
-          {safeCategories.map((category) => {
+          {visibleCategories.map((category) => {
             const labelKey = `suppliers.categoryOptions.${category}`;
             const label = t(labelKey);
             const display =
@@ -68,6 +71,14 @@ export default function SupplierCard({
               </span>
             );
           })}
+          {hiddenCount > 0 && (
+            <span
+              className="inline-flex rounded-full bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground"
+              data-testid="supplier-card-more-categories"
+            >
+              {t("suppliers.cardMoreCategories", { count: hiddenCount })}
+            </span>
+          )}
         </div>
       )}
 

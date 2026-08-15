@@ -19,6 +19,61 @@ const MULTI_CATEGORY_SUPPLIER = {
   phone: "+237600000002",
 };
 
+const MANY_CATEGORIES_SUPPLIER = {
+  id: "65a1b2c3d4e5f67890123499",
+  name: "MultiCat Supply",
+  categories: [
+    "import_wholesale_distribution",
+    "packaging_containers",
+    "transport_logistics",
+    "construction_materials",
+    "wood_lumber",
+    "metal_steel",
+    "electrical_supplies",
+    "plumbing_supplies",
+    "paints_finishes",
+    "hardware_fasteners",
+    "hand_tools",
+    "power_tools",
+    "industrial_machinery",
+    "safety_equipment",
+    "textiles_fabrics",
+    "leather_accessories",
+    "art_craft_materials",
+    "agro_raw_materials",
+  ],
+  country: "Cameroun",
+  city: "Douala",
+  phone: "+237600000099",
+};
+
+const EXACTLY_THREE_CATEGORIES_SUPPLIER = {
+  id: "65a1b2c3d4e5f67890123488",
+  name: "ThreeCat Supply",
+  categories: [
+    "construction_materials",
+    "wood_lumber",
+    "metal_steel",
+  ],
+  country: "Cameroun",
+  city: "Bafoussam",
+  phone: "+237600000088",
+};
+
+const FOUR_CATEGORIES_SUPPLIER = {
+  id: "65a1b2c3d4e5f67890123477",
+  name: "FourCat Supply",
+  categories: [
+    "construction_materials",
+    "wood_lumber",
+    "metal_steel",
+    "electrical_supplies",
+  ],
+  country: "Cameroun",
+  city: "Garoua",
+  phone: "+237600000077",
+};
+
 const MINIMAL_SUPPLIER = {
   id: "65a1b2c3d4e5f678901234ef",
   name: "Minimal Supply",
@@ -161,6 +216,115 @@ test.describe("Supplier Directory", () => {
     const categories = page.getByTestId("supplier-card-categories");
     await expect(categories).toContainText("Matériaux de construction");
     await expect(categories).toContainText("Métal et acier");
+    await expect(page.getByTestId("supplier-card-more-categories")).toHaveCount(
+      0
+    );
+  });
+
+  test("shows at most 3 category badges plus a localized overflow count", async ({
+    page,
+  }) => {
+    await mockSuppliers(page, [
+      EXACTLY_THREE_CATEGORIES_SUPPLIER,
+      FOUR_CATEGORIES_SUPPLIER,
+      MANY_CATEGORIES_SUPPLIER,
+    ]);
+
+    await page.goto("/fournisseurs");
+
+    const threeCatCard = page.locator(
+      `[data-testid="supplier-card"][data-supplier-id="${EXACTLY_THREE_CATEGORIES_SUPPLIER.id}"]`
+    );
+    await expect(
+      threeCatCard.getByTestId("supplier-card-categories").locator("span")
+    ).toHaveCount(3);
+    await expect(
+      threeCatCard.getByTestId("supplier-card-more-categories")
+    ).toHaveCount(0);
+
+    const fourCatCard = page.locator(
+      `[data-testid="supplier-card"][data-supplier-id="${FOUR_CATEGORIES_SUPPLIER.id}"]`
+    );
+    await expect(
+      fourCatCard.getByTestId("supplier-card-categories").locator("span")
+    ).toHaveCount(4);
+    await expect(
+      fourCatCard.getByTestId("supplier-card-more-categories")
+    ).toHaveText("+1 autres");
+    await expect(fourCatCard).not.toContainText("Fournitures électriques");
+
+    const manyCatCard = page.locator(
+      `[data-testid="supplier-card"][data-supplier-id="${MANY_CATEGORIES_SUPPLIER.id}"]`
+    );
+    await expect(
+      manyCatCard.getByTestId("supplier-card-categories").locator("span")
+    ).toHaveCount(4);
+    await expect(
+      manyCatCard.getByTestId("supplier-card-more-categories")
+    ).toHaveText("+15 autres");
+    await expect(manyCatCard).toContainText("Import / distribution en gros");
+    await expect(manyCatCard).toContainText("Emballages et contenants");
+    await expect(manyCatCard).toContainText("Transport et logistique");
+    await expect(manyCatCard).not.toContainText("Matières premières agricoles");
+  });
+
+  test("renders English overflow indicator for many categories", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem("sawaka-locale", "en");
+    });
+    await mockSuppliers(page, [MANY_CATEGORIES_SUPPLIER]);
+
+    await page.goto("/fournisseurs");
+
+    await expect(page.getByTestId("supplier-card-more-categories")).toHaveText(
+      "+15 more"
+    );
+  });
+
+  test("filters by a category hidden behind the card overflow indicator", async ({
+    page,
+  }) => {
+    const directory = [...ALL_SUPPLIERS, MANY_CATEGORIES_SUPPLIER];
+    await page.route("**/api/suppliers**", async (route: Route) => {
+      const request = route.request();
+      const url = request.url();
+      if (!isSupplierListRequest(url, request.method())) {
+        await route.continue();
+        return;
+      }
+
+      const parsed = new URL(url);
+      const search = (parsed.searchParams.get("search") ?? "").trim().toLowerCase();
+      const category = (parsed.searchParams.get("category") ?? "").trim();
+
+      let results = [...directory];
+      if (search) {
+        results = results.filter((s) => s.name.toLowerCase().includes(search));
+      }
+      if (category) {
+        results = results.filter((s) => s.categories.includes(category));
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(results),
+      });
+    });
+
+    await page.goto("/fournisseurs");
+    await page.getByTestId("supplier-filter-agro_raw_materials").click();
+
+    await expect(page).toHaveURL(/category=agro_raw_materials/);
+    await expect(page.getByTestId("supplier-card")).toHaveCount(1);
+    await expect(page.getByTestId("supplier-card-name")).toHaveText(
+      "MultiCat Supply"
+    );
+    await expect(page.getByTestId("supplier-card-more-categories")).toHaveText(
+      "+15 autres"
+    );
   });
 
   test("card is an accessible link to the supplier profile URL", async ({

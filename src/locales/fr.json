@@ -254,6 +254,7 @@
     "filterAll": "Tous",
     "clearFilters": "Effacer les filtres",
     "cardProfileAria": "Voir le profil de {name}",
+    "cardMoreCategories": "+{count} autres",
     "profileLoading": "Chargement du profil fournisseur...",
     "profileNotFound": "Ce fournisseur n'est pas disponible.",
     "profileLoadError": "Impossible de charger ce profil. Veuillez réessayer plus tard.",
