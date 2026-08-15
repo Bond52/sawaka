@@ -199,6 +199,191 @@ test.describe("Supplier management edit form", () => {
     await expect(page.getByTestId("manage-supplier-save")).toBeDisabled();
   });
 
+  test("saving only an unrelated field does not require re-entering required fields", async ({
+    page,
+  }) => {
+    let patchBody: Record<string, unknown> | null = null;
+    await page.route("**/api/suppliers/**", async (route: Route) => {
+      const request = route.request();
+      const url = request.url();
+      const method = request.method();
+
+      if (url.includes("/api/suppliers/management") && method === "GET") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(EDITABLE_SUPPLIER),
+        });
+        return;
+      }
+
+      if (url.includes("/api/suppliers/management") && method === "PATCH") {
+        patchBody = request.postDataJSON() as Record<string, unknown>;
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            supplier: { ...EDITABLE_SUPPLIER, ...patchBody },
+          }),
+        });
+        return;
+      }
+
+      if (method === "GET" && url.includes(`/api/suppliers/${SUPPLIER_ID}`)) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(EDITABLE_SUPPLIER),
+        });
+        return;
+      }
+
+      await route.continue();
+    });
+
+    await page.goto("/supplier/manage");
+    await expect(page.getByTestId("manage-supplier-form")).toBeVisible({
+      timeout: 10000,
+    });
+
+    await page
+      .getByTestId("manage-supplier-input-website")
+      .fill("https://updated.boisplus.cm");
+    await page.getByTestId("manage-supplier-save").click();
+
+    await expect(page.getByTestId("manage-supplier-success")).toBeVisible();
+    await expect(page.getByTestId("manage-supplier-error-name")).toHaveCount(0);
+    await expect(page.getByTestId("manage-supplier-error-country")).toHaveCount(
+      0
+    );
+    await expect(page.getByTestId("manage-supplier-error-phone")).toHaveCount(0);
+    await expect(
+      page.getByTestId("manage-supplier-error-account-email")
+    ).toHaveCount(0);
+    await expect(
+      page.getByTestId("manage-supplier-error-categories")
+    ).toHaveCount(0);
+
+    expect(patchBody).toEqual({
+      website: "https://updated.boisplus.cm",
+    });
+
+    await expect(page.getByTestId("manage-supplier-input-name")).toHaveValue(
+      EDITABLE_SUPPLIER.name
+    );
+    await expect(page.getByTestId("manage-supplier-input-country")).toHaveValue(
+      EDITABLE_SUPPLIER.country
+    );
+    await expect(page.getByTestId("manage-supplier-input-phone")).toHaveValue(
+      EDITABLE_SUPPLIER.phone
+    );
+    await expect(
+      page.getByTestId("manage-supplier-input-account-email")
+    ).toHaveValue(EDITABLE_SUPPLIER.accountEmail);
+  });
+
+  test("saving only a phone change keeps other required values", async ({
+    page,
+  }) => {
+    let patchBody: Record<string, unknown> | null = null;
+    await page.route("**/api/suppliers/**", async (route: Route) => {
+      const request = route.request();
+      const url = request.url();
+      const method = request.method();
+
+      if (url.includes("/api/suppliers/management") && method === "GET") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(EDITABLE_SUPPLIER),
+        });
+        return;
+      }
+
+      if (url.includes("/api/suppliers/management") && method === "PATCH") {
+        patchBody = request.postDataJSON() as Record<string, unknown>;
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            supplier: { ...EDITABLE_SUPPLIER, ...patchBody },
+          }),
+        });
+        return;
+      }
+
+      await route.continue();
+    });
+
+    await page.goto("/supplier/manage");
+    await expect(page.getByTestId("manage-supplier-form")).toBeVisible({
+      timeout: 10000,
+    });
+
+    await page
+      .getByTestId("manage-supplier-input-phone")
+      .fill("+237 600 11 22 33");
+    await page.getByTestId("manage-supplier-save").click();
+
+    await expect(page.getByTestId("manage-supplier-success")).toBeVisible();
+    expect(patchBody).toEqual({ phone: "+237 600 11 22 33" });
+    await expect(page.getByTestId("manage-supplier-input-name")).toHaveValue(
+      EDITABLE_SUPPLIER.name
+    );
+  });
+
+  test("saving only a category change keeps other required values", async ({
+    page,
+  }) => {
+    let patchBody: Record<string, unknown> | null = null;
+    await page.route("**/api/suppliers/**", async (route: Route) => {
+      const request = route.request();
+      const url = request.url();
+      const method = request.method();
+
+      if (url.includes("/api/suppliers/management") && method === "GET") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(EDITABLE_SUPPLIER),
+        });
+        return;
+      }
+
+      if (url.includes("/api/suppliers/management") && method === "PATCH") {
+        patchBody = request.postDataJSON() as Record<string, unknown>;
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            supplier: {
+              ...EDITABLE_SUPPLIER,
+              categories: patchBody.categories as string[],
+            },
+          }),
+        });
+        return;
+      }
+
+      await route.continue();
+    });
+
+    await page.goto("/supplier/manage");
+    await expect(page.getByTestId("manage-supplier-form")).toBeVisible({
+      timeout: 10000,
+    });
+
+    await page
+      .getByTestId("manage-supplier-category-construction_materials")
+      .click();
+    await page.getByTestId("manage-supplier-save").click();
+
+    await expect(page.getByTestId("manage-supplier-success")).toBeVisible();
+    expect(patchBody).toEqual({
+      categories: ["wood_lumber", "construction_materials"],
+    });
+  });
+
   test("invalid values block saving", async ({ page }) => {
     await mockManagementApis(page);
     await page.goto("/supplier/manage");

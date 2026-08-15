@@ -146,6 +146,99 @@ describe("GET/PATCH /api/suppliers/management", () => {
     expect(res.body.errors).toBeDefined();
   });
 
+  it("accepts a partial PATCH that only changes an optional field", async () => {
+    const supplier = await createActiveSupplier({
+      accountEmail: "partial@example.com",
+      website: "https://before.example.com",
+      city: "Yaoundé",
+    });
+    const token = await sessionTokenFor(supplier._id);
+
+    const res = await request(app)
+      .patch("/api/suppliers/management")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ website: "https://after.example.com" });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.supplier).toMatchObject({
+      name: "Editable Co",
+      categories: ["construction_materials"],
+      country: "CM",
+      city: "Yaoundé",
+      phone: "0612345678",
+      accountEmail: "partial@example.com",
+      website: "https://after.example.com",
+    });
+
+    const stored = await Supplier.findById(supplier._id).lean();
+    expect(stored.name).toBe("Editable Co");
+    expect(stored.categories).toEqual(["construction_materials"]);
+    expect(stored.country).toBe("CM");
+    expect(stored.phone).toBe("0612345678");
+    expect(stored.accountEmail).toBe("partial@example.com");
+    expect(stored.website).toBe("https://after.example.com");
+    expect(stored.city).toBe("Yaoundé");
+  });
+
+  it("accepts a partial PATCH that only changes phone", async () => {
+    const supplier = await createActiveSupplier({
+      accountEmail: "phone-only@example.com",
+    });
+    const token = await sessionTokenFor(supplier._id);
+
+    const res = await request(app)
+      .patch("/api/suppliers/management")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ phone: "0699887766" });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.supplier.phone).toBe("0699887766");
+    expect(res.body.supplier.name).toBe("Editable Co");
+    expect(res.body.supplier.accountEmail).toBe("phone-only@example.com");
+
+    const stored = await Supplier.findById(supplier._id).lean();
+    expect(stored.phone).toBe("0699887766");
+    expect(stored.name).toBe("Editable Co");
+    expect(stored.categories).toEqual(["construction_materials"]);
+  });
+
+  it("accepts a partial PATCH that only changes categories", async () => {
+    const supplier = await createActiveSupplier({
+      accountEmail: "cats-only@example.com",
+    });
+    const token = await sessionTokenFor(supplier._id);
+
+    const res = await request(app)
+      .patch("/api/suppliers/management")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ categories: ["wood_lumber", "metal_steel"] });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.supplier.categories).toEqual([
+      "wood_lumber",
+      "metal_steel",
+    ]);
+    expect(res.body.supplier.phone).toBe("0612345678");
+  });
+
+  it("rejects clearing a required field in a partial PATCH", async () => {
+    const supplier = await createActiveSupplier({
+      accountEmail: "clear-required@example.com",
+    });
+    const token = await sessionTokenFor(supplier._id);
+
+    const res = await request(app)
+      .patch("/api/suppliers/management")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ name: "" });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.errors).toHaveProperty("name");
+
+    const stored = await Supplier.findById(supplier._id).lean();
+    expect(stored.name).toBe("Editable Co");
+  });
+
   it("stores a changed contact email as pending without replacing the verified email", async () => {
     const supplier = await createActiveSupplier({
       accountEmail: "keep@example.com",
