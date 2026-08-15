@@ -213,7 +213,9 @@ function isValidOptionalUrl(value) {
 }
 
 /**
- * Validate and normalize editable supplier update payload.
+ * Validate and normalize editable supplier update payload (PATCH semantics).
+ * Only fields present in the payload are validated/updated; omitted required
+ * fields keep their current persisted values.
  * System fields (status, isVisible, ownerId, timestamps) are stripped.
  * @returns {{ updates: object, changedFields: string[], pendingContactEmail: string|null }}
  */
@@ -245,63 +247,85 @@ function parseEditableUpdate(data, currentSupplier) {
   /** @type {string|null} */
   let pendingContactEmail = null;
 
-  const name = typeof raw.name === "string" ? raw.name.trim() : "";
-  if (!name || name.length < 2) {
-    errors.name = !name
-      ? "name is required"
-      : "name must be at least 2 characters";
-  } else {
-    updates.name = name;
-    if (name !== (currentSupplier.name || "")) changedFields.push("name");
-  }
-
-  let categories = raw.categories;
-  if (!Array.isArray(categories) || categories.length === 0) {
-    errors.categories = "At least one category is required";
-  } else {
-    const normalized = [
-      ...new Set(
-        categories
-          .filter((c) => typeof c === "string")
-          .map((c) => c.trim())
-          .filter(Boolean)
-      ),
-    ];
-    if (
-      normalized.length === 0 ||
-      normalized.some((c) => !VALID_SUPPLIER_CATEGORIES.has(c))
-    ) {
-      errors.categories = "Invalid category";
+  if (raw.name !== undefined) {
+    if (typeof raw.name !== "string") {
+      errors.name = "name must be a string";
     } else {
-      updates.categories = normalized;
-      const prev = Array.isArray(currentSupplier.categories)
-        ? currentSupplier.categories
-        : [];
-      if (
-        normalized.length !== prev.length ||
-        normalized.some((c, i) => c !== prev[i])
-      ) {
-        changedFields.push("categories");
+      const name = raw.name.trim();
+      if (!name || name.length < 2) {
+        errors.name = !name
+          ? "name is required"
+          : "name must be at least 2 characters";
+      } else {
+        updates.name = name;
+        if (name !== (currentSupplier.name || "")) changedFields.push("name");
       }
     }
   }
 
-  const country = typeof raw.country === "string" ? raw.country.trim() : "";
-  if (!country) {
-    errors.country = "country is required";
-  } else {
-    updates.country = country;
-    if (country !== (currentSupplier.country || "")) changedFields.push("country");
+  if (raw.categories !== undefined) {
+    const categories = raw.categories;
+    if (!Array.isArray(categories) || categories.length === 0) {
+      errors.categories = "At least one category is required";
+    } else {
+      const normalized = [
+        ...new Set(
+          categories
+            .filter((c) => typeof c === "string")
+            .map((c) => c.trim())
+            .filter(Boolean)
+        ),
+      ];
+      if (
+        normalized.length === 0 ||
+        normalized.some((c) => !VALID_SUPPLIER_CATEGORIES.has(c))
+      ) {
+        errors.categories = "Invalid category";
+      } else {
+        updates.categories = normalized;
+        const prev = Array.isArray(currentSupplier.categories)
+          ? currentSupplier.categories
+          : [];
+        if (
+          normalized.length !== prev.length ||
+          normalized.some((c, i) => c !== prev[i])
+        ) {
+          changedFields.push("categories");
+        }
+      }
+    }
   }
 
-  const phone = typeof raw.phone === "string" ? raw.phone.trim() : "";
-  if (!phone) {
-    errors.phone = "phone is required";
-  } else if (phone.length < 6) {
-    errors.phone = "phone must be at least 6 characters";
-  } else {
-    updates.phone = phone;
-    if (phone !== (currentSupplier.phone || "")) changedFields.push("phone");
+  if (raw.country !== undefined) {
+    if (typeof raw.country !== "string") {
+      errors.country = "country must be a string";
+    } else {
+      const country = raw.country.trim();
+      if (!country) {
+        errors.country = "country is required";
+      } else {
+        updates.country = country;
+        if (country !== (currentSupplier.country || "")) {
+          changedFields.push("country");
+        }
+      }
+    }
+  }
+
+  if (raw.phone !== undefined) {
+    if (typeof raw.phone !== "string") {
+      errors.phone = "phone must be a string";
+    } else {
+      const phone = raw.phone.trim();
+      if (!phone) {
+        errors.phone = "phone is required";
+      } else if (phone.length < 6) {
+        errors.phone = "phone must be at least 6 characters";
+      } else {
+        updates.phone = phone;
+        if (phone !== (currentSupplier.phone || "")) changedFields.push("phone");
+      }
+    }
   }
 
   // Contact email change → pending verification (verified email stays active).

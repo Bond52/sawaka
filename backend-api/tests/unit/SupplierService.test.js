@@ -917,4 +917,92 @@ describe("SupplierService", () => {
       expect(MagicLinkService.consumeToken).not.toHaveBeenCalled();
     });
   });
+
+  describe("parseEditableUpdate", () => {
+    const current = {
+      name: "Editable Co",
+      categories: ["construction_materials"],
+      country: "CM",
+      city: "Yaoundé",
+      accountEmail: "owner@example.com",
+      phone: "0612345678",
+      publicEmail: "public@example.com",
+      website: "https://before.example.com",
+    };
+
+    it("accepts a partial payload with only an optional field", () => {
+      const result = SupplierService.parseEditableUpdate(
+        { website: "https://after.example.com" },
+        current
+      );
+
+      expect(result.updates).toEqual({
+        website: "https://after.example.com",
+      });
+      expect(result.changedFields).toEqual(["website"]);
+      expect(result.pendingContactEmail).toBeNull();
+    });
+
+    it("accepts a partial payload with only phone", () => {
+      const result = SupplierService.parseEditableUpdate(
+        { phone: "0699887766" },
+        current
+      );
+
+      expect(result.updates).toEqual({ phone: "0699887766" });
+      expect(result.changedFields).toEqual(["phone"]);
+    });
+
+    it("accepts a partial payload with only categories", () => {
+      const result = SupplierService.parseEditableUpdate(
+        { categories: ["wood_lumber"] },
+        current
+      );
+
+      expect(result.updates).toEqual({ categories: ["wood_lumber"] });
+      expect(result.changedFields).toEqual(["categories"]);
+    });
+
+    it("rejects clearing a required field when it is present in the payload", () => {
+      expect(() =>
+        SupplierService.parseEditableUpdate({ name: "" }, current)
+      ).toThrow("Validation failed");
+
+      try {
+        SupplierService.parseEditableUpdate({ name: "" }, current);
+      } catch (err) {
+        expect(err.code).toBe("VALIDATION_ERROR");
+        expect(err.errors).toMatchObject({ name: "name is required" });
+      }
+    });
+
+    it("rejects an empty categories array when present in the payload", () => {
+      expect(() =>
+        SupplierService.parseEditableUpdate({ categories: [] }, current)
+      ).toThrow("Validation failed");
+
+      try {
+        SupplierService.parseEditableUpdate({ categories: [] }, current);
+      } catch (err) {
+        expect(err.code).toBe("VALIDATION_ERROR");
+        expect(err.errors).toMatchObject({
+          categories: "At least one category is required",
+        });
+      }
+    });
+
+    it("does not overwrite omitted required fields", () => {
+      const result = SupplierService.parseEditableUpdate(
+        { city: "Douala" },
+        current
+      );
+
+      expect(result.updates).toEqual({ city: "Douala" });
+      expect(result.updates).not.toHaveProperty("name");
+      expect(result.updates).not.toHaveProperty("categories");
+      expect(result.updates).not.toHaveProperty("country");
+      expect(result.updates).not.toHaveProperty("phone");
+      expect(result.updates).not.toHaveProperty("accountEmail");
+    });
+  });
 });
