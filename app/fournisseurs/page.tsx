@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "@/src/i18n/I18nProvider";
 import {
@@ -129,6 +130,33 @@ function SupplierDirectoryContent() {
       </div>
 
       <div className="wrap py-8">
+        <section
+          data-testid="supplier-directory-cta"
+          className="mb-8 rounded-2xl border border-sawaka-200 bg-gradient-to-br from-sawaka-50 to-cream-100 p-6 sm:p-8 shadow-sm"
+          aria-labelledby="supplier-directory-cta-title"
+        >
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-2">
+              <h2
+                id="supplier-directory-cta-title"
+                className="text-xl sm:text-2xl font-bold text-sawaka-800"
+              >
+                {t("suppliers.ctaTitle")}
+              </h2>
+              <p className="max-w-2xl text-sm text-sawaka-600 sm:text-base">
+                {t("suppliers.ctaDescription")}
+              </p>
+            </div>
+            <Link
+              href="/add-supplier"
+              data-testid="supplier-directory-cta-link"
+              className="btn btn-primary w-full shrink-0 rounded-xl px-6 py-3 text-center text-base font-semibold shadow-sm sm:w-auto min-h-[48px]"
+            >
+              {t("suppliers.ctaButton")}
+            </Link>
+          </div>
+        </section>
+
         <SupplierSearch
           search={searchInput}
           category={urlCategory}

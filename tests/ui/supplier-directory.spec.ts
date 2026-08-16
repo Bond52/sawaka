@@ -156,6 +156,62 @@ test.describe("Supplier Directory", () => {
     });
   });
 
+  test("shows supplier CTA below title and before search filters", async ({
+    page,
+  }) => {
+    await mockSuppliers(page, ALL_SUPPLIERS);
+
+    await page.goto("/fournisseurs");
+
+    const cta = page.getByTestId("supplier-directory-cta");
+    const ctaLink = page.getByTestId("supplier-directory-cta-link");
+    const title = page.getByTestId("supplier-directory-title");
+    const search = page.getByTestId("supplier-directory-search");
+
+    await expect(cta).toBeVisible();
+    await expect(ctaLink).toHaveText("Devenir fournisseur");
+    await expect(cta.getByRole("heading", { level: 2 })).toHaveText(
+      "Vous êtes fournisseur ?"
+    );
+
+    const titleBox = await title.boundingBox();
+    const ctaBox = await cta.boundingBox();
+    const searchBox = await search.boundingBox();
+    expect(titleBox).toBeTruthy();
+    expect(ctaBox).toBeTruthy();
+    expect(searchBox).toBeTruthy();
+    expect(titleBox!.y).toBeLessThan(ctaBox!.y);
+    expect(ctaBox!.y).toBeLessThan(searchBox!.y);
+  });
+
+  test("clicking CTA redirects to supplier onboarding", async ({ page }) => {
+    await mockSuppliers(page, ALL_SUPPLIERS);
+
+    await page.goto("/fournisseurs");
+    await page.getByTestId("supplier-directory-cta-link").click();
+
+    await expect(page).toHaveURL(/\/add-supplier$/);
+    await expect(page.getByTestId("add-supplier-page-title")).toBeVisible();
+  });
+
+  test("English language displays English CTA", async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("sawaka-locale", "en");
+    });
+    await mockSuppliers(page, ALL_SUPPLIERS);
+
+    await page.goto("/fournisseurs");
+
+    await expect(page.getByTestId("supplier-directory-cta-link")).toHaveText(
+      "Become a Supplier"
+    );
+    await expect(
+      page.getByTestId("supplier-directory-cta").getByRole("heading", {
+        level: 2,
+      })
+    ).toHaveText("Are you a supplier?");
+  });
+
   test("shows loading state while retrieving suppliers", async ({ page }) => {
     let release!: () => void;
     const gate = new Promise<void>((resolve) => {
