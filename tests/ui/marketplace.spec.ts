@@ -11,40 +11,13 @@ test.describe("/produits marketplace", () => {
     });
   });
 
-  test("marketplace page loads with supplier CTA visible", async ({ page }) => {
+  test("marketplace page does not show supplier CTA", async ({ page }) => {
     await page.goto("/produits");
 
-    await expect(page.getByTestId("marketplace-supplier-cta")).toBeVisible();
-    await expect(page.getByTestId("marketplace-supplier-cta-link")).toBeVisible();
-  });
-
-  test("clicking CTA redirects to supplier onboarding", async ({ page }) => {
-    await page.goto("/produits");
-    await page.getByTestId("marketplace-supplier-cta-link").click();
-
-    await expect(page).toHaveURL(/\/add-supplier$/);
-    await expect(page.getByTestId("add-supplier-page-title")).toBeVisible();
-  });
-
-  test("English language displays English CTA", async ({ page }) => {
-    await page.addInitScript(() => {
-      localStorage.setItem("sawaka-locale", "en");
-    });
-    await page.goto("/produits");
-
-    await expect(page.getByTestId("marketplace-supplier-cta-link")).toHaveText(
-      "Become a Supplier"
+    await expect(page.getByTestId("marketplace-supplier-cta")).toHaveCount(0);
+    await expect(page.getByTestId("marketplace-supplier-cta-link")).toHaveCount(
+      0
     );
-  });
-
-  test("French language displays French CTA", async ({ page }) => {
-    await page.addInitScript(() => {
-      localStorage.setItem("sawaka-locale", "fr");
-    });
-    await page.goto("/produits");
-
-    await expect(page.getByTestId("marketplace-supplier-cta-link")).toHaveText(
-      "Devenir fournisseur"
-    );
+    await expect(page.getByTestId("supplier-directory-cta")).toHaveCount(0);
   });
 });

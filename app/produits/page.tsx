@@ -68,33 +68,6 @@ export default function ProduitsPage() {
   -------------------------------------------------------------- */
   return (
     <div className="max-w-7xl mx-auto px-4 py-10">
-      <section
-        data-testid="marketplace-supplier-cta"
-        className="mb-10 rounded-2xl border border-sawaka-200 bg-gradient-to-br from-sawaka-50 to-cream-100 p-6 sm:p-8 shadow-sm"
-        aria-labelledby="marketplace-supplier-cta-title"
-      >
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-2">
-            <h2
-              id="marketplace-supplier-cta-title"
-              className="text-xl sm:text-2xl font-bold text-sawaka-800"
-            >
-              {t("products.supplierCtaTitle")}
-            </h2>
-            <p className="max-w-2xl text-sm text-sawaka-600 sm:text-base">
-              {t("products.supplierCtaDescription")}
-            </p>
-          </div>
-          <Link
-            href="/add-supplier"
-            data-testid="marketplace-supplier-cta-link"
-            className="btn btn-primary w-full shrink-0 rounded-xl px-6 py-3 text-center text-base font-semibold shadow-sm sm:w-auto min-h-[48px]"
-          >
-            {t("products.supplierCtaButton")}
-          </Link>
-        </div>
-      </section>
-
       {loading ? (
         <div className="text-center py-20">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-sawaka-800"></div>
