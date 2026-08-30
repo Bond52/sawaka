@@ -54,6 +54,7 @@ export default function LoginPage() {
             lastName: data.lastName || "",
           })
         );
+        window.dispatchEvent(new Event("sawaka-auth-changed"));
       }
 
       const redirect = searchParams.get("redirect");
@@ -67,37 +68,58 @@ export default function LoginPage() {
     <main className="flex items-center justify-center min-h-[70vh] bg-cream-100">
       <div className="card w-full max-w-md">
         <div className="card-body">
-          <h1 className="text-2xl font-bold text-center mb-6">
+          <h1
+            className="text-2xl font-bold text-center mb-6"
+            data-testid="login-page-title"
+          >
             {t("auth.login")}
           </h1>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form
+            onSubmit={handleLogin}
+            className="space-y-4"
+            data-testid="login-form"
+          >
             <div>
-              <label className="block text-sm font-medium text-sawaka-800 mb-1">
+              <label
+                htmlFor="login-page-email"
+                className="block text-sm font-medium text-sawaka-800 mb-1"
+              >
                 {t("auth.email")}
               </label>
               <input
+                id="login-page-email"
                 type="email"
                 placeholder={t("auth.emailPlaceholder")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="w-full rounded-lg border border-sawaka-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sawaka-500"
+                data-testid="login-input-email"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-sawaka-800 mb-1">
+              <label
+                htmlFor="login-page-password"
+                className="block text-sm font-medium text-sawaka-800 mb-1"
+              >
                 {t("auth.password")}
               </label>
               <input
+                id="login-page-password"
                 type="password"
                 placeholder={t("auth.passwordPlaceholder")}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 className="w-full rounded-lg border border-sawaka-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sawaka-500"
+                data-testid="login-input-password"
               />
             </div>
-            <button type="submit" className="btn-primary w-full mt-4">
+            <button
+              type="submit"
+              className="btn-primary w-full mt-4"
+              data-testid="login-submit"
+            >
               {t("auth.login")}
             </button>
           </form>
@@ -105,6 +127,7 @@ export default function LoginPage() {
             {t("auth.noAccount")}{" "}
             <a
               href="/register"
+              data-testid="login-page-register-link"
               className="text-sawaka-600 hover:text-sawaka-800 font-semibold"
             >
               {t("auth.createOne")}

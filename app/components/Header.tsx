@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import LoginModal from "./ui/LoginModal";
 import LanguageSwitcher from "@/src/i18n/LanguageSwitcher";
@@ -16,8 +16,18 @@ type UserData = {
   lastName?: string;
 };
 
+function readStoredUser(): UserData | null {
+  try {
+    const savedUser = localStorage.getItem("user");
+    return savedUser ? JSON.parse(savedUser) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function Header() {
   const router = useRouter();
+  const pathname = usePathname();
   const { t } = useTranslation();
 
   const [user, setUser] = useState<UserData | null>(null);
@@ -26,34 +36,46 @@ export default function Header() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) setUser(JSON.parse(savedUser));
+    setUser(readStoredUser());
 
-    const handleStorageChange = () => {
-      const u = localStorage.getItem("user");
-      setUser(u ? JSON.parse(u) : null);
+    const syncUser = () => setUser(readStoredUser());
+
+    window.addEventListener("storage", syncUser);
+    window.addEventListener("sawaka-auth-changed", syncUser);
+    return () => {
+      window.removeEventListener("storage", syncUser);
+      window.removeEventListener("sawaka-auth-changed", syncUser);
     };
-
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, []);
+  }, [pathname]);
 
   const isAdmin = user?.roles?.includes("admin");
 
+  const clearAuthCookie = () => {
+    document.cookie =
+      "token=; Max-Age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure; SameSite=None";
+    document.cookie =
+      "token=; Max-Age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure";
+    document.cookie =
+      "token=; Max-Age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+    document.cookie =
+      "token=; Max-Age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.sawaka.org; secure; SameSite=None";
+    document.cookie =
+      "token=; Max-Age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.sawaka.org";
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("user");
+    clearAuthCookie();
     setUser(null);
     setShowUserMenu(false);
     setShowMobileMenu(false);
+    window.dispatchEvent(new Event("sawaka-auth-changed"));
     router.push("/");
   };
 
-  const showAuthUnavailable = (type: "login" | "register") => {
-    alert(
-      type === "login"
-        ? t("alerts.loginUnavailable")
-        : t("alerts.registerUnavailable")
-    );
+  const openLoginModal = () => {
+    setShowLoginModal(true);
+    setShowMobileMenu(false);
   };
 
   const showConcoursUnavailable = () => {
@@ -65,6 +87,8 @@ export default function Header() {
   const authActions = user ? (
     <div className="relative">
       <button
+        type="button"
+        data-testid="header-user-menu"
         onClick={() => setShowUserMenu(!showUserMenu)}
         className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-secondary"
       >
@@ -95,6 +119,7 @@ export default function Header() {
               <hr className="my-2 border-border" />
               <Link
                 href="/admin"
+                data-testid="header-admin-link"
                 className="block px-4 py-2 font-semibold text-foreground hover:bg-secondary"
               >
                 {t("navigation.admin")}
@@ -103,6 +128,8 @@ export default function Header() {
           )}
           <hr className="my-2 border-border" />
           <button
+            type="button"
+            data-testid="header-logout"
             onClick={handleLogout}
             className="block w-full px-4 py-2 text-left text-destructive hover:bg-red-50"
           >
@@ -114,17 +141,20 @@ export default function Header() {
   ) : (
     <>
       <button
-        onClick={() => showAuthUnavailable("login")}
+        type="button"
+        data-testid="header-login"
+        onClick={openLoginModal}
         className="whitespace-nowrap text-sm font-medium text-foreground transition-colors hover:text-primary"
       >
         {t("navigation.login")}
       </button>
-      <button
-        onClick={() => showAuthUnavailable("register")}
+      <Link
+        href="/register"
+        data-testid="header-register"
         className="btn btn-primary whitespace-nowrap px-5 py-2 text-sm"
       >
         {t("navigation.register")}
-      </button>
+      </Link>
     </>
   );
 
@@ -281,6 +311,8 @@ export default function Header() {
             <div className="mt-auto border-t border-border pt-4">
               {user ? (
                 <button
+                  type="button"
+                  data-testid="header-logout-mobile"
                   onClick={handleLogout}
                   className="font-medium text-destructive"
                 >
@@ -289,17 +321,21 @@ export default function Header() {
               ) : (
                 <div className="flex flex-col gap-3">
                   <button
-                    onClick={() => showAuthUnavailable("login")}
+                    type="button"
+                    data-testid="header-login-mobile"
+                    onClick={openLoginModal}
                     className="rounded-md px-3 py-2 text-left text-foreground hover:bg-secondary"
                   >
                     {t("navigation.login")}
                   </button>
-                  <button
-                    onClick={() => showAuthUnavailable("register")}
-                    className="btn btn-primary w-full"
+                  <Link
+                    href="/register"
+                    data-testid="header-register-mobile"
+                    onClick={closeMobileMenu}
+                    className="btn btn-primary w-full text-center"
                   >
                     {t("navigation.register")}
-                  </button>
+                  </Link>
                 </div>
               )}
             </div>

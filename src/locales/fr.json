@@ -66,6 +66,7 @@
     "feedbackNetworkError": "Erreur réseau : impossible de contacter le serveur.",
     "feedbackInvalidResponse": "Réponse du serveur invalide.",
     "wrongCredentials": "Identifiants incorrects",
+    "registerFailed": "Erreur à l'inscription",
     "serverConnectionError": "Erreur de connexion au serveur",
     "userDeleted": "Utilisateur supprimé",
     "categoryNameRequired": "Nom requis !",
