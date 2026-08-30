@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Article } from "../lib/apiSeller";
+import { usePathname, useRouter } from "next/navigation";
+import { Menu, X } from "lucide-react";
+import LoginModal from "./ui/LoginModal";
+import LanguageSwitcher from "@/src/i18n/LanguageSwitcher";
+import { useTranslation } from "@/src/i18n/I18nProvider";
 
-type CartItem = Article & { quantity: number };
 type UserData = {
   token: string;
   roles: string[];
@@ -14,274 +16,337 @@ type UserData = {
   lastName?: string;
 };
 
+function readStoredUser(): UserData | null {
+  try {
+    const savedUser = localStorage.getItem("user");
+    return savedUser ? JSON.parse(savedUser) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function Header() {
   const router = useRouter();
+  const pathname = usePathname();
+  const { t } = useTranslation();
 
-  const [cart, setCart] = useState<CartItem[]>([]);
   const [user, setUser] = useState<UserData | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [openMenu, setOpenMenu] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   useEffect(() => {
-    const savedCart = localStorage.getItem("cart");
-    if (savedCart) setCart(JSON.parse(savedCart));
+    setUser(readStoredUser());
 
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) setUser(JSON.parse(savedUser));
+    const syncUser = () => setUser(readStoredUser());
 
-    const handleStorageChange = () => {
-      const u = localStorage.getItem("user");
-      setUser(u ? JSON.parse(u) : null);
+    window.addEventListener("storage", syncUser);
+    window.addEventListener("sawaka-auth-changed", syncUser);
+    return () => {
+      window.removeEventListener("storage", syncUser);
+      window.removeEventListener("sawaka-auth-changed", syncUser);
     };
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, []);
-
-  const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
-
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    setUser(null);
-    setShowUserMenu(false);
-    router.push("/");
-  };
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchTerm.trim()) {
-      router.push(`/produits?search=${encodeURIComponent(searchTerm.trim())}`);
-    }
-  };
+  }, [pathname]);
 
   const isAdmin = user?.roles?.includes("admin");
 
-  // 🔥 Fermer menus si on clique ailleurs
-  useEffect(() => {
-    const close = () => setOpenMenu(null);
-    window.addEventListener("click", close);
-    return () => window.removeEventListener("click", close);
-  }, []);
+  const clearAuthCookie = () => {
+    document.cookie =
+      "token=; Max-Age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure; SameSite=None";
+    document.cookie =
+      "token=; Max-Age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure";
+    document.cookie =
+      "token=; Max-Age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+    document.cookie =
+      "token=; Max-Age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.sawaka.org; secure; SameSite=None";
+    document.cookie =
+      "token=; Max-Age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.sawaka.org";
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    clearAuthCookie();
+    setUser(null);
+    setShowUserMenu(false);
+    setShowMobileMenu(false);
+    window.dispatchEvent(new Event("sawaka-auth-changed"));
+    router.push("/");
+  };
+
+  const openLoginModal = () => {
+    setShowLoginModal(true);
+    setShowMobileMenu(false);
+  };
+
+  const showConcoursUnavailable = () => {
+    alert(t("alerts.contestUnavailable"));
+  };
+
+  const closeMobileMenu = () => setShowMobileMenu(false);
+
+  const authActions = user ? (
+    <div className="relative">
+      <button
+        type="button"
+        data-testid="header-user-menu"
+        onClick={() => setShowUserMenu(!showUserMenu)}
+        className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-secondary"
+      >
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
+          {user.firstName?.charAt(0) || user.username.charAt(0)}
+        </div>
+        <span className="hidden text-sm text-foreground lg:inline">
+          {user.firstName || user.username}
+        </span>
+      </button>
+
+      {showUserMenu && (
+        <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-lg border border-border bg-card py-2 shadow-soft">
+          <Link
+            href="/profile"
+            className="block px-4 py-2 text-foreground hover:bg-secondary"
+          >
+            {t("navigation.profile")}
+          </Link>
+          <Link
+            href="/vendeur/articles"
+            className="block px-4 py-2 text-foreground hover:bg-secondary"
+          >
+            {t("navigation.myCreations")}
+          </Link>
+          {isAdmin && (
+            <>
+              <hr className="my-2 border-border" />
+              <Link
+                href="/admin"
+                data-testid="header-admin-link"
+                className="block px-4 py-2 font-semibold text-foreground hover:bg-secondary"
+              >
+                {t("navigation.admin")}
+              </Link>
+            </>
+          )}
+          <hr className="my-2 border-border" />
+          <button
+            type="button"
+            data-testid="header-logout"
+            onClick={handleLogout}
+            className="block w-full px-4 py-2 text-left text-destructive hover:bg-red-50"
+          >
+            {t("navigation.logout")}
+          </button>
+        </div>
+      )}
+    </div>
+  ) : (
+    <>
+      <button
+        type="button"
+        data-testid="header-login"
+        onClick={openLoginModal}
+        className="whitespace-nowrap text-sm font-medium text-foreground transition-colors hover:text-primary"
+      >
+        {t("navigation.login")}
+      </button>
+      <Link
+        href="/register"
+        data-testid="header-register"
+        className="btn btn-primary whitespace-nowrap px-5 py-2 text-sm"
+      >
+        {t("navigation.register")}
+      </Link>
+    </>
+  );
 
   return (
-    <header className="bg-white shadow-sm border-b border-cream-200 sticky top-0 z-40">
-      {/* TOP BAR */}
-      <div className="bg-sawaka-700 text-white">
-        <div className="wrap py-2">
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-4">
-              <span>📦 Livraison gratuite dès 50 000 FCFA</span>
-              <span>🛡️ Garantie artisan</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <Link href="/aide" className="hover:text-sawaka-200">Aide</Link>
-              <Link href="/contact" className="hover:text-sawaka-200">Contact</Link>
-            </div>
-          </div>
-        </div>
-      </div>
+    <>
+      <header className="sticky top-0 z-40 border-b border-border bg-card">
+        <div className="wrap flex h-16 items-center gap-3 sm:gap-4 lg:h-20">
+          <Link
+            href="/"
+            className="flex shrink-0 items-center gap-2 text-lg font-semibold text-foreground"
+          >
+            <span className="flex h-10 w-10 items-center justify-center rounded bg-primary text-xl font-bold text-primary-foreground">
+              S
+            </span>
+            <span className="hidden font-display sm:inline">
+              {t("common.brand")}
+            </span>
+          </Link>
 
-      {/* MAIN HEADER */}
-      <div className="wrap py-3 flex items-center justify-between gap-4">
-        {/* LOGO */}
-        <Link href="/" className="flex items-center gap-2">
-          <span className="font-display text-2xl font-bold text-sawaka-700">Sawaka</span>
-        </Link>
-
-        {/* SEARCH */}
-        <form onSubmit={handleSearch} className="flex-1 max-w-2xl mx-4">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Rechercher..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-12 pl-4 pr-12 rounded-lg border-2 border-cream-200 focus:border-sawaka-500 focus:ring-0"
-            />
-            <button
-              type="submit"
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-sawaka-500 text-white rounded-md"
+          <nav className="hidden min-w-0 flex-1 items-center justify-center gap-6 text-sm font-medium xl:gap-8 lg:flex">
+            <Link
+              href="/"
+              className="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
             >
-              🔍
+              {t("navigation.home")}
+            </Link>
+            <Link
+              href="/produits"
+              className="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {t("navigation.market")}
+            </Link>
+            <Link
+              href="/fournisseurs"
+              className="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {t("navigation.suppliers")}
+            </Link>
+            <Link
+              href="/projets"
+              className="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {t("navigation.projects")}
+            </Link>
+            <button
+              onClick={showConcoursUnavailable}
+              className="whitespace-nowrap text-left text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {t("navigation.contest")}
+            </button>
+            <Link
+              href="/reseau"
+              className="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {t("navigation.network")}
+            </Link>
+          </nav>
+
+          <div className="ml-auto hidden shrink-0 items-center gap-3 lg:flex">
+            <LanguageSwitcher />
+            {authActions}
+          </div>
+
+          <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3 lg:hidden">
+            <LanguageSwitcher />
+            <button
+              type="button"
+              className="rounded-md p-2 hover:bg-secondary"
+              onClick={() => setShowMobileMenu(true)}
+              aria-label={t("common.openMenu")}
+            >
+              <Menu className="h-6 w-6 text-foreground" aria-hidden />
             </button>
           </div>
-        </form>
+        </div>
+      </header>
 
-        {/* USER MENU */}
-        <div className="flex items-center gap-3">
-          {user ? (
-            <div className="relative">
+      {showMobileMenu && (
+        <div
+          className="dialog-overlay !items-stretch !justify-end !p-0"
+          onClick={closeMobileMenu}
+        >
+          <div
+            className="flex h-full w-4/5 max-w-sm flex-col gap-6 border-l border-border bg-card p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-display text-lg font-semibold text-foreground">
+                {t("common.menu")}
+              </span>
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowUserMenu(!showUserMenu);
-                }}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-cream-100"
+                onClick={closeMobileMenu}
+                className="rounded-md p-2 hover:bg-secondary"
+                aria-label={t("common.closeMenu")}
               >
-                <div className="w-8 h-8 bg-sawaka-500 rounded-full flex items-center justify-center text-white">
-                  {user.firstName?.charAt(0) || user.username.charAt(0)}
-                </div>
-
-                <div className="hidden md:block text-left">
-                  <div className="text-sm font-medium text-sawaka-800">
-                    Bonjour, {user.firstName || user.username}
-                  </div>
-                  <div className="text-xs text-sawaka-600">
-                    {user.roles.join(", ")}
-                  </div>
-                </div>
+                <X className="h-6 w-6 text-foreground" aria-hidden />
               </button>
+            </div>
 
-              {showUserMenu && (
-                <div
-                  className="absolute right-0 top-full mt-2 w-56 bg-white border rounded-lg shadow-lg py-2 z-50"
-                  onClick={(e) => e.stopPropagation()}
+            <div className="border-b border-border pb-4">
+              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {t("language.switcher")}
+              </p>
+              <LanguageSwitcher />
+            </div>
+
+            <nav className="flex flex-col gap-1 text-base font-medium">
+              <Link
+                href="/"
+                onClick={closeMobileMenu}
+                className="rounded-md px-3 py-2 text-foreground hover:bg-secondary"
+              >
+                {t("navigation.home")}
+              </Link>
+              <Link
+                href="/produits"
+                onClick={closeMobileMenu}
+                className="rounded-md px-3 py-2 text-foreground hover:bg-secondary"
+              >
+                {t("navigation.market")}
+              </Link>
+              <Link
+                href="/fournisseurs"
+                onClick={closeMobileMenu}
+                className="rounded-md px-3 py-2 text-foreground hover:bg-secondary"
+              >
+                {t("navigation.suppliers")}
+              </Link>
+              <Link
+                href="/projets"
+                onClick={closeMobileMenu}
+                className="rounded-md px-3 py-2 text-foreground hover:bg-secondary"
+              >
+                {t("navigation.projects")}
+              </Link>
+              <button
+                onClick={() => {
+                  showConcoursUnavailable();
+                  closeMobileMenu();
+                }}
+                className="rounded-md px-3 py-2 text-left text-foreground hover:bg-secondary"
+              >
+                {t("navigation.contest")}
+              </button>
+              <Link
+                href="/reseau"
+                onClick={closeMobileMenu}
+                className="rounded-md px-3 py-2 text-foreground hover:bg-secondary"
+              >
+                {t("navigation.network")}
+              </Link>
+            </nav>
+
+            <div className="mt-auto border-t border-border pt-4">
+              {user ? (
+                <button
+                  type="button"
+                  data-testid="header-logout-mobile"
+                  onClick={handleLogout}
+                  className="font-medium text-destructive"
                 >
-                  <Link href="/profile" className="block px-4 py-2 hover:bg-cream-50">👤 Mon Profil</Link>
-                  <Link href="/vendeur/articles" className="block px-4 py-2 hover:bg-cream-50">🛍️ Mes créations</Link>
-
-                  {isAdmin && (
-                    <>
-                      <hr className="my-2" />
-                      <Link
-                        href="/admin"
-                        className="block px-4 py-2 hover:bg-cream-50 font-semibold text-sawaka-700"
-                      >
-                        ⚙️ Gestion (Admin)
-                      </Link>
-                    </>
-                  )}
-
-                  <hr className="my-2" />
+                  {t("navigation.logout")}
+                </button>
+              ) : (
+                <div className="flex flex-col gap-3">
                   <button
-                    onClick={handleLogout}
-                    className="block w-full text-left px-4 py-2 text-red-600 hover:bg-red-50"
+                    type="button"
+                    data-testid="header-login-mobile"
+                    onClick={openLoginModal}
+                    className="rounded-md px-3 py-2 text-left text-foreground hover:bg-secondary"
                   >
-                    🚪 Déconnexion
+                    {t("navigation.login")}
                   </button>
+                  <Link
+                    href="/register"
+                    data-testid="header-register-mobile"
+                    onClick={closeMobileMenu}
+                    className="btn btn-primary w-full text-center"
+                  >
+                    {t("navigation.register")}
+                  </Link>
                 </div>
               )}
             </div>
-          ) : (
-            <Link href="/login" className="px-4 py-2 border rounded-lg hover:bg-cream-100">
-              👤 Se connecter
-            </Link>
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* NAVIGATION MENU — ONCLICK */}
-      <div className="border-t bg-cream-50">
-        <div className="wrap py-3 flex gap-8 text-sm items-center whitespace-nowrap">
-
-          <Link href="/">Accueil</Link>
-
-          {/* PRODUITS (✓ avec enchères) */}
-          <div className="relative">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setOpenMenu(openMenu === "produits" ? null : "produits");
-              }}
-              className="hover:text-sawaka-900"
-            >
-              Produits ▾
-            </button>
-
-            {openMenu === "produits" && (
-              <div
-                className="absolute left-0 top-full mt-2 w-48 bg-white border rounded-lg shadow-lg py-2 z-50"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Link href="/produits" className="block px-4 py-2 hover:bg-cream-50">
-                  Tous les produits
-                </Link>
-                <Link href="/nouveautes" className="block px-4 py-2 hover:bg-cream-50">
-                  Nouveautés
-                </Link>
-                <Link href="/promotions" className="block px-4 py-2 hover:bg-cream-50">
-                  Promotions
-                </Link>
-
-                {/* 🎯 AJOUT ICI */}
-                <Link href="/encheres" className="block px-4 py-2 hover:bg-cream-50">
-                  Ventes aux enchères
-                </Link>
-              </div>
-            )}
-          </div>
-
-          {/* PROJETS */}
-          <div className="relative">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setOpenMenu(openMenu === "projets" ? null : "projets");
-              }}
-              className="hover:text-sawaka-900"
-            >
-              Projets ▾
-            </button>
-
-            {openMenu === "projets" && (
-              <div
-                className="absolute left-0 top-full mt-2 w-48 bg-white border rounded-lg shadow-lg py-2 z-50"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Link href="/projets/creer" className="block px-4 py-2 hover:bg-cream-50">Créer un projet</Link>
-                <Link href="/projets" className="block px-4 py-2 hover:bg-cream-50">Projets en cours</Link>
-              </div>
-            )}
-          </div>
-
-          {/* CONTRIBUTEURS */}
-          <div className="relative">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setOpenMenu(openMenu === "contributeurs" ? null : "contributeurs");
-              }}
-              className="hover:text-sawaka-900"
-            >
-              Contributeurs ▾
-            </button>
-
-            {openMenu === "contributeurs" && (
-              <div
-                className="absolute left-0 top-full mt-2 w-48 bg-white border rounded-lg shadow-lg py-2 z-50"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Link href="/artisans" className="block px-4 py-2 hover:bg-cream-50">Artisans</Link>
-                <Link href="/fournisseurs" className="block px-4 py-2 hover:bg-cream-50">Fournisseurs</Link>
-              </div>
-            )}
-          </div>
-
-          {/* COMMUNAUTÉ */}
-          <div className="relative">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setOpenMenu(openMenu === "communaute" ? null : "communaute");
-              }}
-              className="hover:text-sawaka-900"
-            >
-              Communauté ▾
-            </button>
-
-            {openMenu === "communaute" && (
-              <div
-                className="absolute left-0 top-full mt-2 w-56 bg-white border rounded-lg shadow-lg py-2 z-50"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Link href="/arbre" className="block px-4 py-2 hover:bg-cream-50">L’Arbre à outils</Link>
-                <Link href="/amelioration" className="block px-4 py-2 hover:bg-cream-50">Améliorer Sawaka</Link>
-              </div>
-            )}
-          </div>
-
-        </div>
-      </div>
-    </header>
+      <LoginModal
+        open={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+      />
+    </>
   );
 }

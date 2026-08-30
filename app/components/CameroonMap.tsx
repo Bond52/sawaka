@@ -4,13 +4,14 @@ import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/src/i18n/I18nProvider";
 
 export default function CameroonMap() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [geo, setGeo] = useState<any>(null);
   const [counts, setCounts] = useState<any>({});
 
-  // Charger le GeoJSON + les stats
   useEffect(() => {
     fetch("/maps/cameroon-regions.json")
       .then((res) => res.json())
@@ -23,7 +24,6 @@ export default function CameroonMap() {
       .catch(console.error);
   }, []);
 
-  // Style selon le nombre d’artisans
   const regionStyle = (feature: any) => {
     const name = feature.properties?.region || feature.properties?.name;
     const value = counts[name] ?? 0;
@@ -43,17 +43,14 @@ export default function CameroonMap() {
     };
   };
 
-  // Tooltip + ONCLICK
   const onEachRegion = (feature: any, layer: any) => {
     const rawName = feature.properties?.region || feature.properties?.name;
 
-    // Tooltip simple
     layer.bindTooltip(`${rawName}`, {
       permanent: false,
       sticky: true
     });
 
-    // CLICK → redirection
     layer.on("click", () => {
       const normalized = rawName
         .normalize("NFD")
@@ -67,32 +64,30 @@ export default function CameroonMap() {
   };
 
   if (!geo)
-    return <p className="text-center py-6">Chargement de la carte…</p>;
+    return <p className="text-center py-6">{t("network.mapLoading")}</p>;
 
   return (
     <div className="wrap my-12">
-
       <h2 className="text-3xl md:text-4xl font-bold text-sawaka-800 mb-4 text-center">
-      Répartition des artisans du réseau Sawaka par région
+        {t("network.mapTitle")}
       </h2>
 
       <p className="text-lg text-sawaka-600 text-center mb-6">
-        Découvrez la répartition géographique des artisans sur la plateforme
+        {t("network.mapSubtitle")}
       </p>
 
-      {/* Légende */}
       <div className="flex justify-center gap-6 mb-4 text-sm">
         <div className="flex items-center gap-2">
-          <span style={{ width: 20, height: 20, background: "#f0e5d8", border: "1px solid #aaa" }}></span> 0 artisan
+          <span style={{ width: 20, height: 20, background: "#f0e5d8", border: "1px solid #aaa" }}></span> {t("network.legend0")}
         </div>
         <div className="flex items-center gap-2">
-          <span style={{ width: 20, height: 20, background: "#f7c58d", border: "1px solid #aaa" }}></span> 1 artisan
+          <span style={{ width: 20, height: 20, background: "#f7c58d", border: "1px solid #aaa" }}></span> {t("network.legend1")}
         </div>
         <div className="flex items-center gap-2">
-          <span style={{ width: 20, height: 20, background: "#ee9f49", border: "1px solid #aaa" }}></span> 2 artisans
+          <span style={{ width: 20, height: 20, background: "#ee9f49", border: "1px solid #aaa" }}></span> {t("network.legend2")}
         </div>
         <div className="flex items-center gap-2">
-          <span style={{ width: 20, height: 20, background: "#d97904", border: "1px solid #aaa" }}></span> 3+ artisans
+          <span style={{ width: 20, height: 20, background: "#d97904", border: "1px solid #aaa" }}></span> {t("network.legend3")}
         </div>
       </div>
 
@@ -104,7 +99,7 @@ export default function CameroonMap() {
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution="© OpenStreetMap contributors"
+          attribution={t("network.osmAttribution")}
         />
 
         <GeoJSON

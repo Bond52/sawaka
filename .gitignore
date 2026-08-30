@@ -1,6 +1,7 @@
 node_modules
 .next
 .env.local
+backend-api/docs
 
 # Ignorer les fichiers d'environnement
 .env

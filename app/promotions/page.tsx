@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "@/src/i18n/I18nProvider";
 import { listPublicArticles } from "../lib/apiSeller";
 import Link from "next/link";
 
@@ -18,6 +19,7 @@ interface Article {
 }
 
 export default function PromotionsPage() {
+  const { t } = useTranslation();
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -33,18 +35,18 @@ export default function PromotionsPage() {
         setArticles(promos);
       } catch (err) {
         console.error("Erreur chargement promotions :", err);
-        setError("Impossible de charger les promotions.");
+        setError(t("promotions.loadError"));
       } finally {
         setLoading(false);
       }
     };
     fetchPromotions();
-  }, []);
+  }, [t]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6 text-sawaka-700">
-        💸 Promotions en cours
+        💸 {t("promotions.title")}
       </h1>
 
       {error && (
@@ -54,9 +56,9 @@ export default function PromotionsPage() {
       )}
 
       {loading ? (
-        <p>Chargement des promotions...</p>
+        <p>{t("promotions.loading")}</p>
       ) : articles.length === 0 ? (
-        <p>Aucun article en promotion pour le moment.</p>
+        <p>{t("promotions.empty")}</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {articles.map((a) => (
@@ -77,10 +79,10 @@ export default function PromotionsPage() {
                 {a.promotion?.isActive && (
                   <div className="mb-2">
                     <span className="text-sawaka-600 font-semibold">
-                      {a.promotion.newPrice.toLocaleString()} FCFA
+                      {a.promotion.newPrice.toLocaleString()} {t("common.fcfa")}
                     </span>
                     <span className="ml-2 text-sm line-through text-gray-500">
-                      {a.price.toLocaleString()} FCFA
+                      {a.price.toLocaleString()} {t("common.fcfa")}
                     </span>
                     <span className="ml-2 text-xs text-white bg-sawaka-500 px-2 py-1 rounded-full">
                       -{a.promotion.discountPercent}%

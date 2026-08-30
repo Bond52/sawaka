@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useTranslation } from "@/src/i18n/I18nProvider";
 
 type User = {
   _id: string;
@@ -13,6 +14,7 @@ type User = {
 };
 
 export default function GestionUtilisateurs() {
+  const { t } = useTranslation();
   const [users, setUsers] = useState<User[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -21,12 +23,11 @@ export default function GestionUtilisateurs() {
     process.env.NEXT_PUBLIC_BACKEND_URL ||
     "https://ecommerce-web-avec-tailwind.onrender.com";
 
-  // 🔍 Charger les utilisateurs
   useEffect(() => {
     const loadUsers = async () => {
       try {
         const res = await fetch(`${API_BASE_URL}/api/admin/users`, {
-          credentials: "include", // ✅ indispensable pour envoyer le cookie JWT
+          credentials: "include",
         });
 
         if (!res.ok) {
@@ -49,9 +50,8 @@ export default function GestionUtilisateurs() {
     loadUsers();
   }, [API_BASE_URL]);
 
-  // 🗑 Suppression utilisateur
   const handleDelete = async (id: string) => {
-    if (!confirm("Supprimer cet utilisateur ?")) return;
+    if (!confirm(t("alerts.deleteUserConfirm"))) return;
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/admin/users/${id}`, {
@@ -62,37 +62,36 @@ export default function GestionUtilisateurs() {
       if (!res.ok) throw new Error("Erreur lors de la suppression");
 
       setUsers((prev) => prev.filter((u) => u._id !== id));
-      alert("Utilisateur supprimé ✅");
+      alert(t("alerts.userDeleted"));
     } catch (err) {
       console.error(err);
-      alert("❌ Échec de la suppression");
+      alert(t("alerts.categoryDeleteFailed"));
     }
   };
 
-  // 🧱 Interface
-  if (loading) return <p className="text-center mt-4">Chargement...</p>;
+  if (loading) return <p className="text-center mt-4">{t("common.loading")}</p>;
   if (error)
     return (
       <p className="text-center text-red-600 mt-4">
-        Erreur : {error}. Vérifie que tu es connecté en admin.
+        {t("admin.adminCheckError", { error })}
       </p>
     );
 
   return (
     <div className="mt-4">
-      <h2 className="text-lg font-semibold mb-3">Liste des utilisateurs</h2>
+      <h2 className="text-lg font-semibold mb-3">{t("admin.userList")}</h2>
 
       {users.length === 0 ? (
-        <p className="text-gray-500 text-center">Aucun utilisateur trouvé.</p>
+        <p className="text-gray-500 text-center">{t("admin.noUsers")}</p>
       ) : (
         <table className="w-full border border-gray-300 rounded-lg overflow-hidden">
           <thead className="bg-gray-100">
             <tr className="text-left">
-              <th className="p-2">Nom</th>
-              <th className="p-2">Email</th>
-              <th className="p-2">Rôles</th>
-              <th className="p-2">Vendeur</th>
-              <th className="p-2 text-center">Actions</th>
+              <th className="p-2">{t("admin.name")}</th>
+              <th className="p-2">{t("admin.email")}</th>
+              <th className="p-2">{t("admin.roles")}</th>
+              <th className="p-2">{t("admin.seller")}</th>
+              <th className="p-2 text-center">{t("admin.actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -107,13 +106,13 @@ export default function GestionUtilisateurs() {
                 <td className="p-2">
                   {u.roles ? u.roles.join(", ") : u.role || "—"}
                 </td>
-                <td className="p-2">{u.isSeller ? "✅ Oui" : "❌ Non"}</td>
+                <td className="p-2">{u.isSeller ? `✅ ${t("common.yes")}` : `❌ ${t("common.no")}`}</td>
                 <td className="p-2 text-center">
                   <button
                     onClick={() => handleDelete(u._id)}
                     className="text-red-500 hover:text-red-700"
                   >
-                    🗑 Supprimer
+                    🗑 {t("common.delete")}
                   </button>
                 </td>
               </tr>
