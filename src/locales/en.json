@@ -66,6 +66,7 @@
     "feedbackNetworkError": "Network error: unable to reach the server.",
     "feedbackInvalidResponse": "Invalid server response.",
     "wrongCredentials": "Incorrect credentials",
+    "registerFailed": "Registration failed",
     "serverConnectionError": "Server connection error",
     "userDeleted": "User deleted",
     "categoryNameRequired": "Name required!",

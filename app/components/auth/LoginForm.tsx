@@ -49,6 +49,7 @@ export default function LoginForm({ onSuccess }: Props) {
             lastName: data.lastName || "",
           })
         );
+        window.dispatchEvent(new Event("sawaka-auth-changed"));
       }
 
       onSuccess?.();
@@ -60,34 +61,48 @@ export default function LoginForm({ onSuccess }: Props) {
   };
 
   return (
-    <form onSubmit={handleLogin} className="space-y-4">
+    <form onSubmit={handleLogin} className="space-y-4" data-testid="login-form">
       <div>
-        <label className="block text-sm font-medium text-sawaka-800 mb-1">
+        <label
+          htmlFor="login-email"
+          className="block text-sm font-medium text-sawaka-800 mb-1"
+        >
           {t("auth.email")}
         </label>
         <input
+          id="login-email"
           type="email"
           placeholder={t("auth.emailPlaceholder")}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
           className="w-full rounded-lg border px-3 py-2"
+          data-testid="login-input-email"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-sawaka-800 mb-1">
+        <label
+          htmlFor="login-password"
+          className="block text-sm font-medium text-sawaka-800 mb-1"
+        >
           {t("auth.password")}
         </label>
         <input
+          id="login-password"
           type="password"
           placeholder={t("auth.passwordPlaceholder")}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
           className="w-full rounded-lg border px-3 py-2"
+          data-testid="login-input-password"
         />
       </div>
-      <button type="submit" className="btn-primary w-full">
+      <button
+        type="submit"
+        className="btn-primary w-full"
+        data-testid="login-submit"
+      >
         {t("auth.login")}
       </button>
     </form>
