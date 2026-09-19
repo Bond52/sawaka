@@ -39,11 +39,50 @@
     "contest": "Contest",
     "network": "Network",
     "profile": "My Profile",
+    "dashboard": "Dashboard",
     "myCreations": "My creations",
     "admin": "Management (Admin)",
     "logout": "Log out",
     "login": "Log in",
     "register": "Sign up"
+  },
+  "dashboard": {
+    "greetingNamed": "Hello {name}",
+    "greetingFallback": "Hello",
+    "subtitle": "Here is an overview of your activity on Sawaka.",
+    "actionUnavailable": "This action is not available yet.",
+    "summary": {
+      "profile": "Profile",
+      "profileSub": "completed",
+      "profileCta": "Complete my profile",
+      "realizations": "Realizations",
+      "realizationsSub": "published",
+      "realizationsCta": "View my realizations",
+      "projects": "Projects",
+      "projectsSub": "completed",
+      "projectsCta": "View my projects",
+      "reputation": "Reputation",
+      "reputationSub": "reviews",
+      "reputationCta": "View my public profile"
+    },
+    "actions": {
+      "title": "Quick actions",
+      "addRealization": "Add a realization",
+      "createProject": "Create a project",
+      "findSupplier": "Find a supplier",
+      "exploreProjects": "Explore projects",
+      "editProfile": "Edit my profile"
+    },
+    "activity": {
+      "title": "My recent activity",
+      "empty": "No recent activity yet.",
+      "viewHistory": "View my full history"
+    },
+    "badges": {
+      "title": "My badges",
+      "empty": "No badges yet.",
+      "viewAll": "View all my badges"
+    }
   },
   "alerts": {
     "loginUnavailable": "Log in is not available at the moment.",

@@ -54,7 +54,7 @@ export default function LoginForm({ onSuccess }: Props) {
 
       onSuccess?.();
       const redirect = searchParams.get("redirect");
-      router.push(redirect || "/");
+      router.push(redirect || "/dashboard");
     } catch {
       alert(t("alerts.serverConnectionError"));
     }
