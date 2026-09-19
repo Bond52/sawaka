@@ -103,6 +103,13 @@ export default function Header() {
       {showUserMenu && (
         <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-lg border border-border bg-card py-2 shadow-soft">
           <Link
+            href="/dashboard"
+            data-testid="header-dashboard-link"
+            className="block px-4 py-2 text-foreground hover:bg-secondary"
+          >
+            {t("navigation.dashboard")}
+          </Link>
+          <Link
             href="/profile"
             className="block px-4 py-2 text-foreground hover:bg-secondary"
           >

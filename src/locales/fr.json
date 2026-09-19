@@ -39,11 +39,50 @@
     "contest": "Concours",
     "network": "Réseau",
     "profile": "Mon Profil",
+    "dashboard": "Tableau de bord",
     "myCreations": "Mes créations",
     "admin": "Gestion (Admin)",
     "logout": "Déconnexion",
     "login": "Se connecter",
     "register": "S'inscrire"
+  },
+  "dashboard": {
+    "greetingNamed": "Bonjour {name}",
+    "greetingFallback": "Bonjour",
+    "subtitle": "Voici un aperçu de votre activité sur Sawaka.",
+    "actionUnavailable": "Cette action n'est pas encore disponible.",
+    "summary": {
+      "profile": "Profil",
+      "profileSub": "complété",
+      "profileCta": "Compléter mon profil",
+      "realizations": "Réalisations",
+      "realizationsSub": "publiées",
+      "realizationsCta": "Voir mes réalisations",
+      "projects": "Projets",
+      "projectsSub": "terminés",
+      "projectsCta": "Voir mes projets",
+      "reputation": "Réputation",
+      "reputationSub": "évaluations",
+      "reputationCta": "Voir mon profil public"
+    },
+    "actions": {
+      "title": "Actions rapides",
+      "addRealization": "Ajouter une réalisation",
+      "createProject": "Créer un projet",
+      "findSupplier": "Trouver un fournisseur",
+      "exploreProjects": "Explorer les projets",
+      "editProfile": "Modifier mon profil"
+    },
+    "activity": {
+      "title": "Mon activité récente",
+      "empty": "Aucune activité récente pour le moment.",
+      "viewHistory": "Voir tout mon historique"
+    },
+    "badges": {
+      "title": "Mes badges",
+      "empty": "Aucun badge pour le moment.",
+      "viewAll": "Voir tous mes badges"
+    }
   },
   "alerts": {
     "loginUnavailable": "La connexion n'est pas disponible pour le moment.",

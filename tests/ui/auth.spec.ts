@@ -125,7 +125,7 @@ test.describe("User & admin account authentication (#337)", () => {
     await page.getByTestId("login-input-password").fill("Secret123!");
     await page.getByTestId("login-submit").click();
 
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/dashboard/);
     const stored = await page.evaluate(() =>
       window.localStorage.getItem("user")
     );
@@ -147,7 +147,7 @@ test.describe("User & admin account authentication (#337)", () => {
     await page.getByTestId("login-input-password").fill("AdminPass1!");
     await page.getByTestId("login-submit").click();
 
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/dashboard/);
     await page.getByTestId("header-user-menu").click();
     await expect(page.getByTestId("header-admin-link")).toBeVisible();
   });
