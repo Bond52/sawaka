@@ -164,7 +164,7 @@ async function fillProfile(
   labels: { domain: string; skill: string; country: string; display?: string }
 ) {
   await page.getByLabel(/Display name|Nom affiché/).fill(labels.display ?? "Amina Nguema");
-  await page.getByLabel(/Primary domain|Domaine principal/).selectOption({
+  await page.getByLabel(/^(Domain|Domaine)$/).selectOption({
     label: labels.domain,
   });
   await page.getByRole("button", { name: labels.skill, exact: true }).click();
@@ -273,7 +273,7 @@ test.describe("Contributor profile creation", () => {
     await expect(page.getByLabel("Account email")).toHaveCount(0);
     await expect(page.getByLabel("Confirm Email")).toHaveCount(0);
     await expect(page.getByLabel("Display name")).toHaveValue("Amina Nguema");
-    await page.getByLabel("Primary domain").selectOption({ label: "Masonry" });
+    await page.getByLabel("Domain").selectOption({ label: "Masonry" });
     await page.getByRole("button", { name: "Plaster", exact: true }).click();
     await page.getByLabel("Country").fill("Cameroon");
     await page.getByTestId("contributor-submit").click();
@@ -316,7 +316,7 @@ test.describe("Contributor profile creation", () => {
     await installApi(page, baseState());
     await page.goto("/contributor/create");
     await page.getByLabel("Display name").fill("Amina Nguema");
-    await page.getByLabel("Primary domain").selectOption({ label: "Masonry" });
+    await page.getByLabel("Domain").selectOption({ label: "Masonry" });
     await page.getByRole("button", { name: "Plaster", exact: true }).click();
     await page.getByTestId("contributor-submit").click();
     await expect(page.getByText("Enter a country.")).toBeVisible();
@@ -325,7 +325,7 @@ test.describe("Contributor profile creation", () => {
       "aria-pressed",
       "true"
     );
-    await expect(page.getByTestId(`contributor-primary-selected-${SKILL_ID}`)).toHaveText(
+    await expect(page.getByTestId(`contributor-selected-${SKILL_ID}`)).toHaveText(
       "Plaster ×"
     );
   });
@@ -519,102 +519,86 @@ test.describe("Contributor profile creation", () => {
     await expect(confirm).toHaveValue("amina@example.com");
   });
 
-  test("additional domain skills stay selected without changing the primary domain", async ({
+  test("skills from another domain stay selected through the single domain selector", async ({
     page,
   }) => {
     const state = baseState();
     await useEnglish(page);
     await installApi(page, state);
     await page.goto("/contributor/create");
-    await page.getByLabel("Primary domain").selectOption({ label: "Masonry" });
+    await expect(page.getByLabel("Domain")).toBeVisible();
+    await expect(page.getByText("Primary domain")).toHaveCount(0);
+    await expect(page.getByText("Additional skills")).toHaveCount(0);
+    await expect(page.getByLabel("Additional domain")).toHaveCount(0);
+    await page.getByLabel("Domain").selectOption({ label: "Masonry" });
     await page.getByTestId(`contributor-skill-${SKILL_ID}`).click();
-    const primaryChip = page.getByTestId(`contributor-primary-selected-${SKILL_ID}`);
-    await expect(primaryChip).toHaveText("Plaster ×");
-    await expect(primaryChip).toHaveAttribute("aria-label", "Remove Plaster");
-    await expect(primaryChip).toHaveAttribute("aria-pressed", "true");
+    const plasterChip = page.getByTestId(`contributor-selected-${SKILL_ID}`);
+    await expect(plasterChip).toHaveText("Plaster ×");
+    await expect(plasterChip).toHaveAttribute("aria-label", "Remove Plaster");
+    await expect(plasterChip).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByTestId(`contributor-skill-${SKILL_ID}`)).toHaveText("Plaster");
     await expect(page.getByTestId(`contributor-skill-${SKILL_ID}`)).toHaveAttribute(
       "aria-pressed",
       "true"
     );
-    await primaryChip.click();
-    await expect(primaryChip).toHaveCount(0);
+    await plasterChip.click();
+    await expect(plasterChip).toHaveCount(0);
     await expect(page.getByTestId(`contributor-skill-${SKILL_ID}`)).toHaveAttribute(
       "aria-pressed",
       "false"
     );
     await page.getByTestId(`contributor-skill-${SKILL_ID}`).click();
-    await page.getByLabel("Additional domain").selectOption({ label: "Carpentry" });
-    await expect(page.getByTestId(`contributor-additional-skill-${OTHER_SKILL_ID}`)).toBeVisible();
-    await expect(page.getByTestId(`contributor-additional-skill-${SKILL_ID}`)).toHaveCount(0);
-    await page.getByTestId(`contributor-additional-skill-${OTHER_SKILL_ID}`).click();
-    await page.getByTestId(`contributor-additional-skill-${OTHER_SKILL_ID}`).click();
-    await expect(
-      page.getByTestId(`contributor-additional-selected-${OTHER_SKILL_ID}`)
-    ).toHaveCount(0);
-    await page.getByTestId(`contributor-additional-skill-${OTHER_SKILL_ID}`).click();
-    await expect(
-      page.getByTestId(`contributor-additional-selected-${OTHER_SKILL_ID}`)
-    ).toHaveCount(1);
-    await expect(
-      page.getByTestId(`contributor-additional-selected-${OTHER_SKILL_ID}`)
-    ).toHaveText("Doors ×");
-    await expect(
-      page.getByTestId(`contributor-additional-selected-${OTHER_SKILL_ID}`)
-    ).toHaveAttribute("aria-pressed", "true");
-    await expect(
-      page.getByTestId(`contributor-additional-skill-${OTHER_SKILL_ID}`)
-    ).toHaveText("Doors");
-    await expect(
-      page.getByTestId(`contributor-additional-skill-${OTHER_SKILL_ID}`)
-    ).toHaveAttribute("aria-pressed", "true");
+    await page.getByLabel("Domain").selectOption({ label: "Carpentry" });
+    await expect(page.getByTestId(`contributor-skill-${OTHER_SKILL_ID}`)).toBeVisible();
+    await expect(page.getByTestId(`contributor-skill-${SKILL_ID}`)).toHaveCount(0);
+    await expect(plasterChip).toHaveText("Plaster ×");
+    await page.getByTestId(`contributor-skill-${OTHER_SKILL_ID}`).click();
+    await page.getByTestId(`contributor-skill-${OTHER_SKILL_ID}`).click();
+    const doorsChip = page.getByTestId(`contributor-selected-${OTHER_SKILL_ID}`);
+    await expect(doorsChip).toHaveCount(0);
+    await page.getByTestId(`contributor-skill-${OTHER_SKILL_ID}`).click();
+    await expect(doorsChip).toHaveText("Doors ×");
+    await expect(doorsChip).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId(`contributor-skill-${OTHER_SKILL_ID}`)).toHaveText("Doors");
+    await expect(page.getByTestId(`contributor-skill-${OTHER_SKILL_ID}`)).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
     await expect(page.getByText("Selected", { exact: true })).toHaveCount(0);
+    await expect(page.getByLabel("Domain")).toHaveValue(OTHER_DOMAIN_ID);
 
-    await page.getByLabel("Additional domain").selectOption({ label: "Metalwork" });
-    await expect(page.getByTestId(`contributor-additional-skill-${THIRD_SKILL_ID}`)).toBeVisible();
-    await expect(page.getByTestId(`contributor-additional-skill-${OTHER_SKILL_ID}`)).toHaveCount(0);
-    await expect(
-      page.getByTestId(`contributor-additional-selected-${OTHER_SKILL_ID}`)
-    ).toBeVisible();
-    await expect(page.getByLabel("Primary domain")).toHaveValue(DOMAIN_ID);
+    await page.getByLabel("Domain").selectOption({ label: "Metalwork" });
+    await expect(page.getByTestId(`contributor-skill-${THIRD_SKILL_ID}`)).toBeVisible();
+    await expect(page.getByTestId(`contributor-skill-${OTHER_SKILL_ID}`)).toHaveCount(0);
+    await expect(doorsChip).toBeVisible();
+    await expect(plasterChip).toBeVisible();
 
-    await page.getByLabel("Additional domain").selectOption({ label: "Carpentry" });
-    await expect(
-      page.getByTestId(`contributor-additional-skill-${OTHER_SKILL_ID}`)
-    ).toHaveAttribute("aria-pressed", "true");
     await page.getByLabel("Custom skills").fill("Lime wash");
     await page.getByTestId("contributor-add-custom-skill").click();
     const customChip = page.getByRole("button", { name: "Remove Lime wash" });
     await expect(customChip).toHaveText("Lime wash ×");
     await expect(customChip).toHaveClass(/bg-secondary/);
-    await expect(
-      page.getByTestId(`contributor-additional-selected-${OTHER_SKILL_ID}`)
-    ).toHaveClass(/bg-secondary/);
-    await expect(
-      page.getByTestId(`contributor-primary-selected-${SKILL_ID}`)
-    ).toHaveClass(/bg-secondary/);
-
-    await page.getByLabel("Primary domain").selectOption({ label: "Metalwork" });
-    await expect(page.getByText("previous domain were cleared")).toBeVisible();
-    await expect(page.getByTestId(`contributor-skill-${SKILL_ID}`)).toHaveCount(0);
-    await expect(
-      page.getByTestId(`contributor-additional-selected-${OTHER_SKILL_ID}`)
-    ).toBeVisible();
-    await expect(page.getByLabel("Primary domain")).toHaveValue(THIRD_DOMAIN_ID);
+    await expect(doorsChip).toHaveClass(/bg-secondary/);
+    await expect(plasterChip).toHaveClass(/bg-secondary/);
+    await customChip.click();
+    await expect(customChip).toHaveCount(0);
   });
 
-  test("French additional skills labels are shown", async ({ page }) => {
+  test("French domain and skill labels omit the additional section", async ({ page }) => {
     await page.addInitScript(() => {
       window.localStorage.setItem("sawaka-locale", "fr");
     });
     await installApi(page, baseState());
     await page.goto("/contributor/create");
-    await expect(page.getByText("Compétences supplémentaires")).toBeVisible();
-    await expect(page.getByLabel("Domaine supplémentaire")).toBeVisible();
+    await expect(page.getByLabel("Domaine")).toBeVisible();
+    await expect(page.getByText("Domaine principal")).toHaveCount(0);
+    await expect(page.getByText("Compétences supplémentaires")).toHaveCount(0);
+    await expect(page.getByLabel("Domaine supplémentaire")).toHaveCount(0);
+    await expect(page.getByText("Ajoutez des compétences canoniques")).toHaveCount(0);
     await expect(page.getByLabel("Confirmer l'adresse e-mail")).toBeVisible();
-    await page.getByLabel("Domaine principal").selectOption({ label: "Maçonnerie" });
+    await page.getByLabel("Domaine").selectOption({ label: "Maçonnerie" });
     await page.getByTestId(`contributor-skill-${SKILL_ID}`).click();
-    const chip = page.getByTestId(`contributor-primary-selected-${SKILL_ID}`);
+    const chip = page.getByTestId(`contributor-selected-${SKILL_ID}`);
     await expect(chip).toHaveText("Enduit ×");
     await expect(chip).toHaveAttribute("aria-label", "Retirer Enduit");
     await expect(page.getByText("Sélectionnée")).toHaveCount(0);
@@ -622,45 +606,49 @@ test.describe("Contributor profile creation", () => {
     await expect(chip).toHaveCount(0);
   });
 
-  test("additional skills fit a mobile viewport", async ({ page }) => {
+  test("selected skill chips fit a mobile viewport", async ({ page }) => {
     await useEnglish(page);
     await installApi(page, baseState());
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/contributor/create");
-    await page.getByLabel("Primary domain").selectOption({ label: "Masonry" });
-    await page.getByLabel("Additional domain").selectOption({ label: "Carpentry" });
-    await page.getByTestId(`contributor-additional-skill-${OTHER_SKILL_ID}`).click();
-    await expect(
-      page.getByTestId(`contributor-additional-selected-${OTHER_SKILL_ID}`)
-    ).toBeVisible();
+    await expect(page.getByText("Additional skills")).toHaveCount(0);
+    await page.getByLabel("Domain").selectOption({ label: "Masonry" });
+    await page.getByTestId(`contributor-skill-${SKILL_ID}`).click();
+    await page.getByLabel("Domain").selectOption({ label: "Carpentry" });
+    await page.getByTestId(`contributor-skill-${OTHER_SKILL_ID}`).click();
+    await expect(page.getByTestId(`contributor-selected-${SKILL_ID}`)).toBeVisible();
+    await expect(page.getByTestId(`contributor-selected-${OTHER_SKILL_ID}`)).toBeVisible();
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth > window.innerWidth + 1
     );
     expect(overflow).toBe(false);
   });
 
-  test("changing the domain clears skills from the previous domain", async ({ page }) => {
+  test("changing the domain keeps earlier skills and shows the new domain", async ({
+    page,
+  }) => {
     await useEnglish(page);
     await installApi(page, baseState());
     await page.goto("/contributor/create");
-    await page.getByLabel("Primary domain").selectOption({ label: "Masonry" });
+    await page.getByLabel("Domain").selectOption({ label: "Masonry" });
     await page.getByRole("button", { name: "Plaster", exact: true }).click();
-    await page.getByLabel("Primary domain").selectOption({ label: "Carpentry" });
-    await expect(page.getByText("previous domain were cleared")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Plaster", exact: true })).toHaveCount(0);
+    await page.getByLabel("Domain").selectOption({ label: "Carpentry" });
+    await expect(page.getByTestId(`contributor-selected-${SKILL_ID}`)).toHaveText("Plaster ×");
+    await expect(page.getByTestId(`contributor-skill-${SKILL_ID}`)).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Doors", exact: true })).toBeVisible();
+    await expect(page.getByText("previous domain were cleared")).toHaveCount(0);
   });
 
   test("skill selection works from the keyboard", async ({ page }) => {
     await useEnglish(page);
     await installApi(page, baseState());
     await page.goto("/contributor/create");
-    await page.getByLabel("Primary domain").selectOption({ label: "Masonry" });
+    await page.getByLabel("Domain").selectOption({ label: "Masonry" });
     const skill = page.getByTestId(`contributor-skill-${SKILL_ID}`);
     await skill.focus();
     await page.keyboard.press("Enter");
     await expect(skill).toHaveAttribute("aria-pressed", "true");
-    const chip = page.getByTestId(`contributor-primary-selected-${SKILL_ID}`);
+    const chip = page.getByTestId(`contributor-selected-${SKILL_ID}`);
     await chip.focus();
     await page.keyboard.press("Enter");
     await expect(chip).toHaveCount(0);
