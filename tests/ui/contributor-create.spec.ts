@@ -456,7 +456,7 @@ test.describe("Contributor profile creation", () => {
     await installApi(page, baseState());
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto("/");
-    await page.getByTestId("nav-create-contributor").click();
+    await page.getByTestId("header-register").click();
     await expect(page).toHaveURL(/\/contributor\/create/);
     await expect(page.getByLabel("Username")).toBeVisible();
 

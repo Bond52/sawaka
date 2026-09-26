@@ -33,10 +33,9 @@
   },
   "navigation": {
     "home": "Accueil",
-    "market": "Marché",
+    "market": "Réalisations",
     "suppliers": "Fournisseurs",
     "projects": "Projets",
-    "contest": "Concours",
     "network": "Réseau",
     "profile": "Mon Profil",
     "dashboard": "Tableau de bord",
@@ -89,7 +88,6 @@
   "alerts": {
     "loginUnavailable": "La connexion n'est pas disponible pour le moment.",
     "registerUnavailable": "L'inscription n'est pas disponible pour le moment.",
-    "contestUnavailable": "La page Concours n'est pas disponible pour le moment.",
     "registerPageUnavailable": "L'inscription n'est pas disponible pour le moment.",
     "accountCreationUnavailable": "La création de compte n'est pas disponible.\n\nVous pouvez explorer la plateforme et vous inscrire plus tard.",
     "projectDetailUnavailable": "Ce projet n'a pas encore de page de détail.\n\nCliquez sur le projet Arduino pour voir un exemple.",
