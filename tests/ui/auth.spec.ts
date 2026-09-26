@@ -242,9 +242,9 @@ test.describe("User & admin account authentication (#337)", () => {
     });
     await page.goto("/");
     await page.getByTestId("header-register").click();
-    await expect(page).toHaveURL(/\/register/);
-    await expect(page.getByTestId("register-page-title")).toBeVisible();
-    await expect(page.getByTestId("register-form")).toBeVisible();
+    await expect(page).toHaveURL(/\/contributor\/create/);
+    await expect(page.getByTestId("contributor-create-title")).toBeVisible();
+    await expect(page.getByTestId("contributor-create-form")).toBeVisible();
   });
 
   test("login modal create-account link navigates to register", async ({

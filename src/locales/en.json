@@ -33,10 +33,9 @@
   },
   "navigation": {
     "home": "Home",
-    "market": "Market",
+    "market": "Realizations",
     "suppliers": "Suppliers",
     "projects": "Projects",
-    "contest": "Contest",
     "network": "Network",
     "profile": "My Profile",
     "dashboard": "Dashboard",
@@ -89,7 +88,6 @@
   "alerts": {
     "loginUnavailable": "Log in is not available at the moment.",
     "registerUnavailable": "Sign up is not available at the moment.",
-    "contestUnavailable": "The Contest page is not available at the moment.",
     "registerPageUnavailable": "Sign up is not available at the moment.",
     "accountCreationUnavailable": "Account creation is not available.\n\nYou can explore the platform and sign up later.",
     "projectDetailUnavailable": "This project does not have a detail page yet.\n\nClick on the Arduino project to see an example.",

@@ -25,6 +25,14 @@ function readStoredUser(): UserData | null {
   }
 }
 
+const PUBLIC_NAV = [
+  { href: "/", labelKey: "navigation.home" },
+  { href: "/produits", labelKey: "navigation.market" },
+  { href: "/fournisseurs", labelKey: "navigation.suppliers" },
+  { href: "/projets", labelKey: "navigation.projects" },
+  { href: "/reseau", labelKey: "navigation.network" },
+] as const;
+
 export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
@@ -76,10 +84,6 @@ export default function Header() {
   const openLoginModal = () => {
     setShowLoginModal(true);
     setShowMobileMenu(false);
-  };
-
-  const showConcoursUnavailable = () => {
-    alert(t("alerts.contestUnavailable"));
   };
 
   const closeMobileMenu = () => setShowMobileMenu(false);
@@ -163,7 +167,7 @@ export default function Header() {
         {t("navigation.login")}
       </button>
       <Link
-        href="/register"
+        href="/contributor/create"
         data-testid="header-register"
         className="btn btn-primary whitespace-nowrap px-5 py-2 text-sm"
       >
@@ -189,49 +193,15 @@ export default function Header() {
           </Link>
 
           <nav className="hidden min-w-0 flex-1 items-center justify-center gap-6 text-sm font-medium xl:gap-8 lg:flex">
-            <Link
-              href="/"
-              className="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {t("navigation.home")}
-            </Link>
-            <Link
-              href="/produits"
-              className="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {t("navigation.market")}
-            </Link>
-            <Link
-              href="/fournisseurs"
-              className="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {t("navigation.suppliers")}
-            </Link>
-            <Link
-              href="/projets"
-              className="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {t("navigation.projects")}
-            </Link>
-            <button
-              onClick={showConcoursUnavailable}
-              className="whitespace-nowrap text-left text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {t("navigation.contest")}
-            </button>
-            <Link
-              href="/reseau"
-              className="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {t("navigation.network")}
-            </Link>
-            <Link
-              href="/contributor/create"
-              data-testid="nav-create-contributor"
-              className="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {t("navigation.createContributor")}
-            </Link>
+            {PUBLIC_NAV.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {t(item.labelKey)}
+              </Link>
+            ))}
           </nav>
 
           <div className="ml-auto hidden shrink-0 items-center gap-3 lg:flex">
@@ -283,58 +253,16 @@ export default function Header() {
             </div>
 
             <nav className="flex flex-col gap-1 text-base font-medium">
-              <Link
-                href="/"
-                onClick={closeMobileMenu}
-                className="rounded-md px-3 py-2 text-foreground hover:bg-secondary"
-              >
-                {t("navigation.home")}
-              </Link>
-              <Link
-                href="/produits"
-                onClick={closeMobileMenu}
-                className="rounded-md px-3 py-2 text-foreground hover:bg-secondary"
-              >
-                {t("navigation.market")}
-              </Link>
-              <Link
-                href="/fournisseurs"
-                onClick={closeMobileMenu}
-                className="rounded-md px-3 py-2 text-foreground hover:bg-secondary"
-              >
-                {t("navigation.suppliers")}
-              </Link>
-              <Link
-                href="/projets"
-                onClick={closeMobileMenu}
-                className="rounded-md px-3 py-2 text-foreground hover:bg-secondary"
-              >
-                {t("navigation.projects")}
-              </Link>
-              <button
-                onClick={() => {
-                  showConcoursUnavailable();
-                  closeMobileMenu();
-                }}
-                className="rounded-md px-3 py-2 text-left text-foreground hover:bg-secondary"
-              >
-                {t("navigation.contest")}
-              </button>
-              <Link
-                href="/reseau"
-                onClick={closeMobileMenu}
-                className="rounded-md px-3 py-2 text-foreground hover:bg-secondary"
-              >
-                {t("navigation.network")}
-              </Link>
-              <Link
-                href="/contributor/create"
-                data-testid="nav-create-contributor-mobile"
-                onClick={closeMobileMenu}
-                className="rounded-md px-3 py-2 text-foreground hover:bg-secondary"
-              >
-                {t("navigation.createContributor")}
-              </Link>
+              {PUBLIC_NAV.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={closeMobileMenu}
+                  className="rounded-md px-3 py-2 text-foreground hover:bg-secondary"
+                >
+                  {t(item.labelKey)}
+                </Link>
+              ))}
             </nav>
 
             <div className="mt-auto border-t border-border pt-4">
@@ -358,7 +286,7 @@ export default function Header() {
                     {t("navigation.login")}
                   </button>
                   <Link
-                    href="/register"
+                    href="/contributor/create"
                     data-testid="header-register-mobile"
                     onClick={closeMobileMenu}
                     className="btn btn-primary w-full text-center"
