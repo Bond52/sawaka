@@ -30,6 +30,8 @@ const userSchema = new mongoose.Schema(
 
     // 🔐 Authentification
     password: { type: String, required: true },
+    /** Account email ownership. Verification workflow is implemented separately. */
+    emailVerified: { type: Boolean, default: false },
 
     // 🎭 Rôles de l'utilisateur
     roles: {

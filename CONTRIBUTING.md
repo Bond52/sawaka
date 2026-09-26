@@ -16,7 +16,7 @@ git checkout -b feature/my-feature
 ### 3. Develop Your Contribution
 - Follow coding best practices
 - Add comments where necessary
-- Test locally
+- Test locally (see [README](README.md#running-tests-locally))
 
 ### 4. Clean Commit
 ```bash
@@ -24,7 +24,7 @@ git commit -m "feat: short description of the feature"
 ```
 
 ### 5. Create a Pull Request
-Clearly describe what your PR does.
+Clearly describe what your PR does. **CI must pass** (GitHub Actions). The workflow is the Definition of Done; see [README — CI and Definition of Done](README.md#ci-and-definition-of-done).
 
 ---
 
@@ -41,4 +41,4 @@ Clearly describe what your PR does.
 ---
 
 ## 🙏 Thank You!
-Your contribution helps support the Sawaka community.
+Your contribution helps support artisans and the Sawaka community.

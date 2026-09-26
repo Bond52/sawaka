@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "@/src/i18n/I18nProvider";
 import { listPublicArticles } from "../lib/apiSeller";
 import Link from "next/link";
 import { siteConfig } from "../config/siteConfig";
@@ -15,6 +16,7 @@ interface Article {
 }
 
 export default function NouveautesPage() {
+  const { t } = useTranslation();
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -28,7 +30,6 @@ export default function NouveautesPage() {
         let filtered: Article[] = [];
 
         if (siteConfig.nouveautes.useLimitMode) {
-          // 🔢 Mode "X derniers articles"
           filtered = allArticles
             .sort(
               (a, b) =>
@@ -37,7 +38,6 @@ export default function NouveautesPage() {
             )
             .slice(0, siteConfig.nouveautes.limit);
         } else {
-          // 🕒 Mode "depuis X jours/heures"
           const now = new Date();
           const cutoff = new Date(
             now.getTime() -
@@ -52,18 +52,18 @@ export default function NouveautesPage() {
         setArticles(filtered);
       } catch (err) {
         console.error("Erreur chargement nouveautés :", err);
-        setError("Impossible de charger les nouveautés.");
+        setError(t("news.loadError"));
       } finally {
         setLoading(false);
       }
     };
     fetchNouveautes();
-  }, []);
+  }, [t]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6 text-sawaka-700">
-        🆕 Nouveautés
+        🆕 {t("news.title")}
       </h1>
 
       {error && (
@@ -73,9 +73,9 @@ export default function NouveautesPage() {
       )}
 
       {loading ? (
-        <p>Chargement des nouveautés...</p>
+        <p>{t("news.loading")}</p>
       ) : articles.length === 0 ? (
-        <p>Aucune nouveauté pour le moment.</p>
+        <p>{t("news.empty")}</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {articles.map((a) => (
@@ -94,7 +94,7 @@ export default function NouveautesPage() {
                 <h3 className="font-semibold text-lg mb-1">{a.title}</h3>
 
                 <div className="text-sawaka-600 font-medium">
-                  {a.price.toLocaleString()} FCFA
+                  {a.price.toLocaleString()} {t("common.fcfa")}
                 </div>
               </div>
             </Link>

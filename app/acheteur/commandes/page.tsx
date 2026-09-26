@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "@/src/i18n/I18nProvider";
 
 type Order = {
   _id: string;
-  orderNumber?: string; // ✅ Nouveau champ optionnel
+  orderNumber?: string;
   total: number;
   status: string;
   createdAt: string;
@@ -17,6 +18,7 @@ type Order = {
 };
 
 export default function MesCommandesPage() {
+  const { t } = useTranslation();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -49,16 +51,16 @@ export default function MesCommandesPage() {
         const data = await res.json();
         setOrders(data);
       } catch (err: any) {
-        setError("Impossible de charger vos commandes.");
+        setError(t("orders.loadError"));
       } finally {
         setLoading(false);
       }
     };
 
     fetchOrders();
-  }, []);
+  }, [t]);
 
-  if (loading) return <p className="text-center py-10">⏳ Chargement...</p>;
+  if (loading) return <p className="text-center py-10">⏳ {t("common.loading")}</p>;
   if (error) return <p className="text-center text-red-600 py-10">❌ {error}</p>;
 
   const commandesEnCours = orders.filter(
@@ -74,10 +76,9 @@ export default function MesCommandesPage() {
   return (
     <main className="wrap py-8">
       <h1 className="text-2xl font-bold text-sawaka-700 mb-6">
-        📦 Mes commandes
+        📦 {t("orders.title")}
       </h1>
 
-      {/* Onglets */}
       <div className="flex gap-4 border-b border-cream-200 mb-6">
         <button
           onClick={() => setActiveTab("enCours")}
@@ -87,7 +88,7 @@ export default function MesCommandesPage() {
               : "text-sawaka-400 hover:text-sawaka-600"
           }`}
         >
-          En cours ({commandesEnCours.length})
+          {t("orders.inProgress", { count: commandesEnCours.length })}
         </button>
         <button
           onClick={() => setActiveTab("terminees")}
@@ -97,13 +98,13 @@ export default function MesCommandesPage() {
               : "text-sawaka-400 hover:text-sawaka-600"
           }`}
         >
-          Terminées ({commandesTerminees.length})
+          {t("orders.completed", { count: commandesTerminees.length })}
         </button>
       </div>
 
       {commandesAffichees.length === 0 ? (
         <p className="text-sawaka-600">
-          Aucune commande {activeTab === "enCours" ? "en cours" : "terminée"}.
+          {activeTab === "enCours" ? t("orders.noneInProgress") : t("orders.noneCompleted")}
         </p>
       ) : (
         <div className="space-y-4">
@@ -115,7 +116,7 @@ export default function MesCommandesPage() {
               <div className="card-body">
                 <div className="flex justify-between items-center mb-3">
                   <h2 className="font-semibold text-sawaka-700">
-                    Commande #{order.orderNumber || order._id}
+                    {t("orders.orderNumber")}{order.orderNumber || order._id}
                   </h2>
                   <span
                     className={`px-3 py-1 text-xs rounded-full ${
@@ -134,14 +135,14 @@ export default function MesCommandesPage() {
                   {order.items.map((it, i) => (
                     <li key={i} className="py-2 flex justify-between text-sm">
                       <span>{it.title} × {it.quantity}</span>
-                      <span>{it.price} FCFA</span>
+                      <span>{it.price} {t("common.fcfa")}</span>
                     </li>
                   ))}
                 </ul>
 
                 <div className="flex justify-between text-sm text-sawaka-600">
-                  <span>Total : <strong>{order.total} FCFA</strong></span>
-                  <span>Créée le {new Date(order.createdAt).toLocaleDateString()}</span>
+                  <span>{t("orders.totalLabel")} <strong>{order.total} {t("common.fcfa")}</strong></span>
+                  <span>{t("orders.createdOn")} {new Date(order.createdAt).toLocaleDateString()}</span>
                 </div>
               </div>
             </div>

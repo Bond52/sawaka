@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { useTranslation } from "@/src/i18n/I18nProvider";
 
-// API
 const API =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   process.env.NEXT_PUBLIC_API_BASE ||
@@ -16,8 +16,7 @@ interface Artisan {
   username?: string;
   email?: string;
   phone?: string;
-  avatarUrl?: string;   // ✅ Ajout pour la photo Cloudinary
-  idCardImage?: string;
+  avatarUrl?: string;
   createdAt?: string;
   isSeller?: boolean;
   roles?: string[];
@@ -26,15 +25,18 @@ interface Artisan {
   province?: string;
 }
 
-
 export default function ArtisansPage() {
+  const { t } = useTranslation();
   const [artisans, setArtisans] = useState<Artisan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     const fetchArtisans = async () => {
       try {
-        const res = await fetch(`${API}/api/artisans`, { cache: "no-store" });
+        const res = await fetch(`${API}/api/artisans`, {
+          cache: "no-store",
+        });
         const data = await res.json();
 
         const filtered = data.filter(
@@ -52,61 +54,95 @@ export default function ArtisansPage() {
     fetchArtisans();
   }, []);
 
+  const filteredArtisans = useMemo(() => {
+    return artisans.filter((a) => {
+      const displayName =
+        a.commerceName ||
+        `${a.firstName ?? ""} ${a.lastName ?? ""}`.trim() ||
+        a.username ||
+        "";
+
+      return (
+        displayName.toLowerCase().includes(search.toLowerCase()) ||
+        (a.city ?? "").toLowerCase().includes(search.toLowerCase())
+      );
+    });
+  }, [artisans, search]);
+
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen text-lg text-gray-600">
-        Chargement des artisans...
+      <div className="wrap py-12">
+        <p className="text-sawaka-600 text-lg">
+          {t("artisans.loading")}
+        </p>
       </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-cream-100 p-8">
-      <h1 className="text-3xl font-bold text-center text-sawaka-900 mb-10">
-        Les Artisans
+    <div className="wrap py-12">
+      <h1 className="text-3xl font-bold text-sawaka-700 mb-4">
+        {t("artisans.title")}
       </h1>
 
-      {artisans.length === 0 ? (
-        <p className="text-center text-gray-600">Aucun artisan trouvé.</p>
+      <div className="flex flex-col md:flex-row gap-4 mb-8">
+        <input
+          type="text"
+          placeholder={t("artisans.searchPlaceholder")}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full md:w-1/2 px-4 py-2 border border-cream-400 rounded-lg focus:ring-2 focus:ring-sawaka-500"
+        />
+      </div>
+
+      {filteredArtisans.length === 0 ? (
+        <p className="text-center text-gray-500 mt-6">
+          {t("artisans.empty")}
+        </p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-          {artisans.map((artisan) => (
-            <Link
-              key={artisan._id}
-              href={`/artisans/${artisan._id}`}
-              className="bg-white p-6 rounded-2xl shadow-md border border-cream-200 hover:shadow-lg transition block"
-            >
-              {/* IMAGE */}
-<img
-  src={
-    artisan.avatarUrl ||
-    "https://via.placeholder.com/200x150?text=Artisan"
-  }
-  alt="artisan"
-  className="w-48 h-48 object-cover rounded-xl border border-cream-300 shadow"
-/>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
+          {filteredArtisans.map((artisan) => {
+            const displayName =
+              artisan.commerceName ||
+              `${artisan.firstName ?? ""} ${artisan.lastName ?? ""}`.trim() ||
+              artisan.username;
 
-              {/* TEXTES */}
-              <h2 className="mt-4 text-xl font-semibold text-sawaka-900">
-                {artisan.firstName || artisan.lastName
-                  ? `${artisan.firstName || ""} ${artisan.lastName || ""}`
-                  : artisan.username}
-              </h2>
+            return (
+              <Link
+                key={artisan._id}
+                href={`/artisans/${artisan._id}?from=reseau`}
+                className="bg-white border border-cream-300 rounded-lg p-6 shadow-sm hover:shadow-md transition-all block"
+              >
+                <div className="flex justify-center mb-4">
+                  <img
+                    src={
+                      artisan.avatarUrl ||
+                      "https://via.placeholder.com/300x300?text=Artisan"
+                    }
+                    alt={t("artisans.imageAlt")}
+                    className="w-40 h-40 object-cover rounded-lg border border-cream-300"
+                  />
+                </div>
 
-              <p className="text-sm text-gray-700 mt-1">
-                {artisan.email || "Email indisponible"}
-              </p>
+                <h2 className="text-xl font-bold text-sawaka-700 mb-1">
+                  {displayName}
+                </h2>
 
-              <p className="text-sm mt-3 italic text-gray-500">
-                Inscrit depuis le{" "}
-                {artisan.createdAt
-                  ? new Date(artisan.createdAt).toLocaleDateString()
-                  : "N/A"}
-              </p>
-            </Link>
-          ))}
+                <p className="text-sawaka-600 text-sm mb-2">
+                  {artisan.email || t("artisans.emailUnavailable")}
+                </p>
+
+                <p className="text-sawaka-500 text-sm">
+                  {t("artisans.registeredSince")}{" "}
+                  {artisan.createdAt
+                    ? new Date(artisan.createdAt).toLocaleDateString()
+                    : t("common.na")}
+                </p>
+              </Link>
+            );
+          })}
         </div>
       )}
-    </main>
+    </div>
   );
 }

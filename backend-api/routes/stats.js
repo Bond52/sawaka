@@ -1,7 +1,11 @@
-console.log("🚀 Fichier stats.js chargé (VERSION DEBUG 1)");
-
 const express = require("express");
 const router = express.Router();
+
+if (process.env.NODE_ENV !== "test") {
+  console.log("🚀 Fichier stats.js chargé (VERSION DEBUG 1)");
+}
+
+
 const User = require("../models/user");
 
 // Association ville → région

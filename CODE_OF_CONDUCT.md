@@ -23,6 +23,6 @@ Project maintainers may take the following actions:
 ## 📩 Reporting an Issue
 If you observe a violation of this Code of Conduct, please contact:
 
-**opensource@sawaka.org**
+**contact@sawaka.org**
 
 All reports will be handled confidentially.

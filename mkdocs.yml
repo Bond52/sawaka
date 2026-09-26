@@ -1,0 +1,35 @@
+site_name: Sawaka – Context & Strategy (QA)
+site_url: https://bond52.github.io/sawaka/
+
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - content.table
+    - content.code.copy
+
+nav:
+  - Overview: context-analysis/README.md
+
+  - Context Analysis:
+      - Introduction: context-analysis/README.md
+      - PESTLE Analysis: context-analysis/pestle.md
+      - Market Analysis: context-analysis/market_analysis.md
+      - Stakeholder Matrix (Excel):
+          - Download file: context-analysis/Stakeholder Matrix v1.0_Sawaka.xlsx
+
+  - Glossary:
+      - Channel Model: glossary/channel_model.md
+      - Monetization: glossary/monetization.md
+      - Type of Governance: glossary/type_of_governance.md
+
+  - Internal Documentation:
+      - Agent Developer Context: agent-developer-context.md
+      - BA Information Management: ba-information-management.md
+      - CI Diagnosis: CI_DIAGNOSIS.md
