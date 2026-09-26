@@ -4,15 +4,19 @@ const DOMAIN_ID = "64b0000000000000000000a1";
 const OTHER_DOMAIN_ID = "64b0000000000000000000a2";
 const SKILL_ID = "64b0000000000000000000b1";
 const OTHER_SKILL_ID = "64b0000000000000000000b2";
+const THIRD_DOMAIN_ID = "64b0000000000000000000a3";
+const THIRD_SKILL_ID = "64b0000000000000000000b3";
 
 const DOMAINS = [
   { id: DOMAIN_ID, nameFR: "Maçonnerie", nameEN: "Masonry" },
   { id: OTHER_DOMAIN_ID, nameFR: "Menuiserie", nameEN: "Carpentry" },
+  { id: THIRD_DOMAIN_ID, nameFR: "Métallurgie", nameEN: "Metalwork" },
 ];
 
 const SKILLS: Record<string, { id: string; nameFR: string; nameEN: string }[]> = {
   [DOMAIN_ID]: [{ id: SKILL_ID, nameFR: "Enduit", nameEN: "Plaster" }],
   [OTHER_DOMAIN_ID]: [{ id: OTHER_SKILL_ID, nameFR: "Portes", nameEN: "Doors" }],
+  [THIRD_DOMAIN_ID]: [{ id: THIRD_SKILL_ID, nameFR: "Soudure", nameEN: "Welding" }],
 };
 
 type ApiState = {
@@ -151,6 +155,7 @@ async function useEnglish(page: Page) {
 async function fillAccount(page: Page) {
   await page.getByLabel("Username").fill("amina");
   await page.getByLabel("Account email").fill("amina@example.com");
+  await page.getByLabel("Confirm Email").fill("amina@example.com");
   await page.getByLabel("Password").fill("Secret123!");
 }
 
@@ -206,6 +211,8 @@ test.describe("Contributor profile creation", () => {
     expect(stored).toContain("session-token");
     expect(stored).not.toContain("Secret123!");
     expect(stored).not.toContain("amina@example.com");
+    expect(state.lastCreate).not.toHaveProperty("confirmEmail");
+    expect(JSON.stringify(state.lastCreate)).not.toContain("confirmEmail");
 
     await page.goto("/contributor/verify-email?token=valid-user-token");
     await expect(page.getByTestId("contributor-verify-email-success")).toBeVisible();
@@ -222,6 +229,7 @@ test.describe("Contributor profile creation", () => {
     await page.goto("/contributor/create");
     await page.getByLabel("Nom d’utilisateur").fill("amina");
     await page.getByLabel("E-mail du compte").fill("amina@example.com");
+    await page.getByLabel("Confirmer l'adresse e-mail").fill("amina@example.com");
     await page.getByLabel("Mot de passe").fill("Secret123!");
     await fillProfile(page, {
       domain: "Maçonnerie",
@@ -263,6 +271,7 @@ test.describe("Contributor profile creation", () => {
 
     await expect(page.getByLabel("Username")).toHaveCount(0);
     await expect(page.getByLabel("Account email")).toHaveCount(0);
+    await expect(page.getByLabel("Confirm Email")).toHaveCount(0);
     await expect(page.getByLabel("Display name")).toHaveValue("Amina Nguema");
     await page.getByLabel("Primary domain").selectOption({ label: "Masonry" });
     await page.getByRole("button", { name: "Plaster", exact: true }).click();
@@ -412,6 +421,177 @@ test.describe("Contributor profile creation", () => {
     );
     await expect(page.getByTestId("contributor-pending-verification")).toBeVisible();
     await expect(page.getByTestId("contributor-active-confirmation")).toHaveCount(0);
+  });
+
+  test("mismatched confirm email blocks submission and keeps the form", async ({
+    page,
+  }) => {
+    const state = baseState();
+    await useEnglish(page);
+    await installApi(page, state);
+    await page.goto("/contributor/create");
+    await page.getByLabel("Username").fill("amina");
+    await page.getByLabel("Account email").fill("Amina@Example.com");
+    await page.getByLabel("Confirm Email").fill("other@example.com");
+    await page.getByLabel("Password").fill("Secret123!");
+    await fillProfile(page, {
+      domain: "Masonry",
+      skill: "Plaster",
+      country: "Cameroon",
+    });
+    await page.getByTestId("contributor-submit").click();
+    await expect(page.getByText("Email addresses do not match.")).toBeVisible();
+    await expect(page.getByLabel("Username")).toHaveValue("amina");
+    await expect(page.getByLabel("Account email")).toHaveValue("Amina@Example.com");
+    await expect(page.getByLabel("Display name")).toHaveValue("Amina Nguema");
+    await expect(page.getByTestId(`contributor-skill-${SKILL_ID}`)).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+    expect(state.lastCreate).toBeNull();
+  });
+
+  test("French confirm email mismatch is announced", async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem("sawaka-locale", "fr");
+    });
+    await installApi(page, baseState());
+    await page.goto("/contributor/create");
+    await page.getByLabel("E-mail du compte").fill("amina@example.com");
+    await page.getByLabel("Confirmer l'adresse e-mail").fill("autre@example.com");
+    await page.getByTestId("contributor-submit").click();
+    const mismatch = page.locator("#err-confirmEmail");
+    await expect(mismatch).toHaveText("Les adresses e-mail ne correspondent pas.");
+    await expect(mismatch).toHaveAttribute("role", "alert");
+  });
+
+  test("matching confirm email is not sent or stored", async ({ page }) => {
+    const state = baseState();
+    await useEnglish(page);
+    await installApi(page, state);
+    await page.goto("/contributor/create");
+    await page.getByLabel("Username").fill("amina");
+    await page.getByLabel("Account email").fill("Amina@Example.com");
+    await page.getByLabel("Confirm Email").fill("amina@example.com");
+    await page.getByLabel("Password").fill("Secret123!");
+    await fillProfile(page, {
+      domain: "Masonry",
+      skill: "Plaster",
+      country: "Cameroon",
+    });
+    await page.getByTestId("contributor-submit").click();
+    await expect(page.getByTestId("contributor-pending-verification")).toBeVisible();
+    const payload = state.lastCreate as {
+      account?: Record<string, unknown>;
+      confirmEmail?: unknown;
+    };
+    expect(payload.confirmEmail).toBeUndefined();
+    expect(payload.account).toEqual({
+      username: "amina",
+      email: "Amina@Example.com",
+      password: "Secret123!",
+    });
+    const stored = await page.evaluate(() => window.localStorage.getItem("user"));
+    expect(stored).not.toContain("confirmEmail");
+  });
+
+  test("paste into confirm email remains allowed", async ({ page }) => {
+    await useEnglish(page);
+    await installApi(page, baseState());
+    await page.goto("/contributor/create");
+    const confirm = page.getByLabel("Confirm Email");
+    await expect(confirm).not.toHaveJSProperty("onpaste", expect.anything());
+    const cancelled = await confirm.evaluate((element) => {
+      const data = new DataTransfer();
+      data.setData("text/plain", "amina@example.com");
+      const event = new ClipboardEvent("paste", {
+        bubbles: true,
+        cancelable: true,
+        clipboardData: data,
+      });
+      return !element.dispatchEvent(event);
+    });
+    expect(cancelled).toBe(false);
+    await confirm.fill("amina@example.com");
+    await expect(confirm).toHaveValue("amina@example.com");
+  });
+
+  test("additional domain skills stay selected without changing the primary domain", async ({
+    page,
+  }) => {
+    const state = baseState();
+    await useEnglish(page);
+    await installApi(page, state);
+    await page.goto("/contributor/create");
+    await page.getByLabel("Primary domain").selectOption({ label: "Masonry" });
+    await page.getByTestId(`contributor-skill-${SKILL_ID}`).click();
+    await page.getByLabel("Additional domain").selectOption({ label: "Carpentry" });
+    await expect(page.getByTestId(`contributor-additional-skill-${OTHER_SKILL_ID}`)).toBeVisible();
+    await expect(page.getByTestId(`contributor-additional-skill-${SKILL_ID}`)).toHaveCount(0);
+    await page.getByTestId(`contributor-additional-skill-${OTHER_SKILL_ID}`).click();
+    await page.getByTestId(`contributor-additional-skill-${OTHER_SKILL_ID}`).click();
+    await expect(
+      page.getByTestId(`contributor-additional-selected-${OTHER_SKILL_ID}`)
+    ).toHaveCount(0);
+    await page.getByTestId(`contributor-additional-skill-${OTHER_SKILL_ID}`).click();
+    await expect(
+      page.getByTestId(`contributor-additional-selected-${OTHER_SKILL_ID}`)
+    ).toHaveCount(1);
+    await expect(
+      page.getByTestId(`contributor-additional-skill-${OTHER_SKILL_ID}`)
+    ).toHaveAttribute("aria-pressed", "true");
+
+    await page.getByLabel("Additional domain").selectOption({ label: "Metalwork" });
+    await expect(page.getByTestId(`contributor-additional-skill-${THIRD_SKILL_ID}`)).toBeVisible();
+    await expect(page.getByTestId(`contributor-additional-skill-${OTHER_SKILL_ID}`)).toHaveCount(0);
+    await expect(
+      page.getByTestId(`contributor-additional-selected-${OTHER_SKILL_ID}`)
+    ).toBeVisible();
+    await expect(page.getByLabel("Primary domain")).toHaveValue(DOMAIN_ID);
+
+    await page.getByLabel("Additional domain").selectOption({ label: "Carpentry" });
+    await expect(
+      page.getByTestId(`contributor-additional-skill-${OTHER_SKILL_ID}`)
+    ).toHaveAttribute("aria-pressed", "true");
+    await page.getByLabel("Custom skills").fill("Lime wash");
+    await page.getByTestId("contributor-add-custom-skill").click();
+    await expect(page.getByRole("button", { name: "Remove Lime wash" })).toBeVisible();
+
+    await page.getByLabel("Primary domain").selectOption({ label: "Metalwork" });
+    await expect(page.getByText("previous domain were cleared")).toBeVisible();
+    await expect(page.getByTestId(`contributor-skill-${SKILL_ID}`)).toHaveCount(0);
+    await expect(
+      page.getByTestId(`contributor-additional-selected-${OTHER_SKILL_ID}`)
+    ).toBeVisible();
+    await expect(page.getByLabel("Primary domain")).toHaveValue(THIRD_DOMAIN_ID);
+  });
+
+  test("French additional skills labels are shown", async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem("sawaka-locale", "fr");
+    });
+    await installApi(page, baseState());
+    await page.goto("/contributor/create");
+    await expect(page.getByText("Compétences supplémentaires")).toBeVisible();
+    await expect(page.getByLabel("Domaine supplémentaire")).toBeVisible();
+    await expect(page.getByLabel("Confirmer l'adresse e-mail")).toBeVisible();
+  });
+
+  test("additional skills fit a mobile viewport", async ({ page }) => {
+    await useEnglish(page);
+    await installApi(page, baseState());
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/contributor/create");
+    await page.getByLabel("Primary domain").selectOption({ label: "Masonry" });
+    await page.getByLabel("Additional domain").selectOption({ label: "Carpentry" });
+    await page.getByTestId(`contributor-additional-skill-${OTHER_SKILL_ID}`).click();
+    await expect(
+      page.getByTestId(`contributor-additional-selected-${OTHER_SKILL_ID}`)
+    ).toBeVisible();
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth + 1
+    );
+    expect(overflow).toBe(false);
   });
 
   test("changing the domain clears skills from the previous domain", async ({ page }) => {
