@@ -262,6 +262,26 @@ export default function ContributorCreateExperience() {
     }
   }
 
+  function removableSkillChip(
+    label: string,
+    onRemove: () => void,
+    testId?: string,
+    pressed?: boolean
+  ) {
+    return (
+      <button
+        type="button"
+        data-testid={testId}
+        className="min-h-[44px] rounded-full border border-border bg-secondary px-3 py-2 text-sm text-foreground"
+        onClick={onRemove}
+        aria-pressed={pressed}
+        aria-label={t("contributor.create.customRemove", { label })}
+      >
+        {label} ×
+      </button>
+    );
+  }
+
   function addCustomSkill() {
     const label = customDraft.trim();
     if (!label) {
@@ -828,11 +848,26 @@ export default function ContributorCreateExperience() {
                         onClick={() => toggleSkill(skill.id, "primary", skill)}
                       >
                         {taxonomyLabel(skill, locale)}
-                        {selected ? ` · ${t("contributor.create.selected")}` : ""}
                       </button>
                     );
                   })}
                 </div>
+                {skills.some((skill) => skillIds.includes(skill.id)) && (
+                  <ul className="flex flex-wrap gap-2">
+                    {skills
+                      .filter((skill) => skillIds.includes(skill.id))
+                      .map((skill) => (
+                        <li key={skill.id}>
+                          {removableSkillChip(
+                            taxonomyLabel(skill, locale),
+                            () => toggleSkill(skill.id, "primary", skill),
+                            `contributor-primary-selected-${skill.id}`,
+                            true
+                          )}
+                        </li>
+                      ))}
+                  </ul>
+                )}
               </fieldset>
               {fieldError("skillIds")}
             </div>
@@ -906,7 +941,6 @@ export default function ContributorCreateExperience() {
                         onClick={() => toggleSkill(skill.id, "additional", skill)}
                       >
                         {taxonomyLabel(skill, locale)}
-                        {selected ? ` · ${t("contributor.create.selected")}` : ""}
                       </button>
                     );
                   })}
@@ -915,18 +949,12 @@ export default function ContributorCreateExperience() {
                   <ul className="flex flex-wrap gap-2">
                     {additionalSelections.map((skill) => (
                       <li key={skill.id}>
-                        <button
-                          type="button"
-                          data-testid={`contributor-additional-selected-${skill.id}`}
-                          aria-pressed="true"
-                          className="min-h-[44px] rounded-full border border-primary bg-primary/10 px-3 py-2 text-left text-sm font-semibold text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                          aria-label={t("contributor.create.additionalRemove", {
-                            label: taxonomyLabel(skill, locale),
-                          })}
-                          onClick={() => toggleSkill(skill.id, "additional", skill)}
-                        >
-                          {taxonomyLabel(skill, locale)} · {t("contributor.create.selected")}
-                        </button>
+                        {removableSkillChip(
+                          taxonomyLabel(skill, locale),
+                          () => toggleSkill(skill.id, "additional", skill),
+                          `contributor-additional-selected-${skill.id}`,
+                          true
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -980,14 +1008,7 @@ export default function ContributorCreateExperience() {
                 <ul className="flex flex-wrap gap-2">
                   {customSkills.map((label) => (
                     <li key={label}>
-                      <button
-                        type="button"
-                        className="min-h-[44px] rounded-full border border-border bg-secondary px-3 py-2 text-sm text-foreground"
-                        onClick={() => removeCustomSkill(label)}
-                        aria-label={t("contributor.create.customRemove", { label })}
-                      >
-                        {label} ×
-                      </button>
+                      {removableSkillChip(label, () => removeCustomSkill(label))}
                     </li>
                   ))}
                 </ul>
