@@ -70,6 +70,7 @@ export default function ContributorCreateExperience() {
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
+  const [confirmEmail, setConfirmEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [domainId, setDomainId] = useState("");
@@ -86,6 +87,12 @@ export default function ContributorCreateExperience() {
   const [domainsError, setDomainsError] = useState(false);
   const [skills, setSkills] = useState<TaxonomyItem[]>([]);
   const [skillsState, setSkillsState] = useState<"idle" | "loading" | "error" | "ready">("idle");
+  const [additionalDomainId, setAdditionalDomainId] = useState("");
+  const [additionalSkills, setAdditionalSkills] = useState<TaxonomyItem[]>([]);
+  const [additionalSkillsState, setAdditionalSkillsState] = useState<
+    "idle" | "loading" | "error" | "ready"
+  >("idle");
+  const [additionalSelections, setAdditionalSelections] = useState<TaxonomyItem[]>([]);
   const [skillsCleared, setSkillsCleared] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<ContributorFieldErrors>({});
   const [formError, setFormError] = useState("");
@@ -172,6 +179,29 @@ export default function ContributorCreateExperience() {
     };
   }, [domainId]);
 
+  useEffect(() => {
+    if (!additionalDomainId) {
+      setAdditionalSkills([]);
+      setAdditionalSkillsState("idle");
+      return;
+    }
+    let cancelled = false;
+    setAdditionalSkillsState("loading");
+    listContributorSkills(additionalDomainId).then((result) => {
+      if (cancelled) return;
+      if (!result.ok) {
+        setAdditionalSkills([]);
+        setAdditionalSkillsState("error");
+        return;
+      }
+      setAdditionalSkills(result.skills);
+      setAdditionalSkillsState("ready");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [additionalDomainId]);
+
   function messageFor(code: string): string {
     const key = `contributor.create.errors.${code}`;
     const message = t(key);
@@ -186,9 +216,14 @@ export default function ContributorCreateExperience() {
   }
 
   function onDomainChange(nextDomainId: string) {
+    const additionalIds = new Set(additionalSelections.map((item) => item.id));
+    const removedPrimary = skillIds.some((id) => !additionalIds.has(id));
     setDomainId(nextDomainId);
-    setSkillsCleared(skillIds.length > 0);
-    setSkillIds([]);
+    setSkillsCleared(removedPrimary);
+    setSkillIds(skillIds.filter((id) => additionalIds.has(id)));
+    if (additionalDomainId === nextDomainId) {
+      setAdditionalDomainId("");
+    }
     setFieldErrors((current) => {
       const next = { ...current };
       delete next.domainId;
@@ -197,23 +232,34 @@ export default function ContributorCreateExperience() {
     });
   }
 
-  function toggleSkill(skillId: string) {
+  function toggleSkill(
+    skillId: string,
+    origin: "primary" | "additional",
+    skill?: TaxonomyItem
+  ) {
     setSkillsCleared(false);
-    setSkillIds((current) => {
-      if (current.includes(skillId)) {
-        return current.filter((id) => id !== skillId);
-      }
-      if (current.length + customSkills.length >= MAX_SELECTED_SKILLS) {
-        setFieldErrors((errors) => ({ ...errors, skillIds: "SKILL_LIMIT" }));
-        return current;
-      }
-      setFieldErrors((errors) => {
-        const next = { ...errors };
-        delete next.skillIds;
-        return next;
-      });
-      return [...current, skillId];
+    if (skillIds.includes(skillId)) {
+      setSkillIds(skillIds.filter((id) => id !== skillId));
+      setAdditionalSelections((current) => current.filter((item) => item.id !== skillId));
+      return;
+    }
+    if (skillIds.length + customSkills.length >= MAX_SELECTED_SKILLS) {
+      setFieldErrors((errors) => ({ ...errors, skillIds: "SKILL_LIMIT" }));
+      return;
+    }
+    setFieldErrors((errors) => {
+      const next = { ...errors };
+      delete next.skillIds;
+      return next;
     });
+    setSkillIds([...skillIds, skillId]);
+    if (
+      origin === "additional" &&
+      skill &&
+      !additionalSelections.some((item) => item.id === skillId)
+    ) {
+      setAdditionalSelections([...additionalSelections, skill]);
+    }
   }
 
   function addCustomSkill() {
@@ -263,6 +309,7 @@ export default function ContributorCreateExperience() {
       {
         username,
         email,
+        confirmEmail,
         password,
         displayName,
         domainId,
@@ -622,6 +669,24 @@ export default function ContributorCreateExperience() {
                 {fieldError("email")}
               </div>
               <div className="space-y-2">
+                <label htmlFor="contributor-confirm-email" className={labelClass}>
+                  {t("contributor.create.confirmEmail")}
+                </label>
+                <input
+                  id="contributor-confirm-email"
+                  type="email"
+                  className={inputClass}
+                  autoComplete="email"
+                  value={confirmEmail}
+                  aria-invalid={Boolean(fieldErrors.confirmEmail)}
+                  aria-describedby={
+                    fieldErrors.confirmEmail ? "err-confirmEmail" : undefined
+                  }
+                  onChange={(event) => setConfirmEmail(event.target.value)}
+                />
+                {fieldError("confirmEmail")}
+              </div>
+              <div className="space-y-2">
                 <label htmlFor="contributor-password" className={labelClass}>
                   {t("contributor.create.password")}
                 </label>
@@ -760,7 +825,7 @@ export default function ContributorCreateExperience() {
                             ? "border-primary bg-primary/10 font-semibold text-foreground"
                             : "border-border bg-card text-foreground"
                         }`}
-                        onClick={() => toggleSkill(skill.id)}
+                        onClick={() => toggleSkill(skill.id, "primary", skill)}
                       >
                         {taxonomyLabel(skill, locale)}
                         {selected ? ` · ${t("contributor.create.selected")}` : ""}
@@ -770,6 +835,103 @@ export default function ContributorCreateExperience() {
                 </div>
               </fieldset>
               {fieldError("skillIds")}
+            </div>
+
+            <div className="space-y-2">
+              <fieldset className="space-y-3">
+                <legend className={labelClass}>
+                  {t("contributor.create.additionalSkills")}
+                </legend>
+                <p
+                  id="contributor-additional-hint"
+                  className="text-sm text-muted-foreground"
+                >
+                  {t("contributor.create.additionalHint")}
+                </p>
+                <label htmlFor="contributor-additional-domain" className={labelClass}>
+                  {t("contributor.create.additionalDomain")}
+                </label>
+                <select
+                  id="contributor-additional-domain"
+                  className={inputClass}
+                  value={additionalDomainId}
+                  aria-describedby="contributor-additional-hint"
+                  onChange={(event) => setAdditionalDomainId(event.target.value)}
+                >
+                  <option value="">
+                    {t("contributor.create.additionalDomainPlaceholder")}
+                  </option>
+                  {domains
+                    .filter((domain) => domain.id !== domainId)
+                    .map((domain) => (
+                      <option key={domain.id} value={domain.id}>
+                        {taxonomyLabel(domain, locale)}
+                      </option>
+                    ))}
+                </select>
+                {!additionalDomainId && (
+                  <p className="text-sm text-muted-foreground">
+                    {t("contributor.create.additionalNeedDomain")}
+                  </p>
+                )}
+                {additionalSkillsState === "loading" && (
+                  <p role="status" className="text-sm text-muted-foreground">
+                    {t("contributor.create.skillsLoading")}
+                  </p>
+                )}
+                {additionalSkillsState === "error" && (
+                  <p role="alert" className="text-sm text-destructive">
+                    {t("contributor.create.skillsError")}
+                  </p>
+                )}
+                {additionalSkillsState === "ready" && additionalSkills.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    {t("contributor.create.skillsEmpty")}
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  {additionalSkills.map((skill) => {
+                    const selected = skillIds.includes(skill.id);
+                    return (
+                      <button
+                        key={skill.id}
+                        type="button"
+                        data-testid={`contributor-additional-skill-${skill.id}`}
+                        aria-pressed={selected}
+                        className={`min-h-[44px] rounded-full border px-3 py-2 text-left text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                          selected
+                            ? "border-primary bg-primary/10 font-semibold text-foreground"
+                            : "border-border bg-card text-foreground"
+                        }`}
+                        onClick={() => toggleSkill(skill.id, "additional", skill)}
+                      >
+                        {taxonomyLabel(skill, locale)}
+                        {selected ? ` · ${t("contributor.create.selected")}` : ""}
+                      </button>
+                    );
+                  })}
+                </div>
+                {additionalSelections.length > 0 && (
+                  <ul className="flex flex-wrap gap-2">
+                    {additionalSelections.map((skill) => (
+                      <li key={skill.id}>
+                        <button
+                          type="button"
+                          data-testid={`contributor-additional-selected-${skill.id}`}
+                          aria-pressed="true"
+                          className="min-h-[44px] rounded-full border border-primary bg-primary/10 px-3 py-2 text-left text-sm font-semibold text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                          aria-label={t("contributor.create.additionalRemove", {
+                            label: taxonomyLabel(skill, locale),
+                          })}
+                          onClick={() => toggleSkill(skill.id, "additional", skill)}
+                        >
+                          {taxonomyLabel(skill, locale)} · {t("contributor.create.selected")}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </fieldset>
             </div>
 
             <div className="space-y-2">

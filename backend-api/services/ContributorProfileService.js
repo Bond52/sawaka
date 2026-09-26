@@ -291,14 +291,27 @@ async function resolveTaxonomy(value) {
       const skill = byId.get(id);
       return skill && skill.isActive !== true;
     });
-    const wrongDomain = value.skillIds.some((id) => {
+    const skillDomainIds = [
+      ...new Set(canonical.map((skill) => String(skill.domainId))),
+    ];
+    const skillDomains = skillDomainIds.length
+      ? await Domain.find({ _id: { $in: skillDomainIds } })
+      : [];
+    const activeDomainIds = new Set(
+      skillDomains
+        .filter((item) => item.isActive === true)
+        .map((item) => String(item._id))
+    );
+    const inactiveDomain = value.skillIds.some((id) => {
       const skill = byId.get(id);
-      return skill && String(skill.domainId) !== String(domain._id);
+      return (
+        skill &&
+        skill.isActive === true &&
+        !activeDomainIds.has(String(skill.domainId))
+      );
     });
-    if (missing || inactive) {
+    if (missing || inactive || inactiveDomain) {
       fields.skillIds = "SKILL_INVALID";
-    } else if (wrongDomain) {
-      fields.skillIds = "SKILL_DOMAIN_MISMATCH";
     }
   }
 

@@ -54,6 +54,12 @@ describe("contributor profile rules", () => {
     ).toBe("SKILL_LIMIT");
   });
 
+  it("rejects duplicate canonical skill ids", () => {
+    expect(
+      collectProfileFieldErrors(validBody({ skillIds: [skillId, skillId] })).fields.skillIds
+    ).toBe("SKILL_DUPLICATE");
+  });
+
   it("rejects duplicate, empty, over-long and too many custom skills", () => {
     expect(
       collectProfileFieldErrors(

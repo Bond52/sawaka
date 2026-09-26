@@ -258,8 +258,8 @@ describe("Contributor profile persistence", () => {
     expect(await User.countDocuments()).toBe(1);
   });
 
-  it("rejects invalid domains and skills that are inactive or outside the domain", async () => {
-    const { domainA, domainB, skillsA, skillsB } = await loadTaxonomy();
+  it("rejects invalid, missing and inactive domains and skills", async () => {
+    const { domainA, domainB, skillsA } = await loadTaxonomy();
     const inactive = await Domain.create({
       slug: "inactive-domain",
       nameFR: "Inactif",
@@ -288,12 +288,6 @@ describe("Contributor profile persistence", () => {
         account: { username: "u2", email: "u2@example.com", password: "Secret123!" },
         ...profilePayload(domainA, skillsA, { domainId: String(inactive._id) }),
       });
-    const wrongSkill = await request(app)
-      .post("/api/contributors")
-      .send({
-        account: { username: "u3", email: "u3@example.com", password: "Secret123!" },
-        ...profilePayload(domainA, skillsB),
-      });
     const badSkill = await request(app)
       .post("/api/contributors")
       .send({
@@ -303,10 +297,130 @@ describe("Contributor profile persistence", () => {
 
     expect(missingDomain.body.error.fields.domainId).toBe("DOMAIN_NOT_FOUND");
     expect(inactiveDomain.body.error.fields.domainId).toBe("DOMAIN_INACTIVE");
-    expect(wrongSkill.body.error.fields.skillIds).toBe("SKILL_DOMAIN_MISMATCH");
     expect(badSkill.body.error.fields.skillIds).toBe("SKILL_INVALID");
     expect(await User.countDocuments()).toBe(0);
     expect(domainB).toBeTruthy();
+  });
+
+  it("accepts canonical skills from other active domains and keeps one primary domain", async () => {
+    const { domainA, domainB, skillsA, skillsB } = await loadTaxonomy();
+    const domains = await Domain.find({ isActive: true }).sort({ nameEN: 1 });
+    const domainC = domains[2];
+    const skillsC = await Skill.find({ domainId: domainC._id, isActive: true }).limit(1);
+    const skillCountBefore = await Skill.countDocuments();
+
+    const res = await request(app)
+      .post("/api/contributors")
+      .send({
+        account: {
+          username: "crossdomain",
+          email: "cross@example.com",
+          password: "Secret123!",
+        },
+        ...profilePayload(domainA, [skillsA[0], skillsB[0], skillsC[0]]),
+      });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.profile.domain.id).toBe(String(domainA._id));
+    expect(res.body.profile.skills).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: String(skillsA[0]._id),
+          isCustom: false,
+          nameEN: skillsA[0].nameEN,
+        }),
+        expect.objectContaining({
+          id: String(skillsB[0]._id),
+          isCustom: false,
+          nameEN: skillsB[0].nameEN,
+        }),
+        expect.objectContaining({
+          id: String(skillsC[0]._id),
+          isCustom: false,
+          nameEN: skillsC[0].nameEN,
+        }),
+      ])
+    );
+    expect(JSON.stringify(res.body)).not.toContain("confirmEmail");
+    expect(JSON.stringify(res.body)).not.toContain("cross@example.com");
+
+    const profile = await ContributorProfile.findById(res.body.profile.id);
+    expect(String(profile.domainId)).toBe(String(domainA._id));
+    const storedIds = profile.skills
+      .filter((skill) => !skill.isCustom)
+      .map((skill) => String(skill.skillId));
+    expect(storedIds).toEqual([
+      String(skillsA[0]._id),
+      String(skillsB[0]._id),
+      String(skillsC[0]._id),
+    ]);
+    expect(new Set(storedIds).size).toBe(3);
+    expect(String(skillsB[0].domainId)).toBe(String(domainB._id));
+    expect(String(skillsB[0].domainId)).not.toBe(String(profile.domainId));
+    expect(await Skill.countDocuments()).toBe(skillCountBefore);
+  });
+
+  it("rejects unknown, inactive-domain, duplicate skills and confirmEmail", async () => {
+    const { domainA, skillsA } = await loadTaxonomy();
+    const inactive = await Domain.create({
+      slug: "closed-domain",
+      nameFR: "Fermé",
+      nameEN: "Closed",
+      isActive: false,
+    });
+    const skillOnInactiveDomain = await Skill.create({
+      slug: "closed-skill",
+      domainId: inactive._id,
+      nameFR: "Fermée",
+      nameEN: "Closed skill",
+      isActive: true,
+    });
+    const account = {
+      username: "skillcheck",
+      email: "skillcheck@example.com",
+      password: "Secret123!",
+    };
+
+    const unknown = await request(app)
+      .post("/api/contributors")
+      .send({
+        account,
+        ...profilePayload(domainA, skillsA, {
+          skillIds: [String(new mongoose.Types.ObjectId())],
+        }),
+      });
+    const closedDomainSkill = await request(app)
+      .post("/api/contributors")
+      .send({
+        account: { ...account, username: "skillcheck2", email: "skillcheck2@example.com" },
+        ...profilePayload(domainA, [skillOnInactiveDomain]),
+      });
+    const duplicate = await request(app)
+      .post("/api/contributors")
+      .send({
+        account: { ...account, username: "skillcheck3", email: "skillcheck3@example.com" },
+        ...profilePayload(domainA, [skillsA[0]], {
+          skillIds: [String(skillsA[0]._id), String(skillsA[0]._id)],
+        }),
+      });
+    const confirmEmail = await request(app)
+      .post("/api/contributors")
+      .send({
+        account: {
+          ...account,
+          username: "skillcheck4",
+          email: "skillcheck4@example.com",
+          confirmEmail: "skillcheck4@example.com",
+        },
+        ...profilePayload(domainA, [skillsA[0]]),
+      });
+
+    expect(unknown.body.error.fields.skillIds).toBe("SKILL_INVALID");
+    expect(closedDomainSkill.body.error.fields.skillIds).toBe("SKILL_INVALID");
+    expect(duplicate.body.error.fields.skillIds).toBe("SKILL_DUPLICATE");
+    expect(confirmEmail.body.error.fields["account.confirmEmail"]).toBe("FIELD_NOT_ALLOWED");
+    expect(await User.countDocuments()).toBe(0);
+    expect(await ContributorProfile.countDocuments()).toBe(0);
   });
 
   it("rejects markup, missing fields and system-managed fields before creating an account", async () => {

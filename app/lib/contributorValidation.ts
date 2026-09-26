@@ -13,9 +13,14 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type ContributorFieldErrors = Record<string, string>;
 
+export function normalizeAccountEmail(value: string): string {
+  return value.trim().toLowerCase();
+}
+
 export type ContributorFormInput = {
   username: string;
   email: string;
+  confirmEmail: string;
   password: string;
   displayName: string;
   domainId: string;
@@ -38,6 +43,10 @@ export function validateContributorForm(
     const email = input.email.trim();
     if (!email) fields.email = "EMAIL_REQUIRED";
     else if (!EMAIL_PATTERN.test(email)) fields.email = "EMAIL_INVALID";
+    const confirmEmail = normalizeAccountEmail(input.confirmEmail);
+    if (!confirmEmail || normalizeAccountEmail(email) !== confirmEmail) {
+      fields.confirmEmail = "EMAIL_MISMATCH";
+    }
     if (!input.password) fields.password = "PASSWORD_REQUIRED";
   }
 
@@ -105,6 +114,7 @@ export function validateContributorForm(
 const FOCUS_ORDER = [
   "username",
   "email",
+  "confirmEmail",
   "password",
   "displayName",
   "domainId",
@@ -128,6 +138,8 @@ export function fieldElementId(field: string): string {
       return "contributor-username";
     case "email":
       return "contributor-email";
+    case "confirmEmail":
+      return "contributor-confirm-email";
     case "password":
       return "contributor-password";
     case "displayName":
