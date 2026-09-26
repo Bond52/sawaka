@@ -110,6 +110,13 @@ export default function Header() {
             {t("navigation.dashboard")}
           </Link>
           <Link
+            href="/contributor/create"
+            data-testid="header-create-contributor"
+            className="block px-4 py-2 text-foreground hover:bg-secondary"
+          >
+            {t("navigation.createContributor")}
+          </Link>
+          <Link
             href="/profile"
             className="block px-4 py-2 text-foreground hover:bg-secondary"
           >
@@ -218,6 +225,13 @@ export default function Header() {
             >
               {t("navigation.network")}
             </Link>
+            <Link
+              href="/contributor/create"
+              data-testid="nav-create-contributor"
+              className="whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {t("navigation.createContributor")}
+            </Link>
           </nav>
 
           <div className="ml-auto hidden shrink-0 items-center gap-3 lg:flex">
@@ -312,6 +326,14 @@ export default function Header() {
                 className="rounded-md px-3 py-2 text-foreground hover:bg-secondary"
               >
                 {t("navigation.network")}
+              </Link>
+              <Link
+                href="/contributor/create"
+                data-testid="nav-create-contributor-mobile"
+                onClick={closeMobileMenu}
+                className="rounded-md px-3 py-2 text-foreground hover:bg-secondary"
+              >
+                {t("navigation.createContributor")}
               </Link>
             </nav>
 

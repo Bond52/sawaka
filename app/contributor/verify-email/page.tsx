@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useTranslation } from "@/src/i18n/I18nProvider";
 import { verifyAccountEmail } from "@/app/lib/apiContributors";
 
-type Phase = "loading" | "success" | "notPublic" | "error" | "networkError";
+type Phase = "loading" | "success" | "notPublic" | "error" | "expired" | "used" | "networkError";
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
@@ -39,7 +39,15 @@ function VerifyEmailContent() {
     attemptRef.current.request.then((result) => {
       if (cancelled) return;
       if ("status" in result) {
-        setPhase(result.status === 0 ? "networkError" : "error");
+        if (result.status === 0 || result.code === "NETWORK") {
+          setPhase("networkError");
+        } else if (result.code === "TOKEN_EXPIRED") {
+          setPhase("expired");
+        } else if (result.code === "TOKEN_USED") {
+          setPhase("used");
+        } else {
+          setPhase("error");
+        }
         return;
       }
       setPhase(result.profileActivated ? "success" : "notPublic");
@@ -105,18 +113,28 @@ function VerifyEmailContent() {
           </div>
         )}
 
-        {(phase === "error" || phase === "networkError") && (
+        {(phase === "error" || phase === "expired" || phase === "used" || phase === "networkError") && (
           <div
             role="alert"
             className="space-y-6"
-            data-testid="contributor-verify-email-error"
+            data-testid={
+              phase === "expired"
+                ? "contributor-verify-email-expired"
+                : phase === "used"
+                  ? "contributor-verify-email-used"
+                  : "contributor-verify-email-error"
+            }
           >
             <p className="text-base font-semibold text-destructive">
               {phase === "networkError"
                 ? t("contributor.verifyEmail.networkError")
-                : t("contributor.verifyEmail.error")}
+                : phase === "expired"
+                  ? t("contributor.verifyEmail.expired")
+                  : phase === "used"
+                    ? t("contributor.verifyEmail.used")
+                    : t("contributor.verifyEmail.error")}
             </p>
-            {phase === "error" && (
+            {phase !== "networkError" && (
               <p className="text-sm text-muted-foreground">
                 {t("contributor.verifyEmail.errorHint")}
               </p>
