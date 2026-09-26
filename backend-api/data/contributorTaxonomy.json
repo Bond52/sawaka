@@ -1,0 +1,915 @@
+{
+  "source": "Approved simplified Sawaka domain/skill taxonomy. English domain labels from Sawaka_Simplified_Domain_Skills_v0.2.xlsx joined by row with French domain labels from Sawaka_Simplified_Domain_Skills.xlsx (internal title v0.3). Skill FR/EN labels match on every row. ESCO hierarchy is not included.",
+  "domains": [
+    {
+      "slug": "construction-and-building",
+      "nameEN": "Construction & Building",
+      "nameFR": "Construction et bâtiment",
+      "isActive": true,
+      "skills": [
+        {
+          "slug": "construction-and-building-masonry",
+          "nameFR": "Maçonnerie",
+          "nameEN": "Masonry",
+          "isActive": true
+        },
+        {
+          "slug": "construction-and-building-building-painting",
+          "nameFR": "Peinture bâtiment",
+          "nameEN": "Building painting",
+          "isActive": true
+        },
+        {
+          "slug": "construction-and-building-plastering",
+          "nameFR": "Plâtrerie",
+          "nameEN": "Plastering",
+          "isActive": true
+        },
+        {
+          "slug": "construction-and-building-roofing",
+          "nameFR": "Toiture",
+          "nameEN": "Roofing",
+          "isActive": true
+        },
+        {
+          "slug": "construction-and-building-rendering-and-finishing",
+          "nameFR": "Enduit et finition",
+          "nameEN": "Rendering & finishing",
+          "isActive": true
+        },
+        {
+          "slug": "construction-and-building-formwork",
+          "nameFR": "Coffrage",
+          "nameEN": "Formwork",
+          "isActive": true
+        },
+        {
+          "slug": "construction-and-building-reinforcement-work",
+          "nameFR": "Ferraillage",
+          "nameEN": "Reinforcement work",
+          "isActive": true
+        },
+        {
+          "slug": "construction-and-building-insulation",
+          "nameFR": "Isolation",
+          "nameEN": "Insulation",
+          "isActive": true
+        },
+        {
+          "slug": "construction-and-building-demolition",
+          "nameFR": "Démolition",
+          "nameEN": "Demolition",
+          "isActive": true
+        },
+        {
+          "slug": "construction-and-building-renovation",
+          "nameFR": "Rénovation",
+          "nameEN": "Renovation",
+          "isActive": true
+        }
+      ]
+    },
+    {
+      "slug": "carpentry-woodworking-and-furniture",
+      "nameEN": "Carpentry, Woodworking & Furniture",
+      "nameFR": "Menuiserie, travail du bois et mobilier",
+      "isActive": true,
+      "skills": [
+        {
+          "slug": "carpentry-woodworking-and-furniture-furniture-making",
+          "nameFR": "Fabrication de meubles",
+          "nameEN": "Furniture making",
+          "isActive": true
+        },
+        {
+          "slug": "carpentry-woodworking-and-furniture-wood-carving",
+          "nameFR": "Sculpture sur bois",
+          "nameEN": "Wood carving",
+          "isActive": true
+        },
+        {
+          "slug": "carpentry-woodworking-and-furniture-sanding",
+          "nameFR": "Ponçage",
+          "nameEN": "Sanding",
+          "isActive": true
+        },
+        {
+          "slug": "carpentry-woodworking-and-furniture-varnishing",
+          "nameFR": "Vernissage",
+          "nameEN": "Varnishing",
+          "isActive": true
+        },
+        {
+          "slug": "carpentry-woodworking-and-furniture-wood-finishing",
+          "nameFR": "Finition du bois",
+          "nameEN": "Wood finishing",
+          "isActive": true
+        },
+        {
+          "slug": "carpentry-woodworking-and-furniture-cabinet-making",
+          "nameFR": "Fabrication d'armoires",
+          "nameEN": "Cabinet making",
+          "isActive": true
+        },
+        {
+          "slug": "carpentry-woodworking-and-furniture-furniture-restoration",
+          "nameFR": "Restauration de meubles",
+          "nameEN": "Furniture restoration",
+          "isActive": true
+        },
+        {
+          "slug": "carpentry-woodworking-and-furniture-wickerwork",
+          "nameFR": "Tressage et vannerie",
+          "nameEN": "Wickerwork",
+          "isActive": true
+        }
+      ]
+    },
+    {
+      "slug": "plumbing-water-and-sanitation",
+      "nameEN": "Plumbing, Water & Sanitation",
+      "nameFR": "Plomberie, eau et assainissement",
+      "isActive": true,
+      "skills": [
+        {
+          "slug": "plumbing-water-and-sanitation-plumbing",
+          "nameFR": "Plomberie",
+          "nameEN": "Plumbing",
+          "isActive": true
+        },
+        {
+          "slug": "plumbing-water-and-sanitation-pipe-installation",
+          "nameFR": "Installation de tuyaux",
+          "nameEN": "Pipe installation",
+          "isActive": true
+        },
+        {
+          "slug": "plumbing-water-and-sanitation-leak-repair",
+          "nameFR": "Réparation de fuites",
+          "nameEN": "Leak repair",
+          "isActive": true
+        },
+        {
+          "slug": "plumbing-water-and-sanitation-sanitary-installation",
+          "nameFR": "Installation sanitaire",
+          "nameEN": "Sanitary installation",
+          "isActive": true
+        },
+        {
+          "slug": "plumbing-water-and-sanitation-water-heater-installation",
+          "nameFR": "Installation de chauffe-eau",
+          "nameEN": "Water heater installation",
+          "isActive": true
+        },
+        {
+          "slug": "plumbing-water-and-sanitation-pipe-maintenance",
+          "nameFR": "Entretien de canalisations",
+          "nameEN": "Pipe maintenance",
+          "isActive": true
+        },
+        {
+          "slug": "plumbing-water-and-sanitation-water-harvesting",
+          "nameFR": "Récupération d'eau",
+          "nameEN": "Water harvesting",
+          "isActive": true
+        },
+        {
+          "slug": "plumbing-water-and-sanitation-sanitation",
+          "nameFR": "Assainissement",
+          "nameEN": "Sanitation",
+          "isActive": true
+        }
+      ]
+    },
+    {
+      "slug": "electrical-electronics-and-solar",
+      "nameEN": "Electrical, Electronics & Solar",
+      "nameFR": "Électricité, électronique et solaire",
+      "isActive": true,
+      "skills": [
+        {
+          "slug": "electrical-electronics-and-solar-electrical-installation",
+          "nameFR": "Installation électrique",
+          "nameEN": "Electrical installation",
+          "isActive": true
+        },
+        {
+          "slug": "electrical-electronics-and-solar-electrical-wiring",
+          "nameFR": "Câblage électrique",
+          "nameEN": "Electrical wiring",
+          "isActive": true
+        },
+        {
+          "slug": "electrical-electronics-and-solar-electrical-repair",
+          "nameFR": "Réparation électrique",
+          "nameEN": "Electrical repair",
+          "isActive": true
+        },
+        {
+          "slug": "electrical-electronics-and-solar-electrical-panels",
+          "nameFR": "Tableaux électriques",
+          "nameEN": "Electrical panels",
+          "isActive": true
+        },
+        {
+          "slug": "electrical-electronics-and-solar-lighting",
+          "nameFR": "Éclairage",
+          "nameEN": "Lighting",
+          "isActive": true
+        },
+        {
+          "slug": "electrical-electronics-and-solar-sockets-and-switches",
+          "nameFR": "Prises et interrupteurs",
+          "nameEN": "Sockets & switches",
+          "isActive": true
+        },
+        {
+          "slug": "electrical-electronics-and-solar-solar-installation",
+          "nameFR": "Installation solaire",
+          "nameEN": "Solar installation",
+          "isActive": true
+        },
+        {
+          "slug": "electrical-electronics-and-solar-solar-panels",
+          "nameFR": "Panneaux solaires",
+          "nameEN": "Solar panels",
+          "isActive": true
+        },
+        {
+          "slug": "electrical-electronics-and-solar-solar-batteries",
+          "nameFR": "Batteries solaires",
+          "nameEN": "Solar batteries",
+          "isActive": true
+        },
+        {
+          "slug": "electrical-electronics-and-solar-inverters",
+          "nameFR": "Onduleurs",
+          "nameEN": "Inverters",
+          "isActive": true
+        },
+        {
+          "slug": "electrical-electronics-and-solar-solar-wiring",
+          "nameFR": "Câblage solaire",
+          "nameEN": "Solar wiring",
+          "isActive": true
+        },
+        {
+          "slug": "electrical-electronics-and-solar-electronic-circuits",
+          "nameFR": "Circuits électroniques",
+          "nameEN": "Electronic circuits",
+          "isActive": true
+        },
+        {
+          "slug": "electrical-electronics-and-solar-antenna-installation",
+          "nameFR": "Installation d'antennes",
+          "nameEN": "Antenna installation",
+          "isActive": true
+        },
+        {
+          "slug": "electrical-electronics-and-solar-security-systems",
+          "nameFR": "Systèmes de sécurité",
+          "nameEN": "Security systems",
+          "isActive": true
+        },
+        {
+          "slug": "electrical-electronics-and-solar-home-appliances",
+          "nameFR": "Équipements domestiques",
+          "nameEN": "Home appliances",
+          "isActive": true
+        }
+      ]
+    },
+    {
+      "slug": "metalworking-and-fabrication",
+      "nameEN": "Metalworking & Fabrication",
+      "nameFR": "Travail du métal et fabrication",
+      "isActive": true,
+      "skills": [
+        {
+          "slug": "metalworking-and-fabrication-welding",
+          "nameFR": "Soudure",
+          "nameEN": "Welding",
+          "isActive": true
+        },
+        {
+          "slug": "metalworking-and-fabrication-ironwork",
+          "nameFR": "Ferronnerie",
+          "nameEN": "Ironwork",
+          "isActive": true
+        },
+        {
+          "slug": "metalworking-and-fabrication-blacksmithing",
+          "nameFR": "Forge",
+          "nameEN": "Blacksmithing",
+          "isActive": true
+        },
+        {
+          "slug": "metalworking-and-fabrication-metal-cutting",
+          "nameFR": "Découpe de métal",
+          "nameEN": "Metal cutting",
+          "isActive": true
+        },
+        {
+          "slug": "metalworking-and-fabrication-metal-bending",
+          "nameFR": "Pliage de métal",
+          "nameEN": "Metal bending",
+          "isActive": true
+        },
+        {
+          "slug": "metalworking-and-fabrication-metal-assembly",
+          "nameFR": "Assemblage métallique",
+          "nameEN": "Metal assembly",
+          "isActive": true
+        },
+        {
+          "slug": "metalworking-and-fabrication-metal-fabrication",
+          "nameFR": "Fabrication métallique",
+          "nameEN": "Metal fabrication",
+          "isActive": true
+        },
+        {
+          "slug": "metalworking-and-fabrication-grinding",
+          "nameFR": "Meulage",
+          "nameEN": "Grinding",
+          "isActive": true
+        },
+        {
+          "slug": "metalworking-and-fabrication-metal-drilling",
+          "nameFR": "Perçage du métal",
+          "nameEN": "Metal drilling",
+          "isActive": true
+        },
+        {
+          "slug": "metalworking-and-fabrication-sheet-metal-work",
+          "nameFR": "Tôlerie",
+          "nameEN": "Sheet metal work",
+          "isActive": true
+        }
+      ]
+    },
+    {
+      "slug": "automotive-motorcycle-and-bicycle",
+      "nameEN": "Automotive, Motorcycle & Bicycle",
+      "nameFR": "Automobile, moto et vélo",
+      "isActive": true,
+      "skills": [
+        {
+          "slug": "automotive-motorcycle-and-bicycle-auto-mechanics",
+          "nameFR": "Mécanique automobile, moto",
+          "nameEN": "Auto mechanics",
+          "isActive": true
+        },
+        {
+          "slug": "automotive-motorcycle-and-bicycle-bicycle-repair",
+          "nameFR": "Réparation de vélos",
+          "nameEN": "Bicycle repair",
+          "isActive": true
+        },
+        {
+          "slug": "automotive-motorcycle-and-bicycle-oil-change-and-servicing",
+          "nameFR": "Vidange et entretien",
+          "nameEN": "Oil change & servicing",
+          "isActive": true
+        },
+        {
+          "slug": "automotive-motorcycle-and-bicycle-auto-electrical",
+          "nameFR": "Électricité automobile",
+          "nameEN": "Auto electrical",
+          "isActive": true
+        },
+        {
+          "slug": "automotive-motorcycle-and-bicycle-battery-service",
+          "nameFR": "Batterie",
+          "nameEN": "Battery service",
+          "isActive": true
+        },
+        {
+          "slug": "automotive-motorcycle-and-bicycle-auto-air-conditioning",
+          "nameFR": "Climatisation automobile",
+          "nameEN": "Auto air conditioning",
+          "isActive": true
+        },
+        {
+          "slug": "automotive-motorcycle-and-bicycle-bodywork",
+          "nameFR": "Carrosserie",
+          "nameEN": "Bodywork",
+          "isActive": true
+        },
+        {
+          "slug": "automotive-motorcycle-and-bicycle-auto-painting",
+          "nameFR": "Peinture automobile",
+          "nameEN": "Auto painting",
+          "isActive": true
+        }
+      ]
+    },
+    {
+      "slug": "textile-fashion-and-sewing",
+      "nameEN": "Textile, Fashion & Sewing",
+      "nameFR": "Textile, mode et couture",
+      "isActive": true,
+      "skills": [
+        {
+          "slug": "textile-fashion-and-sewing-sewing",
+          "nameFR": "Couture",
+          "nameEN": "Sewing",
+          "isActive": true
+        },
+        {
+          "slug": "textile-fashion-and-sewing-garment-making",
+          "nameFR": "Confection de vêtements",
+          "nameEN": "Garment making",
+          "isActive": true
+        },
+        {
+          "slug": "textile-fashion-and-sewing-embroidery",
+          "nameFR": "Broderie",
+          "nameEN": "Embroidery",
+          "isActive": true
+        },
+        {
+          "slug": "textile-fashion-and-sewing-knitting",
+          "nameFR": "Tricot",
+          "nameEN": "Knitting",
+          "isActive": true
+        },
+        {
+          "slug": "textile-fashion-and-sewing-crochet",
+          "nameFR": "Crochet",
+          "nameEN": "Crochet",
+          "isActive": true
+        },
+        {
+          "slug": "textile-fashion-and-sewing-weaving",
+          "nameFR": "Tissage",
+          "nameEN": "Weaving",
+          "isActive": true
+        },
+        {
+          "slug": "textile-fashion-and-sewing-textile-dyeing",
+          "nameFR": "Teinture textile",
+          "nameEN": "Textile dyeing",
+          "isActive": true
+        },
+        {
+          "slug": "textile-fashion-and-sewing-textile-printing",
+          "nameFR": "Impression textile",
+          "nameEN": "Textile printing",
+          "isActive": true
+        },
+        {
+          "slug": "textile-fashion-and-sewing-textile-finishing",
+          "nameFR": "Finition textile",
+          "nameEN": "Textile finishing",
+          "isActive": true
+        },
+        {
+          "slug": "textile-fashion-and-sewing-traditional-clothing",
+          "nameFR": "Confection traditionnelle",
+          "nameEN": "Traditional clothing",
+          "isActive": true
+        },
+        {
+          "slug": "textile-fashion-and-sewing-accessory-making",
+          "nameFR": "Confection d'accessoires",
+          "nameEN": "Accessory making",
+          "isActive": true
+        },
+        {
+          "slug": "textile-fashion-and-sewing-fashion-design",
+          "nameFR": "Stylisme",
+          "nameEN": "Fashion design",
+          "isActive": true
+        }
+      ]
+    },
+    {
+      "slug": "leather-footwear-and-bags",
+      "nameEN": "Leather, Footwear & Bags",
+      "nameFR": "Cuir, chaussures et sacs",
+      "isActive": true,
+      "skills": [
+        {
+          "slug": "leather-footwear-and-bags-leather-goods-making",
+          "nameFR": "Maroquinerie",
+          "nameEN": "Leather goods making",
+          "isActive": true
+        },
+        {
+          "slug": "leather-footwear-and-bags-shoemaking",
+          "nameFR": "Fabrication de chaussures",
+          "nameEN": "Shoemaking",
+          "isActive": true
+        },
+        {
+          "slug": "leather-footwear-and-bags-bag-making",
+          "nameFR": "Fabrication de sacs",
+          "nameEN": "Bag making",
+          "isActive": true
+        }
+      ]
+    },
+    {
+      "slug": "jewelry-and-accessories",
+      "nameEN": "Jewelry & Accessories",
+      "nameFR": "Bijouterie et accessoires",
+      "isActive": true,
+      "skills": [
+        {
+          "slug": "jewelry-and-accessories-jewelry-design",
+          "nameFR": "Création de bijoux",
+          "nameEN": "Jewelry design",
+          "isActive": true
+        },
+        {
+          "slug": "jewelry-and-accessories-bracelet-making",
+          "nameFR": "Fabrication de bracelets",
+          "nameEN": "Bracelet making",
+          "isActive": true
+        },
+        {
+          "slug": "jewelry-and-accessories-necklace-making",
+          "nameFR": "Fabrication de colliers",
+          "nameEN": "Necklace making",
+          "isActive": true
+        },
+        {
+          "slug": "jewelry-and-accessories-earring-making",
+          "nameFR": "Fabrication de boucles d'oreilles",
+          "nameEN": "Earring making",
+          "isActive": true
+        },
+        {
+          "slug": "jewelry-and-accessories-gold-work",
+          "nameFR": "Travail de l'or",
+          "nameEN": "Gold work",
+          "isActive": true
+        },
+        {
+          "slug": "jewelry-and-accessories-silver-work",
+          "nameFR": "Travail de l'argent",
+          "nameEN": "Silver work",
+          "isActive": true
+        },
+        {
+          "slug": "jewelry-and-accessories-gem-cutting",
+          "nameFR": "Taille de pierres",
+          "nameEN": "Gem cutting",
+          "isActive": true
+        },
+        {
+          "slug": "jewelry-and-accessories-jewelry-restoration",
+          "nameFR": "Restauration de bijoux",
+          "nameEN": "Jewelry restoration",
+          "isActive": true
+        },
+        {
+          "slug": "jewelry-and-accessories-accessory-making",
+          "nameFR": "Création d'accessoires",
+          "nameEN": "Accessory making",
+          "isActive": true
+        }
+      ]
+    },
+    {
+      "slug": "ceramics-glass-and-traditional-crafts",
+      "nameEN": "Ceramics, Glass & Traditional Crafts",
+      "nameFR": "Céramique, verre et artisanat traditionnel",
+      "isActive": true,
+      "skills": [
+        {
+          "slug": "ceramics-glass-and-traditional-crafts-pottery",
+          "nameFR": "Poterie",
+          "nameEN": "Pottery",
+          "isActive": true
+        },
+        {
+          "slug": "ceramics-glass-and-traditional-crafts-ceramics",
+          "nameFR": "Céramique",
+          "nameEN": "Ceramics",
+          "isActive": true
+        },
+        {
+          "slug": "ceramics-glass-and-traditional-crafts-glazing",
+          "nameFR": "Émaillage",
+          "nameEN": "Glazing",
+          "isActive": true
+        },
+        {
+          "slug": "ceramics-glass-and-traditional-crafts-ceramic-decoration",
+          "nameFR": "Décoration céramique",
+          "nameEN": "Ceramic decoration",
+          "isActive": true
+        },
+        {
+          "slug": "ceramics-glass-and-traditional-crafts-craft-sculpture",
+          "nameFR": "Sculpture artisanale",
+          "nameEN": "Craft sculpture",
+          "isActive": true
+        },
+        {
+          "slug": "ceramics-glass-and-traditional-crafts-basketry",
+          "nameFR": "Vannerie",
+          "nameEN": "Basketry",
+          "isActive": true
+        },
+        {
+          "slug": "ceramics-glass-and-traditional-crafts-weaving-and-braiding",
+          "nameFR": "Tressage",
+          "nameEN": "Weaving & braiding",
+          "isActive": true
+        },
+        {
+          "slug": "ceramics-glass-and-traditional-crafts-glasswork",
+          "nameFR": "Travail du verre",
+          "nameEN": "Glasswork",
+          "isActive": true
+        },
+        {
+          "slug": "ceramics-glass-and-traditional-crafts-decorative-object-making",
+          "nameFR": "Fabrication d'objets décoratifs",
+          "nameEN": "Decorative object making",
+          "isActive": true
+        },
+        {
+          "slug": "ceramics-glass-and-traditional-crafts-traditional-crafts",
+          "nameFR": "Artisanat traditionnel",
+          "nameEN": "Traditional crafts",
+          "isActive": true
+        },
+        {
+          "slug": "ceramics-glass-and-traditional-crafts-natural-fiber-crafts",
+          "nameFR": "Travail des fibres naturelles",
+          "nameEN": "Natural fiber crafts",
+          "isActive": true
+        }
+      ]
+    },
+    {
+      "slug": "food-bakery-and-processing",
+      "nameEN": "Food, Bakery & Processing",
+      "nameFR": "Alimentation, boulangerie et transformation",
+      "isActive": true,
+      "skills": [
+        {
+          "slug": "food-bakery-and-processing-baking",
+          "nameFR": "Boulangerie",
+          "nameEN": "Baking",
+          "isActive": true
+        },
+        {
+          "slug": "food-bakery-and-processing-pastry-making",
+          "nameFR": "Pâtisserie",
+          "nameEN": "Pastry making",
+          "isActive": true
+        },
+        {
+          "slug": "food-bakery-and-processing-cooking",
+          "nameFR": "Cuisine",
+          "nameEN": "Cooking",
+          "isActive": true
+        },
+        {
+          "slug": "food-bakery-and-processing-food-processing",
+          "nameFR": "Transformation alimentaire",
+          "nameEN": "Food processing",
+          "isActive": true
+        },
+        {
+          "slug": "food-bakery-and-processing-food-drying",
+          "nameFR": "Séchage des aliments",
+          "nameEN": "Food drying",
+          "isActive": true
+        },
+        {
+          "slug": "food-bakery-and-processing-food-smoking",
+          "nameFR": "Fumage des aliments",
+          "nameEN": "Food smoking",
+          "isActive": true
+        },
+        {
+          "slug": "food-bakery-and-processing-fermentation",
+          "nameFR": "Fermentation",
+          "nameEN": "Fermentation",
+          "isActive": true
+        },
+        {
+          "slug": "food-bakery-and-processing-food-hygiene",
+          "nameFR": "Hygiène alimentaire",
+          "nameEN": "Food hygiene",
+          "isActive": true
+        },
+        {
+          "slug": "food-bakery-and-processing-food-packaging",
+          "nameFR": "Emballage alimentaire",
+          "nameEN": "Food packaging",
+          "isActive": true
+        }
+      ]
+    },
+    {
+      "slug": "agriculture-livestock-and-agro-processing",
+      "nameEN": "Agriculture, Livestock & Agro-processing",
+      "nameFR": "Agriculture, élevage et transformation agricole",
+      "isActive": true,
+      "skills": [
+        {
+          "slug": "agriculture-livestock-and-agro-processing-market-gardening",
+          "nameFR": "Maraîchage",
+          "nameEN": "Market gardening",
+          "isActive": true
+        },
+        {
+          "slug": "agriculture-livestock-and-agro-processing-soil-preparation",
+          "nameFR": "Préparation des sols",
+          "nameEN": "Soil preparation",
+          "isActive": true
+        },
+        {
+          "slug": "agriculture-livestock-and-agro-processing-sowing-and-planting",
+          "nameFR": "Semis et plantation",
+          "nameEN": "Sowing & planting",
+          "isActive": true
+        },
+        {
+          "slug": "agriculture-livestock-and-agro-processing-irrigation",
+          "nameFR": "Irrigation",
+          "nameEN": "Irrigation",
+          "isActive": true
+        },
+        {
+          "slug": "agriculture-livestock-and-agro-processing-crop-maintenance",
+          "nameFR": "Entretien des cultures",
+          "nameEN": "Crop maintenance",
+          "isActive": true
+        },
+        {
+          "slug": "agriculture-livestock-and-agro-processing-harvesting",
+          "nameFR": "Récolte",
+          "nameEN": "Harvesting",
+          "isActive": true
+        },
+        {
+          "slug": "agriculture-livestock-and-agro-processing-poultry-farming",
+          "nameFR": "Élevage d'animaux",
+          "nameEN": "Poultry farming",
+          "isActive": true
+        },
+        {
+          "slug": "agriculture-livestock-and-agro-processing-beekeeping",
+          "nameFR": "Apiculture",
+          "nameEN": "Beekeeping",
+          "isActive": true
+        },
+        {
+          "slug": "agriculture-livestock-and-agro-processing-fish-farming",
+          "nameFR": "Pisciculture",
+          "nameEN": "Fish farming",
+          "isActive": true
+        },
+        {
+          "slug": "agriculture-livestock-and-agro-processing-animal-care",
+          "nameFR": "Soins aux animaux",
+          "nameEN": "Animal care",
+          "isActive": true
+        },
+        {
+          "slug": "agriculture-livestock-and-agro-processing-pest-control",
+          "nameFR": "Lutte contre les parasites",
+          "nameEN": "Pest control",
+          "isActive": true
+        },
+        {
+          "slug": "agriculture-livestock-and-agro-processing-composting",
+          "nameFR": "Compostage",
+          "nameEN": "Composting",
+          "isActive": true
+        },
+        {
+          "slug": "agriculture-livestock-and-agro-processing-agro-processing",
+          "nameFR": "Transformation agricole",
+          "nameEN": "Agro-processing",
+          "isActive": true
+        }
+      ]
+    },
+    {
+      "slug": "creative-design-and-media",
+      "nameEN": "Creative, Design & Media",
+      "nameFR": "Création, design et médias",
+      "isActive": true,
+      "skills": [
+        {
+          "slug": "creative-design-and-media-graphic-design",
+          "nameFR": "Design graphique",
+          "nameEN": "Graphic design",
+          "isActive": true
+        },
+        {
+          "slug": "creative-design-and-media-illustration",
+          "nameFR": "Illustration",
+          "nameEN": "Illustration",
+          "isActive": true
+        },
+        {
+          "slug": "creative-design-and-media-drawing",
+          "nameFR": "Dessin",
+          "nameEN": "Drawing",
+          "isActive": true
+        },
+        {
+          "slug": "creative-design-and-media-photography",
+          "nameFR": "Photographie",
+          "nameEN": "Photography",
+          "isActive": true
+        },
+        {
+          "slug": "creative-design-and-media-video-editing",
+          "nameFR": "Montage vidéo",
+          "nameEN": "Video editing",
+          "isActive": true
+        },
+        {
+          "slug": "creative-design-and-media-animation",
+          "nameFR": "Animation",
+          "nameEN": "Animation",
+          "isActive": true
+        },
+        {
+          "slug": "creative-design-and-media-content-creation",
+          "nameFR": "Création de contenu",
+          "nameEN": "Content creation",
+          "isActive": true
+        },
+        {
+          "slug": "creative-design-and-media-poster-design",
+          "nameFR": "Design d'affiches",
+          "nameEN": "Poster design",
+          "isActive": true
+        },
+        {
+          "slug": "creative-design-and-media-packaging-design",
+          "nameFR": "Design d'emballages",
+          "nameEN": "Packaging design",
+          "isActive": true
+        },
+        {
+          "slug": "creative-design-and-media-screen-printing",
+          "nameFR": "Sérigraphie",
+          "nameEN": "Screen printing",
+          "isActive": true
+        },
+        {
+          "slug": "creative-design-and-media-art-painting",
+          "nameFR": "Peinture artistique",
+          "nameEN": "Art painting",
+          "isActive": true
+        }
+      ]
+    },
+    {
+      "slug": "digital-fabrication-and-maker-technology",
+      "nameEN": "Digital Fabrication & Maker Technology",
+      "nameFR": "Fabrication numérique et technologies maker",
+      "isActive": true,
+      "skills": [
+        {
+          "slug": "digital-fabrication-and-maker-technology-3d-printing",
+          "nameFR": "Impression 3D",
+          "nameEN": "3D printing",
+          "isActive": true
+        },
+        {
+          "slug": "digital-fabrication-and-maker-technology-3d-modeling",
+          "nameFR": "Modélisation 3D",
+          "nameEN": "3D modeling",
+          "isActive": true
+        },
+        {
+          "slug": "digital-fabrication-and-maker-technology-laser-cutting",
+          "nameFR": "Découpe laser",
+          "nameEN": "Laser cutting",
+          "isActive": true
+        },
+        {
+          "slug": "digital-fabrication-and-maker-technology-laser-engraving",
+          "nameFR": "Gravure laser",
+          "nameEN": "Laser engraving",
+          "isActive": true
+        },
+        {
+          "slug": "digital-fabrication-and-maker-technology-maker-electronics",
+          "nameFR": "Électronique maker",
+          "nameEN": "Maker electronics",
+          "isActive": true
+        },
+        {
+          "slug": "digital-fabrication-and-maker-technology-robotics",
+          "nameFR": "Robotique",
+          "nameEN": "Robotics",
+          "isActive": true
+        }
+      ]
+    }
+  ]
+}

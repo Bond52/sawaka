@@ -1,11 +1,15 @@
 const jwt = require("jsonwebtoken");
 
-function requireAuth(req, res, next) {
+function readRequestToken(req) {
   const bearer = req.headers.authorization;
   const headerToken =
     bearer && bearer.startsWith("Bearer ") ? bearer.split(" ")[1] : null;
   const cookieToken = req.cookies?.token;
-  const token = headerToken || cookieToken;
+  return headerToken || cookieToken || null;
+}
+
+function requireAuth(req, res, next) {
+  const token = readRequestToken(req);
 
   if (!token) return res.status(401).json({ message: "Unauthorized" });
   try {
@@ -13,6 +17,21 @@ function requireAuth(req, res, next) {
     next();
   } catch (e) {
     return res.status(401).json({ message: "Invalid token" });
+  }
+}
+
+/**
+ * Continues anonymous when no token is present.
+ * An invalid token is rejected so it cannot be treated as a new account.
+ */
+function optionalAuth(req, res, next) {
+  const token = readRequestToken(req);
+  if (!token) return next();
+  try {
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    return next();
+  } catch (e) {
+    return res.status(401).json({ error: { code: "UNAUTHORIZED" } });
   }
 }
 
@@ -25,4 +44,4 @@ function requireRole(...roles) {
   };
 }
 
-module.exports = { requireAuth, requireRole };
+module.exports = { requireAuth, optionalAuth, requireRole, readRequestToken };

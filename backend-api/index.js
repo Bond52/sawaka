@@ -6,6 +6,9 @@ const dotenv = require("dotenv");
 const {
   ensureMagicLinkTokenIndexCompatibility,
 } = require("./services/MagicLinkTokenIndexService");
+const {
+  ensureContributorTaxonomy,
+} = require("./services/contributorTaxonomySeed");
 
 dotenv.config();
 const app = express();
@@ -122,6 +125,9 @@ app.use("/api/fournisseurs", require("./routes/fournisseurs"));
 // 🏷️ Fournisseurs (Supplier + magic link)
 app.use("/api/suppliers", require("./routes/supplier.routes"));
 
+// Contributor profiles (separate from User and from Supplier)
+app.use("/api/contributors", require("./routes/contributor.routes"));
+
 // 📨 Feedback utilisateurs (avis, signalements)
 app.use("/api/feedback", require("./routes/feedback"));
 
@@ -168,6 +174,7 @@ async function connectMongo() {
   if (!process.env.MONGO_URI) return;
 
   await mongoose.connect(process.env.MONGO_URI);
+  await ensureContributorTaxonomy();
   const migratedMagicLinkTokenIndex =
     await ensureMagicLinkTokenIndexCompatibility();
   if (migratedMagicLinkTokenIndex) {
