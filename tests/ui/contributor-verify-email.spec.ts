@@ -38,4 +38,18 @@ test.describe("Contributor account email verification page", () => {
     await page.goto("/contributor/verify-email?token=bad-token");
     await expect(page.getByTestId("contributor-verify-email-error")).toBeVisible();
   });
+
+  test("shows an expired link separately from a reused link", async ({ page }) => {
+    await mockVerify(page, { error: { code: "TOKEN_EXPIRED" } }, 400);
+    await page.goto("/contributor/verify-email?token=expired-token");
+    await expect(page.getByTestId("contributor-verify-email-expired")).toContainText(
+      "has expired"
+    );
+
+    await mockVerify(page, { error: { code: "TOKEN_USED" } }, 400);
+    await page.goto("/contributor/verify-email?token=used-token");
+    await expect(page.getByTestId("contributor-verify-email-used")).toContainText(
+      "already been used"
+    );
+  });
 });

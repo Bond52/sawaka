@@ -44,6 +44,12 @@ const ACTIONS: QuickAction[] = [
     href: "/profile",
     icon: "edit",
   },
+  {
+    id: "create-contributor",
+    labelKey: "dashboard.actions.createContributor",
+    href: "/contributor/create",
+    icon: "plus",
+  },
 ];
 
 function ActionIcon({ icon }: { icon: QuickAction["icon"] }) {
