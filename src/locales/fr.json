@@ -962,5 +962,20 @@
     },
     "ctaBefore": "Pour toute question ou pour nous écrire, contactez-nous à",
     "ctaAfter": "."
+  },
+  "contributor": {
+    "verifyEmail": {
+      "verifying": "Vérification de votre e-mail…",
+      "pleaseWait": "Veuillez patienter pendant la confirmation de votre compte Sawaka.",
+      "success": "Votre e-mail est vérifié et votre profil contributeur est actif.",
+      "successHint": "Votre profil peut maintenant être découvert sur Sawaka.",
+      "notPublic": "Votre e-mail est vérifié. Votre profil contributeur n’est pas encore public.",
+      "notPublicHint": "Il manque encore les informations requises avant que le profil puisse être visible.",
+      "error": "Ce lien de vérification est invalide ou a expiré.",
+      "errorHint": "Demandez un nouvel e-mail de vérification depuis votre compte, puis utilisez le lien le plus récent.",
+      "networkError": "Connexion impossible. Vérifiez votre réseau et réessayez.",
+      "retry": "Réessayer",
+      "goToDashboard": "Aller au tableau de bord"
+    }
   }
 }

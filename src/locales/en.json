@@ -962,5 +962,20 @@
     },
     "ctaBefore": "For any questions or to get in touch, contact us at",
     "ctaAfter": "."
+  },
+  "contributor": {
+    "verifyEmail": {
+      "verifying": "Verifying your email…",
+      "pleaseWait": "Please wait while we confirm your Sawaka account.",
+      "success": "Your email is verified and your contributor profile is active.",
+      "successHint": "Your profile can now be discovered on Sawaka.",
+      "notPublic": "Your email is verified. Your contributor profile is not public yet.",
+      "notPublicHint": "The profile is still missing the information required before it can be visible.",
+      "error": "This verification link is invalid or has expired.",
+      "errorHint": "Request a new verification email from your account, then use the most recent link.",
+      "networkError": "Unable to connect. Check your network and try again.",
+      "retry": "Try again",
+      "goToDashboard": "Go to dashboard"
+    }
   }
 }
