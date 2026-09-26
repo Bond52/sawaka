@@ -10,6 +10,9 @@ const {
   ACCOUNT_FIELDS_REQUIRED,
   ACCOUNT_ALREADY_EXISTS,
 } = require("./accountRegistration");
+const {
+  sendVerificationForUser,
+} = require("./UserEmailVerificationService");
 
 const DISPLAY_NAME_MIN = 2;
 const DISPLAY_NAME_MAX = 80;
@@ -387,12 +390,30 @@ async function createContributorProfile({ authUserId, body }) {
       status: lifecycle.status,
       isVisible: lifecycle.isVisible,
     });
+    let verification = {
+      verificationRequired: false,
+      verificationEmailSent: false,
+    };
+    try {
+      verification = await sendVerificationForUser(user);
+    } catch (sendErr) {
+      console.error("ContributorProfileService.verificationEmail:", {
+        name: sendErr && sendErr.name,
+        code: sendErr && sendErr.code,
+      });
+      verification = {
+        verificationRequired: user.emailVerified !== true,
+        verificationEmailSent: false,
+      };
+    }
     return {
       user,
       profile,
       domain,
       canonical,
       accountCreated: Boolean(createdUser),
+      verificationRequired: verification.verificationRequired,
+      verificationEmailSent: verification.verificationEmailSent,
     };
   } catch (err) {
     if (createdUser) {

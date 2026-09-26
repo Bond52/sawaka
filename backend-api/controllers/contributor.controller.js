@@ -7,6 +7,11 @@ const {
   issueSessionToken,
   sessionCookieOptions,
 } = require("../services/accountRegistration");
+const {
+  resendForAuthenticatedUser,
+  consumeVerificationToken,
+  UserEmailVerificationError,
+} = require("../services/UserEmailVerificationService");
 
 function sendFunctionalError(res, err) {
   const body = { error: { code: err.code } };
@@ -37,6 +42,8 @@ async function createContributor(req, res) {
     const payload = {
       profile,
       accountCreated: result.accountCreated,
+      verificationRequired: result.verificationRequired === true,
+      verificationEmailSent: result.verificationEmailSent === true,
     };
 
     if (result.accountCreated) {
@@ -108,10 +115,38 @@ async function listDomainSkills(req, res) {
   }
 }
 
+async function resendVerificationEmail(req, res) {
+  try {
+    const result = await resendForAuthenticatedUser(req.user.id);
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof UserEmailVerificationError) {
+      return sendFunctionalError(res, err);
+    }
+    logContributorError("resendVerificationEmail", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function verifyAccountEmail(req, res) {
+  try {
+    const result = await consumeVerificationToken(req.body && req.body.token);
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof UserEmailVerificationError) {
+      return sendFunctionalError(res, err);
+    }
+    logContributorError("verifyAccountEmail", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
 module.exports = {
   createContributor,
   getOwnContributor,
   getPublicContributor,
   listDomains,
   listDomainSkills,
+  resendVerificationEmail,
+  verifyAccountEmail,
 };

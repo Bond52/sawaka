@@ -4,6 +4,9 @@ const {
   buildSupplierManagementUrl,
   buildContactEmailVerificationUrl,
 } = require("../utils/supplierActivationUrl");
+const {
+  buildUserEmailVerificationUrl,
+} = require("../utils/userEmailVerificationUrl");
 
 function escapeHtml(s) {
   return String(s)
@@ -177,6 +180,16 @@ const CONTACT_EMAIL_TEMPLATE = {
   logLabel: "EmailService.sendContactEmailVerification",
 };
 
+const USER_EMAIL_TEMPLATE = {
+  subject: "Verify your email on Sawaka",
+  title: "Verify your Sawaka account email",
+  intro:
+    "Click the button below to verify the email address on your Sawaka account. This link expires in 24 hours and can only be used once.",
+  ctaLabel: "Verify email",
+  buildUrl: buildUserEmailVerificationUrl,
+  logLabel: "EmailService.sendUserEmailVerification",
+};
+
 const EmailService = {
   /**
    * @param {string} email
@@ -203,6 +216,16 @@ const EmailService = {
    */
   async sendContactEmailVerification(email, token) {
     return sendTemplatedMagicLink(email, token, CONTACT_EMAIL_TEMPLATE);
+  },
+
+  /**
+   * Account email verification. Templates follow the existing English mail pattern.
+   * @param {string} email
+   * @param {string} token
+   * @returns {Promise<boolean>}
+   */
+  async sendUserEmailVerification(email, token) {
+    return sendTemplatedMagicLink(email, token, USER_EMAIL_TEMPLATE);
   },
 
   /**
