@@ -87,13 +87,7 @@ export default function ContributorCreateExperience() {
   const [domainsError, setDomainsError] = useState(false);
   const [skills, setSkills] = useState<TaxonomyItem[]>([]);
   const [skillsState, setSkillsState] = useState<"idle" | "loading" | "error" | "ready">("idle");
-  const [additionalDomainId, setAdditionalDomainId] = useState("");
-  const [additionalSkills, setAdditionalSkills] = useState<TaxonomyItem[]>([]);
-  const [additionalSkillsState, setAdditionalSkillsState] = useState<
-    "idle" | "loading" | "error" | "ready"
-  >("idle");
-  const [additionalSelections, setAdditionalSelections] = useState<TaxonomyItem[]>([]);
-  const [skillsCleared, setSkillsCleared] = useState(false);
+  const [selectedSkills, setSelectedSkills] = useState<TaxonomyItem[]>([]);
   const [fieldErrors, setFieldErrors] = useState<ContributorFieldErrors>({});
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -179,29 +173,6 @@ export default function ContributorCreateExperience() {
     };
   }, [domainId]);
 
-  useEffect(() => {
-    if (!additionalDomainId) {
-      setAdditionalSkills([]);
-      setAdditionalSkillsState("idle");
-      return;
-    }
-    let cancelled = false;
-    setAdditionalSkillsState("loading");
-    listContributorSkills(additionalDomainId).then((result) => {
-      if (cancelled) return;
-      if (!result.ok) {
-        setAdditionalSkills([]);
-        setAdditionalSkillsState("error");
-        return;
-      }
-      setAdditionalSkills(result.skills);
-      setAdditionalSkillsState("ready");
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [additionalDomainId]);
-
   function messageFor(code: string): string {
     const key = `contributor.create.errors.${code}`;
     const message = t(key);
@@ -216,31 +187,19 @@ export default function ContributorCreateExperience() {
   }
 
   function onDomainChange(nextDomainId: string) {
-    const additionalIds = new Set(additionalSelections.map((item) => item.id));
-    const removedPrimary = skillIds.some((id) => !additionalIds.has(id));
     setDomainId(nextDomainId);
-    setSkillsCleared(removedPrimary);
-    setSkillIds(skillIds.filter((id) => additionalIds.has(id)));
-    if (additionalDomainId === nextDomainId) {
-      setAdditionalDomainId("");
-    }
     setFieldErrors((current) => {
       const next = { ...current };
       delete next.domainId;
-      delete next.skillIds;
       return next;
     });
   }
 
-  function toggleSkill(
-    skillId: string,
-    origin: "primary" | "additional",
-    skill?: TaxonomyItem
-  ) {
-    setSkillsCleared(false);
+  function toggleSkill(skill: TaxonomyItem) {
+    const skillId = skill.id;
     if (skillIds.includes(skillId)) {
       setSkillIds(skillIds.filter((id) => id !== skillId));
-      setAdditionalSelections((current) => current.filter((item) => item.id !== skillId));
+      setSelectedSkills((current) => current.filter((item) => item.id !== skillId));
       return;
     }
     if (skillIds.length + customSkills.length >= MAX_SELECTED_SKILLS) {
@@ -253,13 +212,9 @@ export default function ContributorCreateExperience() {
       return next;
     });
     setSkillIds([...skillIds, skillId]);
-    if (
-      origin === "additional" &&
-      skill &&
-      !additionalSelections.some((item) => item.id === skillId)
-    ) {
-      setAdditionalSelections([...additionalSelections, skill]);
-    }
+    setSelectedSkills((current) =>
+      current.some((item) => item.id === skillId) ? current : [...current, skill]
+    );
   }
 
   function removableSkillChip(
@@ -826,11 +781,6 @@ export default function ContributorCreateExperience() {
                     {t("contributor.create.skillsEmpty")}
                   </p>
                 )}
-                {skillsCleared && (
-                  <p role="status" className="text-sm text-foreground">
-                    {t("contributor.create.skillsCleared")}
-                  </p>
-                )}
                 <div className="flex flex-wrap gap-2">
                   {skills.map((skill) => {
                     const selected = skillIds.includes(skill.id);
@@ -845,114 +795,21 @@ export default function ContributorCreateExperience() {
                             ? "border-primary bg-primary/10 font-semibold text-foreground"
                             : "border-border bg-card text-foreground"
                         }`}
-                        onClick={() => toggleSkill(skill.id, "primary", skill)}
+                        onClick={() => toggleSkill(skill)}
                       >
                         {taxonomyLabel(skill, locale)}
                       </button>
                     );
                   })}
                 </div>
-                {skills.some((skill) => skillIds.includes(skill.id)) && (
+                {selectedSkills.length > 0 && (
                   <ul className="flex flex-wrap gap-2">
-                    {skills
-                      .filter((skill) => skillIds.includes(skill.id))
-                      .map((skill) => (
-                        <li key={skill.id}>
-                          {removableSkillChip(
-                            taxonomyLabel(skill, locale),
-                            () => toggleSkill(skill.id, "primary", skill),
-                            `contributor-primary-selected-${skill.id}`,
-                            true
-                          )}
-                        </li>
-                      ))}
-                  </ul>
-                )}
-              </fieldset>
-              {fieldError("skillIds")}
-            </div>
-
-            <div className="space-y-2">
-              <fieldset className="space-y-3">
-                <legend className={labelClass}>
-                  {t("contributor.create.additionalSkills")}
-                </legend>
-                <p
-                  id="contributor-additional-hint"
-                  className="text-sm text-muted-foreground"
-                >
-                  {t("contributor.create.additionalHint")}
-                </p>
-                <label htmlFor="contributor-additional-domain" className={labelClass}>
-                  {t("contributor.create.additionalDomain")}
-                </label>
-                <select
-                  id="contributor-additional-domain"
-                  className={inputClass}
-                  value={additionalDomainId}
-                  aria-describedby="contributor-additional-hint"
-                  onChange={(event) => setAdditionalDomainId(event.target.value)}
-                >
-                  <option value="">
-                    {t("contributor.create.additionalDomainPlaceholder")}
-                  </option>
-                  {domains
-                    .filter((domain) => domain.id !== domainId)
-                    .map((domain) => (
-                      <option key={domain.id} value={domain.id}>
-                        {taxonomyLabel(domain, locale)}
-                      </option>
-                    ))}
-                </select>
-                {!additionalDomainId && (
-                  <p className="text-sm text-muted-foreground">
-                    {t("contributor.create.additionalNeedDomain")}
-                  </p>
-                )}
-                {additionalSkillsState === "loading" && (
-                  <p role="status" className="text-sm text-muted-foreground">
-                    {t("contributor.create.skillsLoading")}
-                  </p>
-                )}
-                {additionalSkillsState === "error" && (
-                  <p role="alert" className="text-sm text-destructive">
-                    {t("contributor.create.skillsError")}
-                  </p>
-                )}
-                {additionalSkillsState === "ready" && additionalSkills.length === 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    {t("contributor.create.skillsEmpty")}
-                  </p>
-                )}
-                <div className="flex flex-wrap gap-2">
-                  {additionalSkills.map((skill) => {
-                    const selected = skillIds.includes(skill.id);
-                    return (
-                      <button
-                        key={skill.id}
-                        type="button"
-                        data-testid={`contributor-additional-skill-${skill.id}`}
-                        aria-pressed={selected}
-                        className={`min-h-[44px] rounded-full border px-3 py-2 text-left text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                          selected
-                            ? "border-primary bg-primary/10 font-semibold text-foreground"
-                            : "border-border bg-card text-foreground"
-                        }`}
-                        onClick={() => toggleSkill(skill.id, "additional", skill)}
-                      >
-                        {taxonomyLabel(skill, locale)}
-                      </button>
-                    );
-                  })}
-                </div>
-                {additionalSelections.length > 0 && (
-                  <ul className="flex flex-wrap gap-2">
-                    {additionalSelections.map((skill) => (
+                    {selectedSkills.map((skill) => (
                       <li key={skill.id}>
                         {removableSkillChip(
                           taxonomyLabel(skill, locale),
-                          () => toggleSkill(skill.id, "additional", skill),
-                          `contributor-additional-selected-${skill.id}`,
+                          () => toggleSkill(skill),
+                          `contributor-selected-${skill.id}`,
                           true
                         )}
                       </li>
@@ -960,6 +817,7 @@ export default function ContributorCreateExperience() {
                   </ul>
                 )}
               </fieldset>
+              {fieldError("skillIds")}
             </div>
 
             <div className="space-y-2">
