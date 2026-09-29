@@ -41,7 +41,7 @@ const ACTIONS: QuickAction[] = [
   {
     id: "edit-profile",
     labelKey: "dashboard.actions.editProfile",
-    href: "/profile",
+    href: "/settings",
     icon: "edit",
   },
   {

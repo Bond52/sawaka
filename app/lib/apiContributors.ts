@@ -3,12 +3,28 @@ import { resolveApiBaseUrl } from "./apiBase";
 
 export type TaxonomyItem = { id: string; nameFR: string; nameEN: string };
 
-export type ContributorProfilePayload = {
+export type ContributorSkillPayload = {
+  id?: string;
+  nameFR?: string;
+  nameEN?: string;
+  customLabel?: string;
+  isCustom: boolean;
+};
+
+export type ContributorProfileDetail = {
   id: string;
   displayName: string;
+  biography?: string;
+  country?: string;
+  region?: string;
+  city?: string;
+  domain?: TaxonomyItem | null;
+  skills?: ContributorSkillPayload[];
   status?: string;
   isVisible?: boolean;
 };
+
+export type ContributorProfilePayload = ContributorProfileDetail;
 
 export type ContributorFieldMap = Record<string, string>;
 

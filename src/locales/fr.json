@@ -525,6 +525,36 @@
     "saving": "Enregistrement...",
     "update": "Mettre à jour le profil"
   },
+  "settings": {
+    "title": "Paramètres"
+  },
+  "contributorProfile": {
+    "loadError": "Impossible de charger votre profil contributeur.",
+    "backToDashboard": "Retour au tableau de bord",
+    "noProfileTitle": "Aucun profil contributeur",
+    "noProfileBody": "Créez un profil contributeur pour présenter votre domaine, vos compétences et votre activité sur Sawaka.",
+    "createCta": "Créer un profil contributeur",
+    "locationUnavailable": "Localisation non renseignée",
+    "skillsTitle": "Compétences",
+    "skillsEmpty": "Aucune compétence sélectionnée pour le moment.",
+    "badgesTitle": "Badges",
+    "badgesEmpty": "Aucun badge pour le moment.",
+    "reputationTitle": "Réputation",
+    "reputation": {
+      "ratings": "Évaluations",
+      "projects": "Projets terminés",
+      "collaborations": "Collaborations",
+      "realizations": "Réalisations",
+      "unavailable": "Pas encore disponible"
+    },
+    "realizationsTitle": "Réalisations",
+    "realizationsEmpty": "Aucune réalisation publiée pour le moment.",
+    "viewAllRealizations": "Voir toutes les réalisations",
+    "collaborationsTitle": "Collaborations",
+    "collaborationsEmpty": "Aucune collaboration à afficher pour le moment.",
+    "reviewsTitle": "Avis de la communauté",
+    "reviewsEmpty": "Aucun avis de la communauté pour le moment."
+  },
   "buyer": {
     "welcome": "Bienvenue acheteur",
     "connected": "Vous êtes maintenant connecté en tant qu'acheteur.",
