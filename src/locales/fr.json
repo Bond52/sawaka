@@ -43,8 +43,7 @@
     "admin": "Gestion (Admin)",
     "logout": "Déconnexion",
     "login": "Se connecter",
-    "register": "S'inscrire",
-    "createContributor": "Créer un profil contributeur"
+    "register": "S'inscrire"
   },
   "dashboard": {
     "greetingNamed": "Bonjour {name}",

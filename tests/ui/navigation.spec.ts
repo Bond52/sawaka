@@ -132,7 +132,7 @@ test.describe("Public navigation", () => {
     await expect(page.getByTestId("login-modal")).toBeVisible();
   });
 
-  test("authenticated menu keeps the contributor profile entry", async ({
+  test("authenticated menu does not show Create Contributor Profile", async ({
     page,
   }) => {
     await setLocale(page, "fr");
@@ -151,19 +151,54 @@ test.describe("Public navigation", () => {
     await page.goto("/");
 
     await expect(page.getByTestId("header-register")).toHaveCount(0);
+    await expect(page.getByTestId("header-create-contributor")).toHaveCount(0);
     await expect(
       page.getByRole("link", { name: "Créer un profil contributeur" })
     ).toHaveCount(0);
 
     await page.getByTestId("header-user-menu").click();
-    const createProfile = page.getByTestId("header-create-contributor");
-    await expect(createProfile).toHaveText("Créer un profil contributeur");
-    await expect(createProfile).toHaveAttribute("href", "/contributor/create");
+    await expect(page.getByTestId("header-create-contributor")).toHaveCount(0);
+    await expect(
+      page.getByRole("link", { name: "Créer un profil contributeur" })
+    ).toHaveCount(0);
+    await expect(page.getByTestId("header-dashboard-link")).toBeVisible();
+    await expect(page.getByTestId("header-profile-link")).toBeVisible();
+    await expect(page.getByTestId("header-my-creations-link")).toBeVisible();
+    await expect(page.getByTestId("header-logout")).toBeVisible();
     await expect(page.getByRole("navigation").getByRole("link", { name: "Concours" })).toHaveCount(
       0
     );
     await expect(
       page.getByRole("navigation").getByRole("link", { name: "Réalisations", exact: true })
     ).toBeVisible();
+  });
+
+  test("authenticated English menu does not show Create Contributor Profile", async ({
+    page,
+  }) => {
+    await setLocale(page, "en");
+    await page.addInitScript(() => {
+      window.localStorage.setItem(
+        "user",
+        JSON.stringify({
+          token: "user-jwt-token",
+          roles: ["acheteur"],
+          username: "amina",
+          firstName: "Amina",
+        })
+      );
+    });
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/");
+
+    await page.getByTestId("header-user-menu").click();
+    await expect(page.getByTestId("header-create-contributor")).toHaveCount(0);
+    await expect(
+      page.getByRole("link", { name: /create contributor profile/i })
+    ).toHaveCount(0);
+    await expect(page.getByTestId("header-dashboard-link")).toHaveText("Dashboard");
+    await expect(page.getByTestId("header-profile-link")).toHaveText("My Profile");
+    await expect(page.getByTestId("header-my-creations-link")).toBeVisible();
+    await expect(page.getByTestId("header-logout")).toHaveText("Log out");
   });
 });

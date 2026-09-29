@@ -43,8 +43,7 @@
     "admin": "Management (Admin)",
     "logout": "Log out",
     "login": "Log in",
-    "register": "Sign up",
-    "createContributor": "Create contributor profile"
+    "register": "Sign up"
   },
   "dashboard": {
     "greetingNamed": "Hello {name}",
