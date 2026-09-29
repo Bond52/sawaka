@@ -114,20 +114,15 @@ export default function Header() {
             {t("navigation.dashboard")}
           </Link>
           <Link
-            href="/contributor/create"
-            data-testid="header-create-contributor"
-            className="block px-4 py-2 text-foreground hover:bg-secondary"
-          >
-            {t("navigation.createContributor")}
-          </Link>
-          <Link
             href="/profile"
+            data-testid="header-profile-link"
             className="block px-4 py-2 text-foreground hover:bg-secondary"
           >
             {t("navigation.profile")}
           </Link>
           <Link
             href="/vendeur/articles"
+            data-testid="header-my-creations-link"
             className="block px-4 py-2 text-foreground hover:bg-secondary"
           >
             {t("navigation.myCreations")}
