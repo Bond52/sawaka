@@ -5,9 +5,15 @@ const taxonomy = require("../data/contributorTaxonomy.json");
 /**
  * Upserts the approved simplified domain/skill dataset.
  * Idempotent. Does not invent values beyond the JSON produced from the approved files.
+ * Soft-deactivates Domains/Skills whose slugs are no longer in the approved set so
+ * existing ContributorProfile ObjectId references are not silently deleted.
  */
 async function ensureContributorTaxonomy() {
+  const approvedDomainSlugs = [];
+  const approvedSkillSlugs = [];
+
   for (const domain of taxonomy.domains) {
+    approvedDomainSlugs.push(domain.slug);
     const domainDoc = await Domain.findOneAndUpdate(
       { slug: domain.slug },
       {
@@ -20,6 +26,7 @@ async function ensureContributorTaxonomy() {
     );
 
     for (const skill of domain.skills) {
+      approvedSkillSlugs.push(skill.slug);
       await Skill.findOneAndUpdate(
         { slug: skill.slug },
         {
@@ -33,6 +40,15 @@ async function ensureContributorTaxonomy() {
       );
     }
   }
+
+  await Domain.updateMany(
+    { slug: { $nin: approvedDomainSlugs } },
+    { $set: { isActive: false } }
+  );
+  await Skill.updateMany(
+    { slug: { $nin: approvedSkillSlugs } },
+    { $set: { isActive: false } }
+  );
 }
 
 module.exports = { ensureContributorTaxonomy };

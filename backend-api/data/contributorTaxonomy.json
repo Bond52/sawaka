@@ -1,5 +1,5 @@
 {
-  "source": "Approved simplified Sawaka domain/skill taxonomy. English domain labels from Sawaka_Simplified_Domain_Skills_v0.2.xlsx joined by row with French domain labels from Sawaka_Simplified_Domain_Skills.xlsx (internal title v0.3). Skill FR/EN labels match on every row. ESCO hierarchy is not included.",
+  "source": "Approved simplified Sawaka domain/skill taxonomy synchronized from Sawaka_Simplified_Domain_Skills.xlsx sheet Domaines - Tags par defaut (Task #391). Domain FR and Skill FR/EN labels match the workbook. Domain EN labels are retained from the prior approved bilingual join because the workbook has no Domain EN column. ESCO hierarchy is not included and must not be exposed in contributor UX.",
   "domains": [
     {
       "slug": "construction-and-building",
