@@ -7,6 +7,7 @@ import { MapPin } from "lucide-react";
 import { useTranslation } from "@/src/i18n/I18nProvider";
 import { readStoredUser } from "@/app/lib/authUser";
 import {
+  classifyOwnProfileResult,
   getOwnContributor,
   taxonomyLabel,
   type ContributorProfileDetail,
@@ -67,23 +68,26 @@ export default function ContributorProfilePage() {
       setMissingProfile(false);
       const result = await getOwnContributor();
       if (cancelled) return;
-      if (result.ok) {
-        setProfile(result.profile);
-        setLoading(false);
-        return;
+
+      const outcome = classifyOwnProfileResult(result);
+      switch (outcome.kind) {
+        case "success":
+          setProfile(outcome.profile);
+          setLoading(false);
+          return;
+        case "missing":
+          setMissingProfile(true);
+          setProfile(null);
+          setLoading(false);
+          return;
+        case "unauthorized":
+          router.replace("/login?redirect=/profile");
+          return;
+        case "error":
+          setError(t("contributorProfile.loadError"));
+          setLoading(false);
+          return;
       }
-      if (result.status === 404 || result.code === "CONTRIBUTOR_PROFILE_NOT_FOUND") {
-        setMissingProfile(true);
-        setProfile(null);
-        setLoading(false);
-        return;
-      }
-      if (result.status === 401) {
-        router.replace("/login?redirect=/profile");
-        return;
-      }
-      setError(t("contributorProfile.loadError"));
-      setLoading(false);
     })();
 
     return () => {

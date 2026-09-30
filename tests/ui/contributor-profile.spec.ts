@@ -151,6 +151,18 @@ test.describe("Contributor profile overview (/profile)", () => {
     );
   });
 
+  test("shows generic error state for non-404 failures", async ({ page }) => {
+    await setLocale(page, "en");
+    await seedUser(page);
+    await mockContributorMe(page, { error: { code: "SERVER_ERROR" } }, 500);
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/profile");
+
+    await expect(page.getByTestId("contributor-profile-error")).toBeVisible();
+    await expect(page.getByTestId("contributor-profile-overview")).toHaveCount(0);
+    await expect(page.getByTestId("contributor-profile-empty")).toHaveCount(0);
+  });
+
   test("account settings remain available on /settings", async ({ page }) => {
     await setLocale(page, "en");
     await seedUser(page);
