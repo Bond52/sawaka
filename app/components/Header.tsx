@@ -76,8 +76,7 @@ const PUBLIC_NAV = [
  * - My Realizations → Feature #346
  * - My Projects → EPIC #215 (no dedicated “my projects” area; /projets is public browse)
  * - My Collaborations → Feature #347
- * - Settings → no dedicated settings page yet; account editing currently lives on /profile
- *   and will be separated when Task #393 redesigns My Profile.
+ * - Settings → `/settings` (account editing preserved after Task #393 moved it off `/profile`)
  * Create Contributor Profile must not appear (Bug #392).
  */
 const ACCOUNT_MENU_ITEMS: AccountMenuItem[] = [
@@ -123,7 +122,8 @@ const ACCOUNT_MENU_ITEMS: AccountMenuItem[] = [
     labelKey: "navigation.settings",
     testId: "header-settings",
     icon: Settings,
-    available: false,
+    href: "/settings",
+    available: true,
   },
 ];
 

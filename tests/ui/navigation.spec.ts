@@ -187,7 +187,10 @@ test.describe("Public navigation", () => {
     );
     await expect(page.getByTestId("header-my-collaborations")).toBeDisabled();
     await expect(page.getByTestId("header-settings")).toHaveText("Paramètres");
-    await expect(page.getByTestId("header-settings")).toBeDisabled();
+    await expect(page.getByTestId("header-settings")).toHaveAttribute(
+      "href",
+      "/settings"
+    );
     await expect(page.getByTestId("header-logout")).toHaveText("Se déconnecter");
     await expect(page.getByTestId("header-my-creations-link")).toHaveCount(0);
     await expect(page.getByTestId("header-create-contributor")).toHaveCount(0);
@@ -229,10 +232,13 @@ test.describe("Public navigation", () => {
       "My Collaborations"
     );
     await expect(page.getByTestId("header-settings")).toHaveText("Settings");
+    await expect(page.getByTestId("header-settings")).toHaveAttribute(
+      "href",
+      "/settings"
+    );
     await expect(page.getByTestId("header-my-realizations")).toBeDisabled();
     await expect(page.getByTestId("header-my-projects")).toBeDisabled();
     await expect(page.getByTestId("header-my-collaborations")).toBeDisabled();
-    await expect(page.getByTestId("header-settings")).toBeDisabled();
     await expect(page.getByTestId("header-logout")).toHaveText("Log out");
   });
 
@@ -267,7 +273,10 @@ test.describe("Public navigation", () => {
     await expect(page.getByTestId("header-mobile-realizations")).toBeDisabled();
     await expect(page.getByTestId("header-mobile-my-projects")).toBeDisabled();
     await expect(page.getByTestId("header-mobile-collaborations")).toBeDisabled();
-    await expect(page.getByTestId("header-mobile-settings")).toBeDisabled();
+    await expect(page.getByTestId("header-mobile-settings")).toHaveAttribute(
+      "href",
+      "/settings"
+    );
     await expect(page.getByTestId("header-logout-mobile")).toHaveText(
       "Se déconnecter"
     );

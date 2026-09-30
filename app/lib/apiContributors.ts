@@ -3,12 +3,28 @@ import { resolveApiBaseUrl } from "./apiBase";
 
 export type TaxonomyItem = { id: string; nameFR: string; nameEN: string };
 
-export type ContributorProfilePayload = {
+export type ContributorSkillPayload = {
+  id?: string;
+  nameFR?: string;
+  nameEN?: string;
+  customLabel?: string;
+  isCustom: boolean;
+};
+
+export type ContributorProfileDetail = {
   id: string;
   displayName: string;
+  biography?: string;
+  country?: string;
+  region?: string;
+  city?: string;
+  domain?: TaxonomyItem | null;
+  skills?: ContributorSkillPayload[];
   status?: string;
   isVisible?: boolean;
 };
+
+export type ContributorProfilePayload = ContributorProfileDetail;
 
 export type ContributorFieldMap = Record<string, string>;
 
@@ -19,6 +35,32 @@ export type VerifyAccountEmailResult =
 export type OwnProfileResult =
   | { ok: true; profile: ContributorProfilePayload }
   | { ok: false; status: number; code: string };
+
+export type OwnProfileLoadOutcome =
+  | { kind: "success"; profile: ContributorProfilePayload }
+  | { kind: "missing" }
+  | { kind: "unauthorized" }
+  | { kind: "error" };
+
+/**
+ * Narrows OwnProfileResult into page-level load outcomes.
+ * Keeps discriminated-union handling in one typed place for callers.
+ */
+export function classifyOwnProfileResult(
+  result: OwnProfileResult
+): OwnProfileLoadOutcome {
+  if (result.ok === true) {
+    return { kind: "success", profile: result.profile };
+  } else {
+    if (result.status === 404 || result.code === "CONTRIBUTOR_PROFILE_NOT_FOUND") {
+      return { kind: "missing" };
+    }
+    if (result.status === 401) {
+      return { kind: "unauthorized" };
+    }
+    return { kind: "error" };
+  }
+}
 
 export type CreateContributorResult =
   | {
