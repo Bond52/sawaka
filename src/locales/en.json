@@ -553,7 +553,16 @@
     "collaborationsTitle": "Collaborations",
     "collaborationsEmpty": "No collaborations to show yet.",
     "reviewsTitle": "Community reviews",
-    "reviewsEmpty": "No community reviews yet."
+    "reviewsEmpty": "No community reviews yet.",
+    "edit": {
+      "action": "Edit my profile",
+      "save": "Save",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "success": "Your contributor profile was updated.",
+      "serverError": "The profile could not be updated. Try again.",
+      "networkError": "Unable to connect. Check your network and try again."
+    }
   },
   "buyer": {
     "welcome": "Welcome buyer",

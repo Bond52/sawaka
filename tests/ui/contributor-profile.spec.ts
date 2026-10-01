@@ -189,3 +189,194 @@ test.describe("Contributor profile overview (/profile)", () => {
     await expect(page.locator('input[value="wilson@example.com"]')).toBeVisible();
   });
 });
+
+const DOMAIN_ID = "domain-1";
+const SKILL_ID = "skill-1";
+
+async function installProfileApi(page: Page) {
+  const state: { patches: unknown[]; profile: typeof CONTRIBUTOR_PROFILE } = {
+    patches: [],
+    profile: structuredClone(CONTRIBUTOR_PROFILE),
+  };
+
+  await page.route(/\/api\/contributors(\/|$|\?)/, async (route: Route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    const method = request.method();
+
+    if (method === "GET" && path.endsWith("/api/contributors/domains")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          domains: [
+            state.profile.domain,
+            {
+              id: "domain-2",
+              nameFR: "Maçonnerie",
+              nameEN: "Masonry",
+            },
+          ],
+        }),
+      });
+      return;
+    }
+
+    const skillsMatch = path.match(/\/domains\/([^/]+)\/skills$/);
+    if (method === "GET" && skillsMatch) {
+      const skills =
+        skillsMatch[1] === DOMAIN_ID
+          ? [
+              {
+                id: SKILL_ID,
+                nameFR: "Fabrication de meubles",
+                nameEN: "Furniture making",
+              },
+              {
+                id: "skill-2",
+                nameFR: "Finition du bois",
+                nameEN: "Wood finishing",
+              },
+            ]
+          : [{ id: "skill-3", nameFR: "Enduit", nameEN: "Plaster" }];
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ skills }),
+      });
+      return;
+    }
+
+    if (method === "GET" && path.endsWith("/api/contributors/me")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ profile: state.profile }),
+      });
+      return;
+    }
+
+    if (method === "PATCH" && path.endsWith("/api/contributors/me")) {
+      const body = request.postDataJSON();
+      state.patches.push(body);
+      if (!body.displayName || String(body.displayName).trim().length < 2) {
+        await route.fulfill({
+          status: 400,
+          contentType: "application/json",
+          body: JSON.stringify({
+            error: { code: "VALIDATION_ERROR", fields: { displayName: "DISPLAY_NAME_REQUIRED" } },
+          }),
+        });
+        return;
+      }
+      state.profile = {
+        ...state.profile,
+        displayName: body.displayName,
+        biography: body.biography,
+        country: body.country,
+        region: body.region || "",
+        city: body.city || "",
+        domain: state.profile.domain,
+      };
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ profile: state.profile }),
+      });
+      return;
+    }
+
+    await route.fulfill({
+      status: 404,
+      contentType: "application/json",
+      body: JSON.stringify({ error: { code: "NOT_FOUND" } }),
+    });
+  });
+
+  return state;
+}
+
+test.describe("Contributor profile owner edit mode", () => {
+  test("owner sees the edit action and can save updated values", async ({ page }) => {
+    await setLocale(page, "fr");
+    await seedUser(page);
+    const state = await installProfileApi(page);
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/profile");
+
+    const edit = page.getByTestId("contributor-profile-edit");
+    await expect(edit).toBeVisible();
+    await expect(edit).toHaveText(/Modifier mon profil/);
+    await edit.focus();
+    await expect(edit).toBeFocused();
+    await edit.click();
+
+    await expect(page.getByTestId("contributor-profile-edit-form")).toBeVisible();
+    await expect(page.getByLabel("Nom affiché")).toHaveValue("Wilson M.");
+    await expect(page.getByLabel(/^Pays$/)).toHaveValue("Cameroun");
+    await expect(page.getByLabel("Ville ou localité")).toHaveValue("Douala");
+    await expect(page.getByLabel("Biographie")).toHaveValue(CONTRIBUTOR_PROFILE.biography);
+    await expect(page.getByTestId("contributor-profile-edit-form")).toContainText("Réemploi");
+    await expect(page.getByLabel(/e-mail|email|mot de passe|password/i)).toHaveCount(0);
+
+    await page.getByLabel("Nom affiché").fill("Wilson Menuisier");
+    await page.getByLabel("Ville ou localité").fill("Yaoundé");
+    await page.getByTestId("contributor-profile-save").click();
+
+    await expect(page.getByTestId("contributor-profile-overview")).toBeVisible();
+    await expect(page.getByTestId("contributor-profile-display-name")).toHaveText(
+      "Wilson Menuisier"
+    );
+    await expect(page.getByTestId("contributor-profile-location")).toContainText("Yaoundé");
+    await expect(page.getByTestId("contributor-profile-save-success")).toBeVisible();
+    await expect(page.getByTestId("contributor-profile-badges")).toBeVisible();
+    expect(state.patches).toHaveLength(1);
+    expect(state.patches[0]).toMatchObject({
+      displayName: "Wilson Menuisier",
+      city: "Yaoundé",
+      domainId: DOMAIN_ID,
+    });
+    expect(state.patches[0]).not.toHaveProperty("status");
+    expect(state.patches[0]).not.toHaveProperty("email");
+    expect(state.patches[0]).not.toHaveProperty("userId");
+  });
+
+  test("cancel discards edits and validation keeps entered values", async ({ page }) => {
+    await setLocale(page, "en");
+    await seedUser(page);
+    const state = await installProfileApi(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/profile");
+
+    await expect(page.getByTestId("contributor-profile-edit")).toHaveText("Edit my profile");
+    await page.getByTestId("contributor-profile-edit").click();
+    await page.getByLabel("City or locality").fill("Kribi");
+    await page.getByTestId("contributor-profile-cancel").click();
+
+    await expect(page.getByTestId("contributor-profile-edit-form")).toHaveCount(0);
+    await expect(page.getByTestId("contributor-profile-location")).toContainText("Douala");
+    expect(state.patches).toHaveLength(0);
+
+    await page.getByTestId("contributor-profile-edit").click();
+    await page.getByLabel("Display name").fill("W");
+    await page.getByTestId("contributor-profile-save").click();
+    await expect(page.getByTestId("contributor-profile-edit-form")).toBeVisible();
+    await expect(page.getByLabel("Display name")).toHaveValue("W");
+    await expect(page.getByRole("alert").first()).toBeVisible();
+    expect(state.patches).toHaveLength(0);
+  });
+
+  test("missing profile does not show the edit action", async ({ page }) => {
+    await setLocale(page, "en");
+    await seedUser(page);
+    await mockContributorMe(
+      page,
+      { error: { code: "CONTRIBUTOR_PROFILE_NOT_FOUND" } },
+      404
+    );
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/profile");
+    await expect(page.getByTestId("contributor-profile-empty")).toBeVisible();
+    await expect(page.getByTestId("contributor-profile-edit")).toHaveCount(0);
+  });
+});

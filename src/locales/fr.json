@@ -553,7 +553,16 @@
     "collaborationsTitle": "Collaborations",
     "collaborationsEmpty": "Aucune collaboration à afficher pour le moment.",
     "reviewsTitle": "Avis de la communauté",
-    "reviewsEmpty": "Aucun avis de la communauté pour le moment."
+    "reviewsEmpty": "Aucun avis de la communauté pour le moment.",
+    "edit": {
+      "action": "Modifier mon profil",
+      "save": "Enregistrer",
+      "saving": "Enregistrement...",
+      "cancel": "Annuler",
+      "success": "Votre profil contributeur a été mis à jour.",
+      "serverError": "Le profil n’a pas pu être mis à jour. Réessayez.",
+      "networkError": "Connexion impossible. Vérifiez votre réseau et réessayez."
+    }
   },
   "buyer": {
     "welcome": "Bienvenue acheteur",

@@ -224,6 +224,50 @@ export async function getOwnContributor(): Promise<OwnProfileResult> {
   }
 }
 
+export type UpdateContributorResult =
+  | { ok: true; profile: ContributorProfilePayload }
+  | { ok: false; status: number; code: string; fields?: ContributorFieldMap };
+
+export async function updateOwnContributor(body: {
+  displayName: string;
+  domainId: string;
+  skillIds: string[];
+  customSkills: string[];
+  country: string;
+  region?: string;
+  city?: string;
+  biography?: string;
+}): Promise<UpdateContributorResult> {
+  try {
+    const res = await fetch(`${resolveApiBaseUrl()}/api/contributors/me`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: authHeaders(),
+      body: JSON.stringify(body),
+    });
+    const data = await readJson(res);
+    if (!res.ok) {
+      return {
+        ok: false,
+        status: res.status,
+        code: readErrorCode(data),
+        fields: readErrorFields(data),
+      };
+    }
+    const profile =
+      data && typeof data === "object"
+        ? (data as { profile?: ContributorProfilePayload }).profile
+        : undefined;
+    if (!profile?.id) {
+      return { ok: false, status: res.status, code: "SERVER_ERROR" };
+    }
+    return { ok: true, profile };
+  } catch (err) {
+    console.error("[apiContributors] updateOwnContributor: network error", { err });
+    return { ok: false, status: 0, code: "NETWORK" };
+  }
+}
+
 export async function createContributorProfile(
   body: CreateBody
 ): Promise<CreateContributorResult> {
