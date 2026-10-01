@@ -397,6 +397,43 @@ describe("Contributor account email verification", () => {
     expect(stillStored.isUsed).toBe(false);
   });
 
+  it("does not republish an intentionally inactive profile when email is verified", async () => {
+    const { domain, skill } = await loadTaxonomy();
+    const created = await request(app)
+      .post("/api/contributors")
+      .send(
+        payload(domain, skill, {
+          username: "inactivemail",
+          email: "inactive.mail@example.com",
+          password: "Secret123!",
+        })
+      );
+    const token = latestToken();
+    await ContributorProfile.updateOne(
+      { _id: created.body.profile.id },
+      { $set: { status: PROFILE_STATUS.INACTIVE, isVisible: false } }
+    );
+
+    const verified = await request(app)
+      .post("/api/contributors/email-verification")
+      .send({ token });
+
+    expect(verified.statusCode).toBe(200);
+    expect(verified.body.emailVerified).toBe(true);
+    expect(verified.body.profileActivated).toBe(false);
+    expect(JSON.stringify(verified.body)).not.toContain("inactive.mail@example.com");
+
+    const user = await User.findOne({ username: "inactivemail" });
+    expect(user.emailVerified).toBe(true);
+    const profile = await ContributorProfile.findById(created.body.profile.id);
+    expect(profile.status).toBe(PROFILE_STATUS.INACTIVE);
+    expect(profile.isVisible).toBe(false);
+
+    const pub = await request(app).get(`/api/contributors/${profile._id}`);
+    expect(pub.statusCode).toBe(404);
+    expect(JSON.stringify(pub.body)).not.toContain("Amina Nguema");
+  });
+
   it("does not let an unauthenticated caller choose an account to resend", async () => {
     const res = await request(app)
       .post("/api/contributors/me/verification-email")

@@ -111,6 +111,22 @@ async function removeOwnContributorPhoto(req, res) {
   }
 }
 
+async function deactivateOwnContributor(req, res) {
+  try {
+    const profile = await ContributorProfileService.deactivateOwnContributorProfile({
+      authUserId: req.user.id,
+      body: req.body,
+    });
+    return res.json({ profile });
+  } catch (err) {
+    if (err instanceof ContributorProfileError) {
+      return sendFunctionalError(res, err);
+    }
+    logContributorError("deactivateOwnContributor", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
 async function getOwnContributor(req, res) {
   try {
     const profile = await ContributorProfileService.getOwnProfile(req.user.id);
@@ -193,6 +209,7 @@ module.exports = {
   updateOwnContributor,
   updateOwnContributorPhoto,
   removeOwnContributorPhoto,
+  deactivateOwnContributor,
   getOwnContributor,
   getPublicContributor,
   listDomains,

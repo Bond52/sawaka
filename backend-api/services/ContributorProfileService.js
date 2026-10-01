@@ -15,6 +15,7 @@ const {
 } = require("./UserEmailVerificationService");
 const { uploadProfileImage, destroyStoredImage } = require("./imageStorage");
 const { profilePhotoIssue } = require("./profilePhoto");
+const { recordUserAuditEvent, USER_AUDIT_ACTIONS } = require("./AuditService");
 
 const DISPLAY_NAME_MIN = 2;
 const DISPLAY_NAME_MAX = 80;
@@ -53,6 +54,14 @@ class ContributorProfileError extends Error {
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function isPubliclyAvailableProfile(profile) {
+  return Boolean(
+    profile &&
+      profile.status === PROFILE_STATUS.ACTIVE &&
+      profile.isVisible === true
+  );
 }
 
 function initialLifecycle(user) {
@@ -582,16 +591,95 @@ async function getOwnProfile(authUserId) {
   return shapeProfile(profile, domain, skillDocs, { includeLifecycle: true });
 }
 
+function rejectDeactivationTarget(body) {
+  if (body == null) return;
+  if (!isPlainObject(body)) {
+    throw new ContributorProfileError("VALIDATION_ERROR", 400, {
+      fields: { body: "INVALID_BODY" },
+    });
+  }
+  const fields = {};
+  for (const key of Object.keys(body)) {
+    fields[key] = "FIELD_NOT_ALLOWED";
+  }
+  if (Object.keys(fields).length > 0) {
+    throw new ContributorProfileError("VALIDATION_ERROR", 400, { fields });
+  }
+}
+
+async function deactivateOwnContributorProfile({ authUserId, body }) {
+  rejectDeactivationTarget(body);
+
+  const existing = await ContributorProfile.findOne({ userId: authUserId });
+  if (!existing) {
+    throw new ContributorProfileError("CONTRIBUTOR_PROFILE_NOT_FOUND", 404);
+  }
+  if (!isPubliclyAvailableProfile(existing)) {
+    throw new ContributorProfileError(
+      existing.status === PROFILE_STATUS.INACTIVE
+        ? "PROFILE_ALREADY_INACTIVE"
+        : "PROFILE_NOT_ELIGIBLE",
+      409
+    );
+  }
+
+  let updated;
+  try {
+    updated = await ContributorProfile.findOneAndUpdate(
+      {
+        _id: existing._id,
+        userId: authUserId,
+        status: PROFILE_STATUS.ACTIVE,
+        isVisible: true,
+      },
+      {
+        $set: {
+          status: PROFILE_STATUS.INACTIVE,
+          isVisible: false,
+        },
+      },
+      { new: true }
+    );
+  } catch (err) {
+    console.error("ContributorProfileService.deactivate:", {
+      name: err && err.name,
+      code: err && err.code,
+    });
+    throw err;
+  }
+
+  if (!updated) {
+    const fresh = await ContributorProfile.findOne({ userId: authUserId });
+    if (!fresh) {
+      throw new ContributorProfileError("CONTRIBUTOR_PROFILE_NOT_FOUND", 404);
+    }
+    throw new ContributorProfileError(
+      fresh.status === PROFILE_STATUS.INACTIVE
+        ? "PROFILE_ALREADY_INACTIVE"
+        : "PROFILE_NOT_ELIGIBLE",
+      409
+    );
+  }
+
+  await recordUserAuditEvent({
+    action: USER_AUDIT_ACTIONS.CONTRIBUTOR_PROFILE_DEACTIVATED,
+    userId: authUserId,
+    metadata: {
+      contributorProfileId: String(updated._id),
+      status: PROFILE_STATUS.INACTIVE,
+      isVisible: false,
+    },
+  });
+
+  return shapedOwnedProfile(updated);
+}
+
 async function getPublicProfile(profileId) {
   if (!OBJECT_ID_PATTERN.test(String(profileId || ""))) {
     throw new ContributorProfileError("CONTRIBUTOR_PROFILE_NOT_FOUND", 404);
   }
   const profile = await ContributorProfile.findById(profileId);
-  if (
-    !profile ||
-    profile.status !== PROFILE_STATUS.ACTIVE ||
-    profile.isVisible !== true
-  ) {
+  if (!isPubliclyAvailableProfile(profile)) {
     throw new ContributorProfileError("CONTRIBUTOR_PROFILE_NOT_FOUND", 404);
   }
   const { domain, skillDocs } = await loadProfileContext(profile);
@@ -638,6 +726,7 @@ module.exports = {
   AccountRegistrationError,
   ACCOUNT_FIELDS_REQUIRED,
   ACCOUNT_ALREADY_EXISTS,
+  isPubliclyAvailableProfile,
   initialLifecycle,
   collectProfileFieldErrors,
   shapeProfile,
@@ -645,6 +734,7 @@ module.exports = {
   updateOwnContributorProfile,
   updateOwnContributorPhoto,
   removeOwnContributorPhoto,
+  deactivateOwnContributorProfile,
   getOwnProfile,
   getPublicProfile,
   listActiveDomains,

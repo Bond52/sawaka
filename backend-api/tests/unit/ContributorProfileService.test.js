@@ -1,4 +1,5 @@
 const {
+  isPubliclyAvailableProfile,
   initialLifecycle,
   collectProfileFieldErrors,
   shapeProfile,
@@ -98,6 +99,40 @@ describe("contributor profile rules", () => {
     );
     expect(fields.biography).toBeUndefined();
     expect(value.biography).toBe("Formatrices locales.");
+  });
+
+  it("treats only an active and visible profile as publicly available", () => {
+    expect(
+      isPubliclyAvailableProfile({
+        status: PROFILE_STATUS.ACTIVE,
+        isVisible: true,
+      })
+    ).toBe(true);
+    expect(
+      isPubliclyAvailableProfile({
+        status: PROFILE_STATUS.ACTIVE,
+        isVisible: false,
+      })
+    ).toBe(false);
+    expect(
+      isPubliclyAvailableProfile({
+        status: PROFILE_STATUS.INACTIVE,
+        isVisible: false,
+      })
+    ).toBe(false);
+    expect(
+      isPubliclyAvailableProfile({
+        status: PROFILE_STATUS.INACTIVE,
+        isVisible: true,
+      })
+    ).toBe(false);
+    expect(
+      isPubliclyAvailableProfile({
+        status: PROFILE_STATUS.PENDING_EMAIL_VERIFICATION,
+        isVisible: false,
+      })
+    ).toBe(false);
+    expect(isPubliclyAvailableProfile(null)).toBe(false);
   });
 
   it("starts unverified accounts as pending and non-public", () => {

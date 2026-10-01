@@ -27,6 +27,13 @@ const verificationConsumeRateLimit = createRateLimiter({
   message: "Too many requests. Please try again later.",
 });
 
+const deactivateRateLimit = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  keyGenerator: (req) => `contributor-deactivate:${clientIp(req)}:${req.user?.id || "unknown"}`,
+  message: "Too many requests. Please try again later.",
+});
+
 router.get("/domains", contributorController.listDomains);
 router.get("/domains/:domainId/skills", contributorController.listDomainSkills);
 router.post(
@@ -53,9 +60,16 @@ router.delete(
   requireAuth,
   contributorController.removeOwnContributorPhoto
 );
+router.post(
+  "/me/deactivate",
+  requireAuth,
+  deactivateRateLimit,
+  contributorController.deactivateOwnContributor
+);
 router.post("/", optionalAuth, contributorController.createContributor);
 router.get("/:id", contributorController.getPublicContributor);
 
 module.exports = router;
 module.exports.verificationResendRateLimit = verificationResendRateLimit;
 module.exports.verificationConsumeRateLimit = verificationConsumeRateLimit;
+module.exports.deactivateRateLimit = deactivateRateLimit;

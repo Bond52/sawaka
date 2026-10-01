@@ -67,6 +67,7 @@ const USER_AUDIT_ACTIONS = Object.freeze({
   USER_EMAIL_VERIFICATION_REQUESTED: "UserEmailVerificationRequested",
   USER_EMAIL_VERIFIED: "UserEmailVerified",
   CONTRIBUTOR_PROFILE_ACTIVATED: "ContributorProfileActivated",
+  CONTRIBUTOR_PROFILE_DEACTIVATED: "ContributorProfileDeactivated",
 });
 
 const UserAuditEventSchema = new mongoose.Schema(
