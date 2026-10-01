@@ -15,6 +15,7 @@ export default function DashboardPage() {
   const { t } = useTranslation();
   const [user, setUser] = useState<StoredUser | null>(null);
   const [ready, setReady] = useState(false);
+  const [profileDeactivated, setProfileDeactivated] = useState(false);
 
   useEffect(() => {
     const stored = readStoredUser();
@@ -24,6 +25,17 @@ export default function DashboardPage() {
     }
     setUser(stored);
     setReady(true);
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("profileDeactivated") === "1") {
+      setProfileDeactivated(true);
+      params.delete("profileDeactivated");
+      const next = params.toString();
+      window.history.replaceState(
+        null,
+        "",
+        next ? `/dashboard?${next}` : "/dashboard"
+      );
+    }
 
     const sync = () => {
       const next = readStoredUser();
@@ -54,6 +66,17 @@ export default function DashboardPage() {
 
   return (
     <main>
+      {profileDeactivated ? (
+        <div className="container mx-auto max-w-5xl px-4 pt-6">
+          <p
+            role="status"
+            className="alert alert-success"
+            data-testid="dashboard-profile-deactivated"
+          >
+            {t("dashboard.profileDeactivated")}
+          </p>
+        </div>
+      ) : null}
       <UserDashboard user={user} />
     </main>
   );

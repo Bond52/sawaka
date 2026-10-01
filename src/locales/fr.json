@@ -56,6 +56,7 @@
     "greetingFallback": "Bonjour",
     "subtitle": "Voici un aperçu de votre activité sur Sawaka.",
     "actionUnavailable": "Cette action n'est pas encore disponible.",
+    "profileDeactivated": "Votre profil contributeur n’est plus visible publiquement. Votre compte Sawaka reste actif.",
     "summary": {
       "profile": "Profil",
       "profileSub": "complété",
@@ -572,6 +573,22 @@
         "tooLarge": "Fichier trop volumineux",
         "uploadFailed": "Échec du téléversement"
       }
+    },
+    "deactivate": {
+      "zoneTitle": "Disponibilité du profil",
+      "zoneBody": "La désactivation retire ce profil contributeur de la vue publique. Votre compte Sawaka reste actif.",
+      "action": "Désactiver le profil",
+      "title": "Désactiver votre profil contributeur ?",
+      "impactVisibility": "Votre profil contributeur ne sera plus visible publiquement.",
+      "impactDiscovery": "Votre profil contributeur ne sera plus découvrable publiquement là où la découverte existe.",
+      "impactAccount": "Votre compte Sawaka reste actif. Cette action ne supprime pas votre compte.",
+      "impactHistory": "L’historique applicable des projets, collaborations et du profil reste conservé.",
+      "cancel": "Annuler",
+      "confirm": "Confirmer la désactivation",
+      "submitting": "Désactivation...",
+      "error": "Le profil n’a pas pu être désactivé. Réessayez.",
+      "networkError": "Connexion impossible. Vérifiez votre réseau et réessayez.",
+      "inactive": "Ce profil contributeur est inactif et n’est plus visible publiquement."
     }
   },
   "buyer": {

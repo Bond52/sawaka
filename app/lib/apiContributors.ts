@@ -309,6 +309,20 @@ export async function uploadOwnContributorPhoto(
   }
 }
 
+export async function deactivateOwnProfile(): Promise<UpdateContributorResult> {
+  try {
+    const res = await fetch(`${resolveApiBaseUrl()}/api/contributors/me/deactivate`, {
+      method: "POST",
+      credentials: "include",
+      headers: authHeaders({ json: false }),
+    });
+    return await readProfileResponse(res);
+  } catch (err) {
+    console.error("[apiContributors] deactivateOwnProfile: network error", { err });
+    return { ok: false, status: 0, code: "NETWORK" };
+  }
+}
+
 export async function removeOwnContributorPhoto(): Promise<UpdateContributorResult> {
   try {
     const res = await fetch(`${resolveApiBaseUrl()}/api/contributors/me/photo`, {

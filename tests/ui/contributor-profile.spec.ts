@@ -540,4 +540,24 @@ test.describe("Contributor profile owner edit mode", () => {
     expect(state.photoUploads).toBe(0);
     await expect(page.getByTestId("contributor-profile-skills")).toBeVisible();
   });
+
+  test("keeps deactivation outside the edit form", async ({ page }) => {
+    await setLocale(page, "en");
+    await seedUser(page);
+    await installProfileApi(page);
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/profile");
+
+    await expect(page.getByTestId("contributor-profile-deactivate-open")).toBeVisible();
+    await expect(page.getByTestId("contributor-profile-skills")).toBeVisible();
+    await expect(page.getByTestId("contributor-profile-badges")).toBeVisible();
+    await page.getByTestId("contributor-profile-edit").click();
+    const form = page.getByTestId("contributor-profile-edit-form");
+    await expect(form).toBeVisible();
+    await expect(form.getByTestId("contributor-profile-deactivate-open")).toHaveCount(0);
+    await expect(page.getByTestId("contributor-profile-deactivate-open")).toHaveCount(0);
+    await page.getByTestId("contributor-profile-cancel").click();
+    await expect(page.getByTestId("contributor-profile-deactivate-open")).toBeVisible();
+    await expect(page.getByTestId("contributor-profile-reviews")).toBeVisible();
+  });
 });
