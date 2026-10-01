@@ -1,3 +1,14 @@
+jest.mock("../../services/imageStorage", () => ({
+  uploadProfileImage: jest.fn(async () => {
+    const suffix = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    return {
+      url: `https://res.cloudinary.com/demo/image/upload/sawaka-contributor-profiles/${suffix}.jpg`,
+      publicId: `sawaka-contributor-profiles/${suffix}`,
+    };
+  }),
+  destroyStoredImage: jest.fn(async () => undefined),
+}));
+
 const request = require("supertest");
 const bcrypt = require("bcrypt");
 const mongoose = require("mongoose");
@@ -8,6 +19,7 @@ const Skill = require("../../models/Skill");
 const ContributorProfile = require("../../models/ContributorProfile");
 const { ensureContributorTaxonomy } = require("../../services/contributorTaxonomySeed");
 const { PROFILE_STATUS } = require("../../services/ContributorProfileService");
+const imageStorage = require("../../services/imageStorage");
 
 async function createAccount(overrides = {}) {
   const hash = await bcrypt.hash(overrides.password || "Secret123!", 10);
@@ -718,5 +730,272 @@ describe("Contributor profile persistence", () => {
     const stored = await ContributorProfile.findById(created.body.profile.id);
     expect(stored.displayName).toBe("Amina Nguema");
     expect(String(stored.userId)).toBe(String(owner._id));
+  });
+});
+
+const PNG_1X1 = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+  "base64"
+);
+
+function jpegHeader() {
+  const buffer = Buffer.alloc(32, 0);
+  buffer[0] = 0xff;
+  buffer[1] = 0xd8;
+  buffer[2] = 0xff;
+  return buffer;
+}
+
+describe("Contributor profile photo", () => {
+  beforeEach(() => {
+    process.env.JWT_SECRET = process.env.JWT_SECRET || "test-jwt-secret-auth";
+  });
+
+  async function ownerWithProfile(email) {
+    const { domainA, skillsA } = await loadTaxonomy();
+    const user = await createAccount({
+      email,
+      username: email.split("@")[0].replace(/[^a-z]/g, ""),
+    });
+    const cookie = await login(user.email);
+    const created = await request(app)
+      .post("/api/contributors")
+      .set("Cookie", cookie)
+      .send(profilePayload(domainA, [skillsA[0]]));
+    return { user, cookie, profileId: created.body.profile.id, domainA, skillsA };
+  }
+
+  it("stores a photo on the existing profile and returns only the public URL", async () => {
+    const { user, cookie, profileId } = await ownerWithProfile("photo-ok@example.com");
+    const before = await ContributorProfile.findById(profileId);
+    const countBefore = await ContributorProfile.countDocuments();
+
+    const res = await request(app)
+      .post("/api/contributors/me/photo")
+      .set("Cookie", cookie)
+      .attach("photo", PNG_1X1, { filename: "avatar.png", contentType: "image/png" });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.profile.id).toBe(profileId);
+    expect(res.body.profile.photoUrl).toMatch(/^https:\/\/res\.cloudinary\.com\//);
+    expect(res.body.profile.displayName).toBe("Amina Nguema");
+    expect(res.body.profile.status).toBe(before.status);
+    expect(res.body.profile.isVisible).toBe(before.isVisible);
+    expect(JSON.stringify(res.body)).not.toContain("photoPublicId");
+    expect(JSON.stringify(res.body)).not.toContain(user.email);
+
+    const stored = await ContributorProfile.findById(profileId);
+    expect(String(stored.userId)).toBe(String(user._id));
+    expect(stored.photoUrl).toBe(res.body.profile.photoUrl);
+    expect(stored.photoPublicId).toBeTruthy();
+    expect(stored.status).toBe(before.status);
+    expect(stored.isVisible).toBe(before.isVisible);
+    expect(await ContributorProfile.countDocuments()).toBe(countBefore);
+    expect(imageStorage.uploadProfileImage).toHaveBeenCalled();
+  });
+
+  it("rejects an unauthenticated photo upload", async () => {
+    const res = await request(app)
+      .post("/api/contributors/me/photo")
+      .attach("photo", PNG_1X1, { filename: "avatar.png", contentType: "image/png" });
+    expect(res.statusCode).toBe(401);
+    expect(await ContributorProfile.countDocuments()).toBe(0);
+  });
+
+  it("does not let another user change the owner's photo", async () => {
+    const { cookie, profileId } = await ownerWithProfile("photo-owner@example.com");
+    const uploaded = await request(app)
+      .post("/api/contributors/me/photo")
+      .set("Cookie", cookie)
+      .attach("photo", PNG_1X1, { filename: "avatar.png", contentType: "image/png" });
+    const other = await createAccount({
+      email: "photo-other@example.com",
+      username: "photoother",
+    });
+    const otherCookie = await login(other.email);
+
+    const foreign = await request(app)
+      .post("/api/contributors/me/photo")
+      .set("Cookie", otherCookie)
+      .attach("photo", PNG_1X1, { filename: "other.png", contentType: "image/png" });
+
+    expect(foreign.statusCode).toBe(404);
+    const stored = await ContributorProfile.findById(profileId);
+    expect(stored.photoUrl).toBe(uploaded.body.profile.photoUrl);
+    expect(await ContributorProfile.countDocuments({ userId: stored.userId })).toBe(1);
+  });
+
+  it("rejects an unsupported type, a spoofed image and an oversized file", async () => {
+    const { cookie, profileId } = await ownerWithProfile("photo-bad@example.com");
+
+    const text = await request(app)
+      .post("/api/contributors/me/photo")
+      .set("Cookie", cookie)
+      .attach("photo", Buffer.from("hello"), {
+        filename: "notes.txt",
+        contentType: "text/plain",
+      });
+    const spoofed = await request(app)
+      .post("/api/contributors/me/photo")
+      .set("Cookie", cookie)
+      .attach("photo", Buffer.from("not-a-png-file!!"), {
+        filename: "avatar.png",
+        contentType: "image/png",
+      });
+    const missing = await request(app)
+      .post("/api/contributors/me/photo")
+      .set("Cookie", cookie);
+    const oversized = Buffer.alloc(2 * 1024 * 1024 + 1, 0);
+    oversized[0] = 0xff;
+    oversized[1] = 0xd8;
+    oversized[2] = 0xff;
+    const tooBig = await request(app)
+      .post("/api/contributors/me/photo")
+      .set("Cookie", cookie)
+      .attach("photo", oversized, { filename: "big.jpg", contentType: "image/jpeg" });
+
+    expect(text.statusCode).toBe(400);
+    expect(text.body.error.fields.photo).toBe("UNSUPPORTED_IMAGE_TYPE");
+    expect(spoofed.statusCode).toBe(400);
+    expect(spoofed.body.error.fields.photo).toBe("UNSUPPORTED_IMAGE_TYPE");
+    expect(missing.statusCode).toBe(400);
+    expect(missing.body.error.fields.photo).toBe("PHOTO_REQUIRED");
+    expect(tooBig.statusCode).toBe(400);
+    expect(tooBig.body.error.fields.photo).toBe("IMAGE_TOO_LARGE");
+    expect(JSON.stringify(tooBig.body)).not.toMatch(/cloudinary|ENOENT|stack/i);
+
+    const stored = await ContributorProfile.findById(profileId);
+    expect(stored.photoUrl).toBe("");
+    expect(stored.photoPublicId).toBe("");
+  });
+
+  it("does not accept a client-supplied photo URL on profile update", async () => {
+    const { cookie, profileId, domainA, skillsA } = await ownerWithProfile(
+      "photo-url@example.com"
+    );
+    const rejected = await request(app)
+      .patch("/api/contributors/me")
+      .set("Cookie", cookie)
+      .send({
+        ...profilePayload(domainA, [skillsA[0]]),
+        photoUrl: "https://evil.example/photo.jpg",
+        photoPublicId: "should-not-stick",
+      });
+    expect(rejected.statusCode).toBe(400);
+    expect(rejected.body.error.fields.photoUrl).toBe("FIELD_NOT_ALLOWED");
+    expect(rejected.body.error.fields.photoPublicId).toBe("FIELD_NOT_ALLOWED");
+    const stored = await ContributorProfile.findById(profileId);
+    expect(stored.photoUrl).toBe("");
+  });
+
+  it("replaces the photo and deletes the previous asset only after the new one is saved", async () => {
+    const { cookie, profileId } = await ownerWithProfile("photo-replace@example.com");
+    const before = await ContributorProfile.findById(profileId);
+
+    const first = await request(app)
+      .post("/api/contributors/me/photo")
+      .set("Cookie", cookie)
+      .attach("photo", PNG_1X1, { filename: "a.png", contentType: "image/png" });
+    const firstId = (await ContributorProfile.findById(profileId)).photoPublicId;
+    imageStorage.destroyStoredImage.mockClear();
+
+    const second = await request(app)
+      .post("/api/contributors/me/photo")
+      .set("Cookie", cookie)
+      .attach("photo", jpegHeader(), { filename: "b.jpg", contentType: "image/jpeg" });
+
+    expect(second.statusCode).toBe(200);
+    expect(second.body.profile.id).toBe(profileId);
+    expect(second.body.profile.photoUrl).not.toBe(first.body.profile.photoUrl);
+    expect(second.body.profile.status).toBe(before.status);
+    expect(second.body.profile.isVisible).toBe(before.isVisible);
+    const stored = await ContributorProfile.findById(profileId);
+    expect(stored.photoPublicId).not.toBe(firstId);
+    expect(imageStorage.destroyStoredImage).toHaveBeenCalledWith(firstId);
+    expect(await ContributorProfile.countDocuments({ userId: stored.userId })).toBe(1);
+  });
+
+  it("removes the photo and keeps the same profile", async () => {
+    const { cookie, profileId } = await ownerWithProfile("photo-remove@example.com");
+    await request(app)
+      .post("/api/contributors/me/photo")
+      .set("Cookie", cookie)
+      .attach("photo", PNG_1X1, { filename: "a.png", contentType: "image/png" });
+    const publicId = (await ContributorProfile.findById(profileId)).photoPublicId;
+    const before = await ContributorProfile.findById(profileId);
+
+    const removed = await request(app)
+      .delete("/api/contributors/me/photo")
+      .set("Cookie", cookie);
+
+    expect(removed.statusCode).toBe(200);
+    expect(removed.body.profile.id).toBe(profileId);
+    expect(removed.body.profile.photoUrl).toBeNull();
+    expect(removed.body.profile.displayName).toBe("Amina Nguema");
+    expect(removed.body.profile.status).toBe(before.status);
+    expect(JSON.stringify(removed.body)).not.toContain(publicId);
+    const stored = await ContributorProfile.findById(profileId);
+    expect(stored.photoUrl).toBe("");
+    expect(stored.photoPublicId).toBe("");
+    expect(stored.status).toBe(before.status);
+    expect(stored.isVisible).toBe(before.isVisible);
+    expect(imageStorage.destroyStoredImage).toHaveBeenCalledWith(publicId);
+  });
+
+  it("deletes the new asset and keeps the previous photo when saving the profile fails", async () => {
+    const { cookie, profileId } = await ownerWithProfile("photo-rollback@example.com");
+    await request(app)
+      .post("/api/contributors/me/photo")
+      .set("Cookie", cookie)
+      .attach("photo", PNG_1X1, { filename: "a.png", contentType: "image/png" });
+    const previous = await ContributorProfile.findById(profileId);
+    imageStorage.destroyStoredImage.mockClear();
+    imageStorage.uploadProfileImage.mockResolvedValueOnce({
+      url: "https://res.cloudinary.com/demo/image/upload/sawaka-contributor-profiles/new.jpg",
+      publicId: "sawaka-contributor-profiles/new",
+    });
+
+    const originalSave = ContributorProfile.prototype.save;
+    ContributorProfile.prototype.save = function failOnce() {
+      ContributorProfile.prototype.save = originalSave;
+      return Promise.reject(new Error("db down secret"));
+    };
+
+    try {
+      const failed = await request(app)
+        .post("/api/contributors/me/photo")
+        .set("Cookie", cookie)
+        .attach("photo", jpegHeader(), { filename: "b.jpg", contentType: "image/jpeg" });
+      expect(failed.statusCode).toBe(500);
+      expect(failed.body.error.code).toBe("SERVER_ERROR");
+      expect(JSON.stringify(failed.body)).not.toContain("db down");
+      expect(JSON.stringify(failed.body)).not.toContain("secret");
+    } finally {
+      ContributorProfile.prototype.save = originalSave;
+    }
+
+    const stored = await ContributorProfile.findById(profileId);
+    expect(stored.photoUrl).toBe(previous.photoUrl);
+    expect(stored.photoPublicId).toBe(previous.photoPublicId);
+    expect(imageStorage.destroyStoredImage).toHaveBeenCalledWith(
+      "sawaka-contributor-profiles/new"
+    );
+    expect(imageStorage.destroyStoredImage).not.toHaveBeenCalledWith(previous.photoPublicId);
+  });
+
+  it("returns a storage error without internal details when the upload fails", async () => {
+    const { cookie, profileId } = await ownerWithProfile("photo-storage@example.com");
+    imageStorage.uploadProfileImage.mockRejectedValueOnce(
+      new Error("cloudinary api_secret leaked")
+    );
+    const res = await request(app)
+      .post("/api/contributors/me/photo")
+      .set("Cookie", cookie)
+      .attach("photo", PNG_1X1, { filename: "a.png", contentType: "image/png" });
+    expect(res.statusCode).toBe(502);
+    expect(res.body.error.code).toBe("UPLOAD_FAILED");
+    expect(JSON.stringify(res.body)).not.toContain("api_secret");
+    const stored = await ContributorProfile.findById(profileId);
+    expect(stored.photoUrl).toBe("");
   });
 });

@@ -22,6 +22,7 @@ export type ContributorProfileDetail = {
   skills?: ContributorSkillPayload[];
   status?: string;
   isVisible?: boolean;
+  photoUrl?: string | null;
 };
 
 export type ContributorProfilePayload = ContributorProfileDetail;
@@ -97,10 +98,11 @@ type CreateBody = {
   biography?: string;
 };
 
-function authHeaders(): HeadersInit {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
+function authHeaders(options?: { json?: boolean }): HeadersInit {
+  const headers: Record<string, string> = {};
+  if (options?.json !== false) {
+    headers["Content-Type"] = "application/json";
+  }
   const user = readStoredUser();
   if (user?.token) headers.Authorization = `Bearer ${user.token}`;
   return headers;
@@ -264,6 +266,59 @@ export async function updateOwnContributor(body: {
     return { ok: true, profile };
   } catch (err) {
     console.error("[apiContributors] updateOwnContributor: network error", { err });
+    return { ok: false, status: 0, code: "NETWORK" };
+  }
+}
+
+async function readProfileResponse(res: Response): Promise<UpdateContributorResult> {
+  const data = await readJson(res);
+  if (!res.ok) {
+    return {
+      ok: false,
+      status: res.status,
+      code: readErrorCode(data),
+      fields: readErrorFields(data),
+    };
+  }
+  const profile =
+    data && typeof data === "object"
+      ? (data as { profile?: ContributorProfilePayload }).profile
+      : undefined;
+  if (!profile?.id) {
+    return { ok: false, status: res.status, code: "SERVER_ERROR" };
+  }
+  return { ok: true, profile };
+}
+
+export async function uploadOwnContributorPhoto(
+  file: File
+): Promise<UpdateContributorResult> {
+  try {
+    const body = new FormData();
+    body.append("photo", file);
+    const res = await fetch(`${resolveApiBaseUrl()}/api/contributors/me/photo`, {
+      method: "POST",
+      credentials: "include",
+      headers: authHeaders({ json: false }),
+      body,
+    });
+    return await readProfileResponse(res);
+  } catch (err) {
+    console.error("[apiContributors] uploadOwnContributorPhoto: network error", { err });
+    return { ok: false, status: 0, code: "NETWORK" };
+  }
+}
+
+export async function removeOwnContributorPhoto(): Promise<UpdateContributorResult> {
+  try {
+    const res = await fetch(`${resolveApiBaseUrl()}/api/contributors/me/photo`, {
+      method: "DELETE",
+      credentials: "include",
+      headers: authHeaders({ json: false }),
+    });
+    return await readProfileResponse(res);
+  } catch (err) {
+    console.error("[apiContributors] removeOwnContributorPhoto: network error", { err });
     return { ok: false, status: 0, code: "NETWORK" };
   }
 }

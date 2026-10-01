@@ -132,6 +132,8 @@ describe("contributor profile rules", () => {
       ],
       status: PROFILE_STATUS.PENDING_EMAIL_VERIFICATION,
       isVisible: false,
+      photoUrl: "https://res.cloudinary.com/demo/image/upload/sawaka-contributor-profiles/a.jpg",
+      photoPublicId: "sawaka-contributor-profiles/secret-id",
     };
     const domain = {
       _id: domainId,
@@ -148,6 +150,11 @@ describe("contributor profile rules", () => {
     expect(owner.skills[1]).toEqual({ customLabel: "Raphia", isCustom: true });
     expect(pub.status).toBeUndefined();
     expect(pub.isVisible).toBeUndefined();
+    expect(owner.photoUrl).toMatch(/^https:\/\/res\.cloudinary\.com\//);
+    expect(pub.photoUrl).toBe(owner.photoUrl);
+    expect(owner.photoPublicId).toBeUndefined();
+    expect(pub.photoPublicId).toBeUndefined();
+    expect(JSON.stringify(owner)).not.toContain("secret-id");
     expect(JSON.stringify(pub)).not.toMatch(/email|password|token/i);
   });
 });

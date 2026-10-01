@@ -80,6 +80,37 @@ async function updateOwnContributor(req, res) {
   }
 }
 
+async function updateOwnContributorPhoto(req, res) {
+  try {
+    const profile = await ContributorProfileService.updateOwnContributorPhoto({
+      authUserId: req.user.id,
+      file: req.file,
+    });
+    return res.json({ profile });
+  } catch (err) {
+    if (err instanceof ContributorProfileError) {
+      return sendFunctionalError(res, err);
+    }
+    logContributorError("updateOwnContributorPhoto", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function removeOwnContributorPhoto(req, res) {
+  try {
+    const profile = await ContributorProfileService.removeOwnContributorPhoto({
+      authUserId: req.user.id,
+    });
+    return res.json({ profile });
+  } catch (err) {
+    if (err instanceof ContributorProfileError) {
+      return sendFunctionalError(res, err);
+    }
+    logContributorError("removeOwnContributorPhoto", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
 async function getOwnContributor(req, res) {
   try {
     const profile = await ContributorProfileService.getOwnProfile(req.user.id);
@@ -160,6 +191,8 @@ async function verifyAccountEmail(req, res) {
 module.exports = {
   createContributor,
   updateOwnContributor,
+  updateOwnContributorPhoto,
+  removeOwnContributorPhoto,
   getOwnContributor,
   getPublicContributor,
   listDomains,

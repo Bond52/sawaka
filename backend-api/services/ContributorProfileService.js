@@ -13,6 +13,8 @@ const {
 const {
   sendVerificationForUser,
 } = require("./UserEmailVerificationService");
+const { uploadProfileImage, destroyStoredImage } = require("./imageStorage");
+const { profilePhotoIssue } = require("./profilePhoto");
 
 const DISPLAY_NAME_MIN = 2;
 const DISPLAY_NAME_MAX = 80;
@@ -268,6 +270,7 @@ function shapeProfile(profile, domain, skillDocs, { includeLifecycle }) {
     skills: (profile.skills || []).map((skill) =>
       toSkillEntry(skill, byId.get(String(skill.skillId)))
     ),
+    photoUrl: profile.photoUrl || null,
   };
   if (includeLifecycle) {
     body.status = profile.status;
@@ -486,6 +489,90 @@ async function updateOwnContributorProfile({ authUserId, body }) {
   return shapeProfile(profile, domain, canonical, { includeLifecycle: true });
 }
 
+function logStorageError(operation, err) {
+  console.error(`ContributorProfileService.${operation}:`, {
+    name: err && err.name,
+    code: err && err.code,
+  });
+}
+
+async function loadOwnedProfile(authUserId) {
+  const profile = await ContributorProfile.findOne({ userId: authUserId });
+  if (!profile) {
+    throw new ContributorProfileError("CONTRIBUTOR_PROFILE_NOT_FOUND", 404);
+  }
+  return profile;
+}
+
+async function shapedOwnedProfile(profile) {
+  const { domain, skillDocs } = await loadProfileContext(profile);
+  return shapeProfile(profile, domain, skillDocs, { includeLifecycle: true });
+}
+
+async function updateOwnContributorPhoto({ authUserId, file }) {
+  const issue = profilePhotoIssue(file);
+  if (issue) {
+    throw new ContributorProfileError("VALIDATION_ERROR", 400, {
+      fields: { photo: issue },
+    });
+  }
+
+  const profile = await loadOwnedProfile(authUserId);
+  const previousPublicId = profile.photoPublicId || "";
+  const previousUrl = profile.photoUrl || "";
+
+  let uploaded;
+  try {
+    uploaded = await uploadProfileImage(file.buffer);
+  } catch (err) {
+    logStorageError("uploadProfileImage", err);
+    throw new ContributorProfileError("UPLOAD_FAILED", 502);
+  }
+
+  profile.photoUrl = uploaded.url;
+  profile.photoPublicId = uploaded.publicId;
+  try {
+    await profile.save();
+  } catch (err) {
+    profile.photoUrl = previousUrl;
+    profile.photoPublicId = previousPublicId;
+    try {
+      await destroyStoredImage(uploaded.publicId);
+    } catch (cleanupErr) {
+      logStorageError("cleanupNewPhoto", cleanupErr);
+    }
+    throw err;
+  }
+
+  if (previousPublicId && previousPublicId !== uploaded.publicId) {
+    try {
+      await destroyStoredImage(previousPublicId);
+    } catch (cleanupErr) {
+      logStorageError("cleanupPreviousPhoto", cleanupErr);
+    }
+  }
+
+  return shapedOwnedProfile(profile);
+}
+
+async function removeOwnContributorPhoto({ authUserId }) {
+  const profile = await loadOwnedProfile(authUserId);
+  const previousPublicId = profile.photoPublicId || "";
+  profile.photoUrl = "";
+  profile.photoPublicId = "";
+  await profile.save();
+
+  if (previousPublicId) {
+    try {
+      await destroyStoredImage(previousPublicId);
+    } catch (cleanupErr) {
+      logStorageError("cleanupRemovedPhoto", cleanupErr);
+    }
+  }
+
+  return shapedOwnedProfile(profile);
+}
+
 async function getOwnProfile(authUserId) {
   const profile = await ContributorProfile.findOne({ userId: authUserId });
   if (!profile) {
@@ -556,6 +643,8 @@ module.exports = {
   shapeProfile,
   createContributorProfile,
   updateOwnContributorProfile,
+  updateOwnContributorPhoto,
+  removeOwnContributorPhoto,
   getOwnProfile,
   getPublicProfile,
   listActiveDomains,
