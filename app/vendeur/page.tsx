@@ -1,8 +1,14 @@
+"use client";
+
+import { useTranslation } from "@/src/i18n/I18nProvider";
+
 export default function VendeurPage() {
+  const { t } = useTranslation();
+
   return (
     <div>
-      <h1>Bienvenue vendeur</h1>
-      <p>Vous êtes maintenant connecté en tant que vendeur.</p>
+      <h1>{t("seller.welcome")}</h1>
+      <p>{t("seller.connected")}</p>
     </div>
   );
 }

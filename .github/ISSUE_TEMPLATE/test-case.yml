@@ -1,0 +1,36 @@
+name: "Test Case"
+description: "Define a test case for validation"
+title: "TC - "
+labels: ["test-case"]
+
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      placeholder: Describe the test case clearly
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Test Steps
+      placeholder: Step-by-step execution
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Results
+
+  - type: textarea
+    id: test_data
+    attributes:
+      label: Test Data
+      placeholder: Input values used in the test
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      placeholder: Optional remarks / edge cases

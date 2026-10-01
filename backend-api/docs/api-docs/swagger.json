@@ -1,0 +1,9 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Sawaka API",
+    "version": "1.0.0",
+    "description": "Add swagger.json to backend-api/docs/swagger/ or run swagger-jsdoc to generate the full spec."
+  },
+  "paths": {}
+}

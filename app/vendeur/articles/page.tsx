@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useRef } from "react";
+import { useTranslation } from "@/src/i18n/I18nProvider";
 import UploadImages from "../../components/UploadImages";
 import { listMyArticles, createArticle, updateArticle, deleteArticle } from "../../lib/apiSeller";
 import type { Article } from "../../lib/apiSeller";
@@ -14,7 +15,17 @@ import type { Article } from "../../lib/apiSeller";
 /* ============================================================
    🧵 VendorArticlesPage — version MAQUETTE complète
 ============================================================ */
+const SELLER_CATEGORIES = [
+  { value: "Mode & Accessoires", key: "fashion" },
+  { value: "Maison & Décoration", key: "home" },
+  { value: "Art & Artisanat", key: "art" },
+  { value: "Beauté & Bien-être", key: "beauty" },
+  { value: "Bijoux", key: "jewelry" },
+  { value: "Textile", key: "textile" },
+] as const;
+
 export default function VendorArticlesPage() {
+  const { t } = useTranslation();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -148,7 +159,7 @@ useEffect(() => {
 
   async function onDelete(id?: string) {
   if (!id) return;
-  if (!confirm("Supprimer cet article ?")) return;
+  if (!confirm(t("alerts.deleteArticleConfirm"))) return;
 
   await deleteArticle(id);
   load();
@@ -161,7 +172,7 @@ useEffect(() => {
       {/* ========================= */}
       {/* TITRE */}
       {/* ========================= */}
-      <h1 className="font-display text-3xl text-sawaka-900">Mes créations</h1>
+      <h1 className="font-display text-3xl text-sawaka-900">{t("seller.myCreations")}</h1>
 
       {/* ========================= */}
       {/* FORMULAIRE PRINCIPAL */}
@@ -171,35 +182,33 @@ useEffect(() => {
         className="bg-white border border-cream-200 shadow-card rounded-2xl p-8 space-y-6"
       >
         <h2 className="font-display text-2xl text-sawaka-900 mb-6">
-          Ajouter un nouveau produit
+          {t("seller.addProduct")}
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Input label="Titre" value={form.title} onChange={(v) => setForm({ ...form, title: v })} />
+          <Input label={t("seller.title")} value={form.title} onChange={(v) => setForm({ ...form, title: v })} />
           <Select
-            label="Catégorie"
+            label={t("seller.category")}
             value={form.categories?.[0] || ""}
             onChange={(v) => setForm({ ...form, categories: [v] })}
-            options={[
-              "Mode & Accessoires",
-              "Maison & Décoration",
-              "Art & Artisanat",
-              "Beauté & Bien-être",
-              "Bijoux",
-              "Textile",
-            ]}
+            options={SELLER_CATEGORIES.map((c) => c.value)}
+            optionLabels={Object.fromEntries(
+              SELLER_CATEGORIES.map((c) => [c.value, t(`seller.categories.${c.key}`)])
+            )}
+            placeholder={t("seller.chooseOption")}
           />
 
-          <Input label="Prix (FCFA)" numeric value={form.price} onChange={(v) => setForm({ ...form, price: v })} />
-          <Input label="Stock" numeric value={form.stock} onChange={(v) => setForm({ ...form, stock: v })} />
+          <Input label={t("seller.price")} numeric value={form.price} onChange={(v) => setForm({ ...form, price: v })} />
+          <Input label={t("seller.stock")} numeric value={form.stock} onChange={(v) => setForm({ ...form, stock: v })} />
 
-          <Input label="SKU" value={form.sku} onChange={(v) => setForm({ ...form, sku: v })} />
+          <Input label={t("seller.sku")} value={form.sku} onChange={(v) => setForm({ ...form, sku: v })} />
           <Select
-            label="Statut"
+            label={t("seller.status")}
             value={form.status}
             onChange={(v) => setForm({ ...form, status: v })}
             options={["draft", "published"]}
-            displayMap={{ draft: "Brouillon", published: "Publié" }}
+            displayMap={{ draft: t("seller.draft"), published: t("seller.published") }}
+            placeholder={t("seller.chooseOption")}
           />
         </div>
 
@@ -210,7 +219,7 @@ useEffect(() => {
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
           className="border border-gray-300 rounded-xl p-4 w-full h-32"
-          placeholder="Décrivez votre création…"
+          placeholder={t("seller.descriptionPlaceholder")}
         />
 
         {/* ========================= */}
@@ -233,7 +242,7 @@ useEffect(() => {
   type="submit"
   className="mt-6 px-6 py-3 rounded-xl bg-sawaka-700 text-white hover:bg-sawaka-800"
 >
- {editingId ? "Mettre à jour" : "+ Créer le produit"}
+ {editingId ? t("seller.updateProduct") : t("seller.createProduct")}
 </button>
 
       </form>
@@ -243,7 +252,7 @@ useEffect(() => {
       {/* ======================================================= */}
 
       <h2 className="font-display text-2xl text-sawaka-900 mt-10">
-        Inventaire actuel
+        {t("seller.inventory")}
       </h2>
 
       <div className="bg-white border border-cream-200 rounded-2xl shadow-card p-6">
@@ -251,13 +260,13 @@ useEffect(() => {
           <table className="min-w-full text-sm">
             <thead>
               <tr className="text-sawaka-700 text-xs border-b bg-cream-50">
-                <th className="p-3 text-left">TITRE</th>
-                <th className="p-3 text-left">PRIX</th>
-                <th className="p-3 text-left">STOCK</th>
-                <th className="p-3 text-left">CATÉGORIE</th>
-                <th className="p-3 text-left">STATUT</th>
-                <th className="p-3 text-left">PROMO</th>
-                <th className="p-3 text-left">ACTIONS</th>
+                <th className="p-3 text-left">{t("seller.colTitle")}</th>
+                <th className="p-3 text-left">{t("seller.colPrice")}</th>
+                <th className="p-3 text-left">{t("seller.colStock")}</th>
+                <th className="p-3 text-left">{t("seller.colCategory")}</th>
+                <th className="p-3 text-left">{t("seller.colStatus")}</th>
+                <th className="p-3 text-left">{t("seller.colPromo")}</th>
+                <th className="p-3 text-left">{t("seller.colActions")}</th>
               </tr>
             </thead>
 
@@ -265,7 +274,7 @@ useEffect(() => {
               {loading ? (
                 <tr>
                   <td colSpan={7} className="p-4 text-center">
-                    Chargement…
+                    {t("common.loadingShort")}
                   </td>
                 </tr>
               ) : data?.items?.length ? (
@@ -297,11 +306,11 @@ useEffect(() => {
                     <td className="p-3">
                       {a.status === "published" ? (
                         <span className="px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
-                          ● Publié
+                          ● {t("seller.published")}
                         </span>
                       ) : (
                         <span className="px-3 py-1 rounded-full bg-gray-200 text-gray-700 text-xs font-semibold">
-                          ● Brouillon
+                          ● {t("seller.draft")}
                         </span>
                       )}
                     </td>
@@ -326,15 +335,14 @@ useEffect(() => {
                         onClick={() => onEdit(a)}
                         className="text-sawaka-700 hover:underline"
                       >
-                        Éditer
+                        {t("common.edit")}
                       </button>
-                      
 
                       <button
                         onClick={() => onDelete(a._id)}
                         className="text-red-600 hover:underline"
                       >
-                        Supprimer
+                        {t("common.delete")}
                       </button>
                     </td>
                   </tr>
@@ -342,7 +350,7 @@ useEffect(() => {
               ) : (
                 <tr>
                   <td colSpan={7} className="p-4 text-center text-sawaka-700">
-                    Aucun article trouvé.
+                    {t("seller.empty")}
                   </td>
                 </tr>
               )}
@@ -355,7 +363,7 @@ useEffect(() => {
         {/* ======================================================= */}
         <div className="flex items-center justify-between mt-4 text-sm text-sawaka-700">
           <p>
-            Affichage de {data?.items?.length ?? 0} sur {data?.total ?? 0} résultats
+            {t("seller.showing", { shown: data?.items?.length ?? 0, total: data?.total ?? 0 })}
           </p>
 
           <div className="flex gap-3">
@@ -368,7 +376,7 @@ useEffect(() => {
                   : "hover:bg-cream-50"
               }`}
             >
-              Préc.
+              {t("common.prev")}
             </button>
 
             <button
@@ -380,7 +388,7 @@ useEffect(() => {
                   : "hover:bg-cream-50"
               }`}
             >
-              Suiv.
+              {t("common.next")}
             </button>
           </div>
         </div>
@@ -418,7 +426,7 @@ function Input({ label, value, onChange, placeholder, numeric }: any) {
   );
 }
 
-function Select({ label, value, onChange, options, displayMap }: any) {
+function Select({ label, value, onChange, options, displayMap, optionLabels, placeholder }: any) {
   return (
     <div>
       <label className="text-sm text-sawaka-800 mb-1 block">{label}</label>
@@ -427,10 +435,10 @@ function Select({ label, value, onChange, options, displayMap }: any) {
         onChange={(e) => onChange(e.target.value)}
         className="border border-gray-300 rounded-xl p-3 w-full"
       >
-        <option value="">-- Choisir une option --</option>
+        <option value="">{placeholder}</option>
         {options.map((opt: string) => (
           <option key={opt} value={opt}>
-            {displayMap?.[opt] ?? opt}
+            {optionLabels?.[opt] ?? displayMap?.[opt] ?? opt}
           </option>
         ))}
       </select>

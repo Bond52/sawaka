@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "@/src/i18n/I18nProvider";
 import { listTools, Tool } from "@/app/lib/apiTools";
 
-/* ------- Expansion récursive depuis la BD ------- */
 function expandTool(rootId: string, all: Tool[]) {
   const visited = new Set<string>();
   const result: Tool[] = [];
@@ -21,11 +21,11 @@ function expandTool(rootId: string, all: Tool[]) {
 
   explore(rootId);
 
-  // ❗ On retire l’outil sélectionné
   return result.filter((t) => t.id !== rootId);
 }
 
 export default function ArbrePage() {
+  const { t } = useTranslation();
   const [tools, setTools] = useState<Tool[]>([]);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Tool[] | null>(null);
@@ -46,33 +46,30 @@ export default function ArbrePage() {
     load();
   }, []);
 
-  if (loading) return <p className="py-12 text-center">Chargement…</p>;
+  if (loading) return <p className="py-12 text-center">{t("common.loadingShort")}</p>;
 
-  const filtered = tools.filter((t) =>
-    t.name.toLowerCase().includes(query.toLowerCase())
+  const filtered = tools.filter((tool) =>
+    tool.name.toLowerCase().includes(query.toLowerCase())
   );
 
   return (
     <div className="wrap py-12">
       <h1 className="text-3xl font-bold text-sawaka-700 mb-4">
-        {selectedRoot
-          ? `L’Arbre à Outils`
-          : "L’Arbre à Outils"}
+        {t("toolsTree.title")}
       </h1>
 
       <p className="text-sawaka-700 mb-8 max-w-2xl">
-        Sélectionnez un outil pour voir tous les outils nécessaires pour le fabriquer.
+        {t("toolsTree.selectHint")}
       </p>
 
       <input
         type="text"
-        placeholder="Rechercher un outil…"
+        placeholder={t("toolsTree.searchPlaceholder")}
         className="w-full max-w-lg mb-10 p-3 border border-cream-300 rounded-lg"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
 
-      {/* LISTE DES OUTILS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
         {filtered.map((tool) => (
           <div
@@ -92,18 +89,17 @@ export default function ArbrePage() {
                   💰 {tool.price}
                 </>
               ) : (
-                <span className="text-red-600">❗ Aucun fabricant.</span>
+                <span className="text-red-600">{t("toolsTree.noManufacturer")}</span>
               )}
             </div>
           </div>
         ))}
       </div>
 
-      {/* ARBRE EXPANSÉ */}
       {selected && selectedRoot && (
         <div className="bg-white p-6 rounded-xl shadow-md border border-cream-300">
           <h2 className="text-2xl font-bold text-sawaka-700 mb-4">
-            Outils nécessaires pour fabriquer : {selectedRoot.name}
+            {t("toolsTree.toolsNeeded", { name: selectedRoot.name })}
           </h2>
 
           <ul className="space-y-4">
@@ -113,13 +109,13 @@ export default function ArbrePage() {
 
                 {tool.id !== "main" ? (
                   <div className="text-sm mt-1 text-sawaka-600">
-                    📍 {tool.vendor || "Non disponible"}
+                    📍 {tool.vendor || t("common.notAvailable")}
                     <br />
-                    💰 {tool.price || "Non disponible"}
+                    💰 {tool.price || t("common.notAvailable")}
                   </div>
                 ) : (
                   <div className="text-sm mt-1 text-sawaka-600">
-                    🖐️ L’outil final est… la main de l’artisan !
+                    🖐️ {t("toolsTree.finalTool")}
                   </div>
                 )}
               </li>

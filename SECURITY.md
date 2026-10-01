@@ -6,7 +6,7 @@ Please **do not open a public issue** for security vulnerabilities.
 
 To report a vulnerability, contact:
 
-**security@sawaka.org**
+**contact@sawaka.org**
 
 We aim to respond within **48 hours**.
 

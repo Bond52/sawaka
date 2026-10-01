@@ -1,0 +1,43 @@
+name: "Requirement — Business"
+description: "Define a business-level requirement"
+title: "BR — "
+labels: ["requirement", "business"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      placeholder: Describe the business need
+    validations:
+      required: true
+
+  - type: textarea
+    id: business_objective
+    attributes:
+      label: Business Objective
+      placeholder: What business goal does this support?
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_outcome
+    attributes:
+      label: Expected Outcome
+      placeholder: What value should be delivered?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - High
+        - Medium
+        - Low
+
+  - type: textarea
+    id: relationships
+    attributes:
+      label: Relationships
+      placeholder: Parent / Derived from / Related to

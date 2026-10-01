@@ -3,6 +3,14 @@ const router = express.Router();
 const bcrypt = require("bcrypt"); // si souci Node v22, switch vers bcryptjs
 const jwt = require("jsonwebtoken");
 const User = require("../models/user");
+const {
+  createUserAccount,
+  issueSessionToken,
+  sessionCookieOptions,
+  AccountRegistrationError,
+  ACCOUNT_FIELDS_REQUIRED,
+  ACCOUNT_ALREADY_EXISTS,
+} = require("../services/accountRegistration");
 
 // LOGIN
 router.post("/login", async (req, res) => {
@@ -50,53 +58,52 @@ router.post("/register", async (req, res) => {
       password
     } = req.body;
 
-    if (!username || !email || !password) {
-      return res.status(400).json({ error: "Nom d'utilisateur, email et mot de passe requis" });
+    let user;
+    try {
+      user = await createUserAccount(
+        {
+          firstName,
+          lastName,
+          username,
+          email,
+          phone,
+          country,
+          province,
+          city,
+          pickupPoint,
+          commerceName,
+          neighborhood,
+          idCardImage,
+          password,
+        },
+        { isSeller }
+      );
+    } catch (err) {
+      if (err instanceof AccountRegistrationError) {
+        if (err.code === ACCOUNT_FIELDS_REQUIRED) {
+          return res
+            .status(400)
+            .json({ error: "Nom d'utilisateur, email et mot de passe requis" });
+        }
+        if (err.code === ACCOUNT_ALREADY_EXISTS) {
+          return res
+            .status(400)
+            .json({ error: "Email ou nom d'utilisateur déjà utilisé" });
+        }
+      }
+      throw err;
     }
 
-    const existing = await User.findOne({ $or: [{ email }, { username }] });
-    if (existing) {
-      return res.status(400).json({ error: "Email ou nom d'utilisateur déjà utilisé" });
-    }
-
-    const hash = await bcrypt.hash(password, 10);
-
-    let roles = ["acheteur"]; // tout le monde est acheteur
-    if (isSeller) roles.push("vendeur");
-
-    const user = await User.create({
-      firstName,
-      lastName,
-      username,
-      email,
-      phone,
-      country,
-      province,
-      city,
-      pickupPoint,
-      isSeller: Boolean(isSeller),
-      commerceName,
-      neighborhood,
-      idCardImage,
-      password: hash,
-      roles
-    });
-
-    // ⚠️ utiliser _id
-    const token = jwt.sign(
-      { id: user._id.toString(), roles: user.roles },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    const token = issueSessionToken(user);
 
     res
-      .cookie("token", token, { httpOnly: true, sameSite: "none", secure: true })
+      .cookie("token", token, sessionCookieOptions())
       .status(201)
       .json({
         message: "Utilisateur créé avec succès",
         token,
         roles: user.roles,
-        username: user.username, // ✅ Ajouté
+        username: user.username,
         firstName: user.firstName,
         lastName: user.lastName
       });
