@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MapPin, Pencil } from "lucide-react";
 import ContributorAvatar from "./ContributorAvatar";
+import ContributorDeactivation from "./ContributorDeactivation";
 import ContributorProfileEditor from "./ContributorProfileEditor";
 import { useTranslation } from "@/src/i18n/I18nProvider";
 import { readStoredUser } from "@/app/lib/authUser";
@@ -399,6 +400,24 @@ export default function ContributorProfilePage() {
             {t("contributorProfile.reviewsEmpty")}
           </p>
         </section>
+
+        <ContributorDeactivation
+          profile={profile}
+          editing={editing}
+          onDeactivated={(next) => {
+            setProfile(next);
+            setEditing(false);
+            router.push("/dashboard?profileDeactivated=1");
+          }}
+          onAlreadyInactive={() => {
+            setProfile((current) =>
+              current
+                ? { ...current, status: "Inactive", isVisible: false }
+                : current
+            );
+            setEditing(false);
+          }}
+        />
       </div>
     </main>
   );
