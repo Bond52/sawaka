@@ -518,4 +518,205 @@ describe("Contributor profile persistence", () => {
     );
     expect(skills.body.skills.every((skill) => skill.nameFR && skill.nameEN)).toBe(true);
   });
+
+  it("updates the authenticated owner's profile in place", async () => {
+    const { domainA, domainB, skillsA, skillsB } = await loadTaxonomy();
+    const user = await createAccount({
+      email: "owner-edit@example.com",
+      username: "owneredit",
+      emailVerified: true,
+    });
+    const cookie = await login(user.email);
+    const created = await request(app)
+      .post("/api/contributors")
+      .set("Cookie", cookie)
+      .send(profilePayload(domainA, [skillsA[0]], { customSkills: ["Raphia"] }));
+
+    expect(created.statusCode).toBe(201);
+    const profileId = created.body.profile.id;
+    const before = await ContributorProfile.findById(profileId);
+    const countBefore = await ContributorProfile.countDocuments();
+
+    const updated = await request(app)
+      .patch("/api/contributors/me")
+      .set("Cookie", cookie)
+      .send({
+        displayName: "Amina Updated",
+        domainId: String(domainB._id),
+        skillIds: [String(skillsA[0]._id), String(skillsB[0]._id)],
+        customSkills: ["Raphia", "Chaux"],
+        country: "Cameroun",
+        region: "Littoral",
+        city: "Douala",
+        biography: "Profil mis à jour.",
+      });
+
+    expect(updated.statusCode).toBe(200);
+    expect(updated.body.profile.id).toBe(profileId);
+    expect(updated.body.profile.displayName).toBe("Amina Updated");
+    expect(updated.body.profile.city).toBe("Douala");
+    expect(updated.body.profile.biography).toBe("Profil mis à jour.");
+    expect(updated.body.profile.domain.id).toBe(String(domainB._id));
+    expect(updated.body.profile.skills).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: String(skillsA[0]._id), isCustom: false }),
+        expect.objectContaining({ id: String(skillsB[0]._id), isCustom: false }),
+        { customLabel: "Raphia", isCustom: true },
+        { customLabel: "Chaux", isCustom: true },
+      ])
+    );
+    expect(updated.body.profile.status).toBe(PROFILE_STATUS.ACTIVE);
+    expect(updated.body.profile.isVisible).toBe(true);
+    expect(JSON.stringify(updated.body)).not.toContain(user.email);
+    expect(JSON.stringify(updated.body)).not.toContain("password");
+
+    const stored = await ContributorProfile.findById(profileId);
+    expect(String(stored._id)).toBe(profileId);
+    expect(String(stored.userId)).toBe(String(user._id));
+    expect(stored.displayName).toBe("Amina Updated");
+    expect(stored.status).toBe(before.status);
+    expect(stored.isVisible).toBe(before.isVisible);
+    expect(stored.createdAt.getTime()).toBe(before.createdAt.getTime());
+    expect(await ContributorProfile.countDocuments()).toBe(countBefore);
+
+    const pub = await request(app).get(`/api/contributors/${profileId}`);
+    expect(pub.statusCode).toBe(200);
+    expect(pub.body.profile.displayName).toBe("Amina Updated");
+    expect(pub.body.profile.status).toBeUndefined();
+    expect(pub.body.profile.isVisible).toBeUndefined();
+  });
+
+  it("rejects an unauthenticated profile update", async () => {
+    const res = await request(app).patch("/api/contributors/me").send({
+      displayName: "Nobody",
+      domainId: "64b000000000000000000001",
+      skillIds: ["64b000000000000000000002"],
+      country: "Cameroun",
+    });
+    expect(res.statusCode).toBe(401);
+    expect(await ContributorProfile.countDocuments()).toBe(0);
+  });
+
+  it("rejects system fields and does not create a second profile", async () => {
+    const { domainA, skillsA } = await loadTaxonomy();
+    const user = await createAccount({
+      email: "guard-edit@example.com",
+      username: "guardedit",
+    });
+    const cookie = await login(user.email);
+    const created = await request(app)
+      .post("/api/contributors")
+      .set("Cookie", cookie)
+      .send(profilePayload(domainA, [skillsA[0]]));
+    const profileId = created.body.profile.id;
+
+    const rejected = await request(app)
+      .patch("/api/contributors/me")
+      .set("Cookie", cookie)
+      .send({
+        ...profilePayload(domainA, [skillsA[0]]),
+        status: "Active",
+        isVisible: true,
+        userId: String(new mongoose.Types.ObjectId()),
+        account: { email: "stolen@example.com", password: "Secret123!", username: "stolen" },
+      });
+
+    expect(rejected.statusCode).toBe(400);
+    expect(rejected.body.error.fields.status).toBe("FIELD_NOT_ALLOWED");
+    expect(rejected.body.error.fields.isVisible).toBe("FIELD_NOT_ALLOWED");
+    expect(rejected.body.error.fields.userId).toBe("FIELD_NOT_ALLOWED");
+    expect(rejected.body.error.fields.account).toBe("FIELD_NOT_ALLOWED");
+
+    const stored = await ContributorProfile.findById(profileId);
+    expect(stored.displayName).toBe("Amina Nguema");
+    expect(stored.status).toBe(PROFILE_STATUS.PENDING_EMAIL_VERIFICATION);
+    expect(stored.isVisible).toBe(false);
+    expect(String(stored.userId)).toBe(String(user._id));
+    expect(await ContributorProfile.countDocuments({ userId: user._id })).toBe(1);
+    expect(await User.findOne({ email: "stolen@example.com" })).toBeNull();
+
+    const kept = await request(app)
+      .patch("/api/contributors/me")
+      .set("Cookie", cookie)
+      .send(profilePayload(domainA, [skillsA[0]], { displayName: "Amina Kept" }));
+    expect(kept.statusCode).toBe(200);
+    expect(kept.body.profile.id).toBe(profileId);
+    expect(kept.body.profile.status).toBe(PROFILE_STATUS.PENDING_EMAIL_VERIFICATION);
+    expect(kept.body.profile.isVisible).toBe(false);
+    expect(await ContributorProfile.countDocuments({ userId: user._id })).toBe(1);
+  });
+
+  it("rejects invalid taxonomy on update and keeps the existing document", async () => {
+    const { domainA, skillsA } = await loadTaxonomy();
+    const user = await createAccount({
+      email: "taxonomy-edit@example.com",
+      username: "taxonomyedit",
+    });
+    const cookie = await login(user.email);
+    const created = await request(app)
+      .post("/api/contributors")
+      .set("Cookie", cookie)
+      .send(profilePayload(domainA, [skillsA[0]]));
+    const profileId = created.body.profile.id;
+    const base = profilePayload(domainA, [skillsA[0]]);
+
+    const badDomain = await request(app)
+      .patch("/api/contributors/me")
+      .set("Cookie", cookie)
+      .send({ ...base, domainId: String(new mongoose.Types.ObjectId()) });
+    const badSkill = await request(app)
+      .patch("/api/contributors/me")
+      .set("Cookie", cookie)
+      .send({ ...base, skillIds: [String(new mongoose.Types.ObjectId())] });
+    const duplicate = await request(app)
+      .patch("/api/contributors/me")
+      .set("Cookie", cookie)
+      .send({
+        ...base,
+        skillIds: [String(skillsA[0]._id), String(skillsA[0]._id)],
+      });
+    const duplicateCustom = await request(app)
+      .patch("/api/contributors/me")
+      .set("Cookie", cookie)
+      .send({ ...base, customSkills: ["Chaux", "chaux"] });
+
+    expect(badDomain.statusCode).toBe(400);
+    expect(badDomain.body.error.fields.domainId).toBe("DOMAIN_NOT_FOUND");
+    expect(badSkill.body.error.fields.skillIds).toBe("SKILL_INVALID");
+    expect(duplicate.body.error.fields.skillIds).toBe("SKILL_DUPLICATE");
+    expect(duplicateCustom.body.error.fields.customSkills).toBe("CUSTOM_SKILL_DUPLICATE");
+
+    const stored = await ContributorProfile.findById(profileId);
+    expect(stored.displayName).toBe("Amina Nguema");
+    expect(String(stored.domainId)).toBe(String(domainA._id));
+    expect(await ContributorProfile.countDocuments({ userId: user._id })).toBe(1);
+  });
+
+  it("does not let another authenticated user update a profile they do not own", async () => {
+    const { domainA, skillsA } = await loadTaxonomy();
+    const owner = await createAccount({
+      email: "owner-a@example.com",
+      username: "ownera",
+    });
+    const other = await createAccount({
+      email: "owner-b@example.com",
+      username: "ownerb",
+    });
+    const ownerCookie = await login(owner.email);
+    const otherCookie = await login(other.email);
+    const created = await request(app)
+      .post("/api/contributors")
+      .set("Cookie", ownerCookie)
+      .send(profilePayload(domainA, [skillsA[0]]));
+
+    const foreign = await request(app)
+      .patch("/api/contributors/me")
+      .set("Cookie", otherCookie)
+      .send(profilePayload(domainA, [skillsA[0]], { displayName: "Hijack" }));
+
+    expect(foreign.statusCode).toBe(404);
+    const stored = await ContributorProfile.findById(created.body.profile.id);
+    expect(stored.displayName).toBe("Amina Nguema");
+    expect(String(stored.userId)).toBe(String(owner._id));
+  });
 });

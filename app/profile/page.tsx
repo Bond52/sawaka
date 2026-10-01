@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin } from "lucide-react";
+import { MapPin, Pencil } from "lucide-react";
+import ContributorProfileEditor from "./ContributorProfileEditor";
 import { useTranslation } from "@/src/i18n/I18nProvider";
 import { readStoredUser } from "@/app/lib/authUser";
 import {
@@ -52,6 +53,8 @@ export default function ContributorProfilePage() {
   const [profile, setProfile] = useState<ContributorProfileDetail | null>(null);
   const [missingProfile, setMissingProfile] = useState(false);
   const [error, setError] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [savedNotice, setSavedNotice] = useState(false);
 
   useEffect(() => {
     const stored = readStoredUser();
@@ -164,6 +167,28 @@ export default function ContributorProfilePage() {
         </Link>
 
         {/* 1. Identity header */}
+        {savedNotice && !editing ? (
+          <p
+            role="status"
+            className="mb-6 text-sm text-foreground"
+            data-testid="contributor-profile-save-success"
+          >
+            {t("contributorProfile.edit.success")}
+          </p>
+        ) : null}
+
+        {editing ? (
+          <ContributorProfileEditor
+            profile={profile}
+            onSaved={(next) => {
+              setProfile(next);
+              setEditing(false);
+              setSavedNotice(true);
+            }}
+            onCancel={() => setEditing(false)}
+          />
+        ) : (
+        <>
         <header className="mb-8" data-testid="contributor-profile-header">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
             <div
@@ -174,12 +199,26 @@ export default function ContributorProfilePage() {
               {initials(profile.displayName)}
             </div>
             <div className="min-w-0 flex-1">
-              <h1
-                className="text-3xl font-semibold text-foreground lg:text-4xl"
-                data-testid="contributor-profile-display-name"
-              >
-                {profile.displayName}
-              </h1>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <h1
+                  className="text-3xl font-semibold text-foreground lg:text-4xl"
+                  data-testid="contributor-profile-display-name"
+                >
+                  {profile.displayName}
+                </h1>
+                <button
+                  type="button"
+                  className="btn btn-secondary inline-flex shrink-0 items-center gap-2 self-start"
+                  onClick={() => {
+                    setSavedNotice(false);
+                    setEditing(true);
+                  }}
+                  data-testid="contributor-profile-edit"
+                >
+                  <Pencil className="h-4 w-4" aria-hidden />
+                  {t("contributorProfile.edit.action")}
+                </button>
+              </div>
               {domainLabel ? (
                 <p
                   className="mt-1 text-lg font-medium text-primary"
@@ -237,6 +276,8 @@ export default function ContributorProfilePage() {
             </ul>
           )}
         </section>
+        </>
+        )}
 
         {/* 3. Badges — immediately below Skills */}
         <section

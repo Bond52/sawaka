@@ -66,7 +66,7 @@ function initialLifecycle(user) {
   };
 }
 
-function assertAllowlist(body) {
+function assertAllowlist(body, { allowAccount = true } = {}) {
   if (!isPlainObject(body)) {
     throw new ContributorProfileError("VALIDATION_ERROR", 400, {
       fields: { body: "INVALID_BODY" },
@@ -75,11 +75,15 @@ function assertAllowlist(body) {
 
   const fields = {};
   for (const key of Object.keys(body)) {
-    if (key !== "account" && !PROFILE_FIELDS.has(key)) {
+    if (key === "account") {
+      if (!allowAccount) fields.account = "FIELD_NOT_ALLOWED";
+      continue;
+    }
+    if (!PROFILE_FIELDS.has(key)) {
       fields[key] = "FIELD_NOT_ALLOWED";
     }
   }
-  if (body.account !== undefined) {
+  if (allowAccount && body.account !== undefined) {
     if (!isPlainObject(body.account)) {
       fields.account = "FIELD_NOT_ALLOWED";
     } else {
@@ -93,6 +97,21 @@ function assertAllowlist(body) {
   if (Object.keys(fields).length > 0) {
     throw new ContributorProfileError("VALIDATION_ERROR", 400, { fields });
   }
+}
+
+function skillsFromValue(value) {
+  return [
+    ...value.skillIds.map((id) => ({
+      skillId: id,
+      customLabel: "",
+      isCustom: false,
+    })),
+    ...value.customSkills.map((label) => ({
+      skillId: null,
+      customLabel: label,
+      isCustom: true,
+    })),
+  ];
 }
 
 function trimToString(value) {
@@ -377,18 +396,7 @@ async function createContributorProfile({ authUserId, body }) {
   }
 
   const lifecycle = initialLifecycle(user);
-  const skills = [
-    ...value.skillIds.map((id) => ({
-      skillId: id,
-      customLabel: "",
-      isCustom: false,
-    })),
-    ...value.customSkills.map((label) => ({
-      skillId: null,
-      customLabel: label,
-      isCustom: true,
-    })),
-  ];
+  const skills = skillsFromValue(value);
 
   try {
     const profile = await ContributorProfile.create({
@@ -451,6 +459,31 @@ async function createContributorProfile({ authUserId, body }) {
     });
     throw err;
   }
+}
+
+async function updateOwnContributorProfile({ authUserId, body }) {
+  assertAllowlist(body, { allowAccount: false });
+  const { fields, value } = collectProfileFieldErrors(body);
+  if (Object.keys(fields).length > 0) {
+    throw new ContributorProfileError("VALIDATION_ERROR", 400, { fields });
+  }
+
+  const { domain, canonical } = await resolveTaxonomy(value);
+  const profile = await ContributorProfile.findOne({ userId: authUserId });
+  if (!profile) {
+    throw new ContributorProfileError("CONTRIBUTOR_PROFILE_NOT_FOUND", 404);
+  }
+
+  profile.displayName = value.displayName;
+  profile.biography = value.biography;
+  profile.country = value.country;
+  profile.region = value.region;
+  profile.city = value.city;
+  profile.domainId = domain._id;
+  profile.skills = skillsFromValue(value);
+  await profile.save();
+
+  return shapeProfile(profile, domain, canonical, { includeLifecycle: true });
 }
 
 async function getOwnProfile(authUserId) {
@@ -522,6 +555,7 @@ module.exports = {
   collectProfileFieldErrors,
   shapeProfile,
   createContributorProfile,
+  updateOwnContributorProfile,
   getOwnProfile,
   getPublicProfile,
   listActiveDomains,

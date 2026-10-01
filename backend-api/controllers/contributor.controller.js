@@ -64,6 +64,22 @@ async function createContributor(req, res) {
   }
 }
 
+async function updateOwnContributor(req, res) {
+  try {
+    const profile = await ContributorProfileService.updateOwnContributorProfile({
+      authUserId: req.user.id,
+      body: req.body,
+    });
+    return res.json({ profile });
+  } catch (err) {
+    if (err instanceof ContributorProfileError) {
+      return sendFunctionalError(res, err);
+    }
+    logContributorError("updateOwnContributor", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
 async function getOwnContributor(req, res) {
   try {
     const profile = await ContributorProfileService.getOwnProfile(req.user.id);
@@ -143,6 +159,7 @@ async function verifyAccountEmail(req, res) {
 
 module.exports = {
   createContributor,
+  updateOwnContributor,
   getOwnContributor,
   getPublicContributor,
   listDomains,

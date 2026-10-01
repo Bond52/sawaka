@@ -40,6 +40,7 @@ router.post(
   contributorController.resendVerificationEmail
 );
 router.get("/me", requireAuth, contributorController.getOwnContributor);
+router.patch("/me", requireAuth, contributorController.updateOwnContributor);
 router.post("/", optionalAuth, contributorController.createContributor);
 router.get("/:id", contributorController.getPublicContributor);
 
