@@ -2,6 +2,7 @@ const express = require("express");
 const { requireAuth, optionalAuth } = require("../middleware/auth");
 const { createRateLimiter } = require("../middleware/rateLimit");
 const contributorController = require("../controllers/contributor.controller");
+const { profilePhotoUpload } = require("../middleware/profilePhotoUpload");
 
 const router = express.Router();
 
@@ -41,6 +42,17 @@ router.post(
 );
 router.get("/me", requireAuth, contributorController.getOwnContributor);
 router.patch("/me", requireAuth, contributorController.updateOwnContributor);
+router.post(
+  "/me/photo",
+  requireAuth,
+  profilePhotoUpload,
+  contributorController.updateOwnContributorPhoto
+);
+router.delete(
+  "/me/photo",
+  requireAuth,
+  contributorController.removeOwnContributorPhoto
+);
 router.post("/", optionalAuth, contributorController.createContributor);
 router.get("/:id", contributorController.getPublicContributor);
 

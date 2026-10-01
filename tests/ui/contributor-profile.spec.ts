@@ -39,6 +39,21 @@ const CONTRIBUTOR_PROFILE = {
   isVisible: true,
 };
 
+const PHOTO_SRC = "https://cdn.example/contributor-photo.png";
+
+async function mockProfileImages(page: Page) {
+  await page.route("https://cdn.example/**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "image/png",
+      body: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+        "base64"
+      ),
+    });
+  });
+}
+
 async function setLocale(page: Page, locale: "fr" | "en") {
   await page.addInitScript((value) => {
     window.localStorage.setItem("sawaka-locale", value);
@@ -193,10 +208,20 @@ test.describe("Contributor profile overview (/profile)", () => {
 const DOMAIN_ID = "domain-1";
 const SKILL_ID = "skill-1";
 
-async function installProfileApi(page: Page) {
-  const state: { patches: unknown[]; profile: typeof CONTRIBUTOR_PROFILE } = {
+async function installProfileApi(
+  page: Page,
+  initial: typeof CONTRIBUTOR_PROFILE & { photoUrl?: string | null } = CONTRIBUTOR_PROFILE
+) {
+  const state: {
+    patches: unknown[];
+    photoUploads: number;
+    photoRemovals: number;
+    profile: typeof CONTRIBUTOR_PROFILE & { photoUrl?: string | null };
+  } = {
     patches: [],
-    profile: structuredClone(CONTRIBUTOR_PROFILE),
+    photoUploads: 0,
+    photoRemovals: 0,
+    profile: structuredClone(initial),
   };
 
   await page.route(/\/api\/contributors(\/|$|\?)/, async (route: Route) => {
@@ -286,6 +311,31 @@ async function installProfileApi(page: Page) {
       return;
     }
 
+    if (method === "POST" && path.endsWith("/api/contributors/me/photo")) {
+      state.photoUploads += 1;
+      state.profile = {
+        ...state.profile,
+        photoUrl: PHOTO_SRC,
+      };
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ profile: state.profile }),
+      });
+      return;
+    }
+
+    if (method === "DELETE" && path.endsWith("/api/contributors/me/photo")) {
+      state.photoRemovals += 1;
+      state.profile = { ...state.profile, photoUrl: null };
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ profile: state.profile }),
+      });
+      return;
+    }
+
     await route.fulfill({
       status: 404,
       contentType: "application/json",
@@ -339,6 +389,7 @@ test.describe("Contributor profile owner edit mode", () => {
     expect(state.patches[0]).not.toHaveProperty("status");
     expect(state.patches[0]).not.toHaveProperty("email");
     expect(state.patches[0]).not.toHaveProperty("userId");
+    expect(state.photoUploads).toBe(0);
   });
 
   test("cancel discards edits and validation keeps entered values", async ({ page }) => {
@@ -378,5 +429,115 @@ test.describe("Contributor profile owner edit mode", () => {
     await page.goto("/profile");
     await expect(page.getByTestId("contributor-profile-empty")).toBeVisible();
     await expect(page.getByTestId("contributor-profile-edit")).toHaveCount(0);
+  });
+
+  test("owner can preview, save and cancel a profile photo", async ({ page }) => {
+    await setLocale(page, "fr");
+    await seedUser(page);
+    const state = await installProfileApi(page);
+    await mockProfileImages(page);
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/profile");
+
+    await expect(page.getByTestId("contributor-profile-avatar")).toBeVisible();
+    await expect(page.getByTestId("contributor-profile-photo")).toHaveCount(0);
+
+    await page.getByTestId("contributor-profile-edit").click();
+    const section = page.getByTestId("contributor-profile-photo-section");
+    await expect(section).toBeVisible();
+    await page.setViewportSize({ width: 768, height: 1024 });
+    await expect(section).toBeVisible();
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await expect(section).toContainText("Photo de profil");
+    await expect(section.getByText("Choisir une photo")).toBeVisible();
+    await expect(page.getByLabel("Nom affiché")).toBeVisible();
+    const nameBox = await page.getByLabel("Nom affiché").boundingBox();
+    const photoBox = await section.boundingBox();
+    expect(photoBox && nameBox && photoBox.y < nameBox.y).toBe(true);
+
+    await page.getByTestId("contributor-profile-photo-input").setInputFiles({
+      name: "notes.txt",
+      mimeType: "text/plain",
+      buffer: Buffer.from("not an image"),
+    });
+    await expect(page.getByTestId("contributor-profile-photo-error")).toContainText(
+      "Format de fichier non pris en charge"
+    );
+    await expect(page.getByLabel("Nom affiché")).toHaveValue("Wilson M.");
+    expect(state.photoUploads).toBe(0);
+
+    await page.getByTestId("contributor-profile-photo-input").setInputFiles({
+      name: "avatar.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+        "base64"
+      ),
+    });
+    const preview = page.getByTestId("contributor-profile-photo-preview");
+    await expect(preview).toBeVisible();
+    await expect(preview).toHaveAttribute("alt", "Photo de profil de Wilson M.");
+    await expect(section.getByText("Remplacer la photo")).toBeVisible();
+
+    await page.getByTestId("contributor-profile-cancel").click();
+    await expect(page.getByTestId("contributor-profile-edit-form")).toHaveCount(0);
+    await expect(page.getByTestId("contributor-profile-avatar")).toBeVisible();
+    expect(state.photoUploads).toBe(0);
+    expect(state.patches).toHaveLength(0);
+
+    await page.getByTestId("contributor-profile-edit").click();
+    await page.getByLabel("Nom affiché").fill("Wilson Menuisier");
+    await page.getByTestId("contributor-profile-photo-input").setInputFiles({
+      name: "avatar.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+        "base64"
+      ),
+    });
+    await page.getByTestId("contributor-profile-save").click();
+
+    await expect(page.getByTestId("contributor-profile-display-name")).toHaveText(
+      "Wilson Menuisier"
+    );
+    const photo = page.getByTestId("contributor-profile-photo");
+    await expect(photo).toBeVisible();
+    await expect(photo).toHaveAttribute("src", PHOTO_SRC);
+    await expect(page.getByTestId("contributor-profile-avatar")).toHaveCount(0);
+    expect(state.photoUploads).toBe(1);
+    expect(state.patches[0]).toMatchObject({ displayName: "Wilson Menuisier" });
+    expect(state.patches[0]).not.toHaveProperty("photoUrl");
+  });
+
+  test("owner can remove a photo and the control fits a phone width", async ({ page }) => {
+    await setLocale(page, "en");
+    await seedUser(page);
+    const state = await installProfileApi(page, {
+      ...CONTRIBUTOR_PROFILE,
+      photoUrl: "https://cdn.example/existing.png",
+    });
+    await mockProfileImages(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/profile");
+
+    const photo = page.getByTestId("contributor-profile-photo");
+    await expect(photo).toBeVisible();
+    await expect(photo).toHaveAttribute("alt", "Profile photo of Wilson M.");
+
+    await page.getByTestId("contributor-profile-edit").click();
+    await expect(page.getByText("Profile photo")).toBeVisible();
+    await expect(page.getByText("Replace photo")).toBeVisible();
+    await expect(page.getByTestId("contributor-profile-photo-preview")).toBeVisible();
+    await page.getByTestId("contributor-profile-photo-remove").click();
+    await expect(page.getByTestId("contributor-profile-avatar")).toBeVisible();
+    await expect(page.getByText("Choose photo")).toBeVisible();
+    await page.getByTestId("contributor-profile-save").click();
+
+    await expect(page.getByTestId("contributor-profile-edit-form")).toHaveCount(0);
+    await expect(page.getByTestId("contributor-profile-avatar")).toBeVisible();
+    await expect(page.getByTestId("contributor-profile-photo")).toHaveCount(0);
+    expect(state.photoRemovals).toBe(1);
+    expect(state.photoUploads).toBe(0);
+    await expect(page.getByTestId("contributor-profile-skills")).toBeVisible();
   });
 });

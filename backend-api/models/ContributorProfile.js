@@ -31,6 +31,10 @@ const contributorProfileSchema = new mongoose.Schema(
       required: true,
     },
     isVisible: { type: Boolean, default: false },
+    /** Public Cloudinary delivery URL. Empty when the contributor has no photo. */
+    photoUrl: { type: String, default: "" },
+    /** Cloudinary public id. Never returned by the profile API. */
+    photoPublicId: { type: String, default: "" },
   },
   { timestamps: true }
 );

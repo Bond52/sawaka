@@ -554,6 +554,7 @@
     "collaborationsEmpty": "No collaborations to show yet.",
     "reviewsTitle": "Community reviews",
     "reviewsEmpty": "No community reviews yet.",
+    "photoAlt": "Profile photo of {name}",
     "edit": {
       "action": "Edit my profile",
       "save": "Save",
@@ -561,7 +562,16 @@
       "cancel": "Cancel",
       "success": "Your contributor profile was updated.",
       "serverError": "The profile could not be updated. Try again.",
-      "networkError": "Unable to connect. Check your network and try again."
+      "networkError": "Unable to connect. Check your network and try again.",
+      "photo": {
+        "title": "Profile photo",
+        "choose": "Choose photo",
+        "replace": "Replace photo",
+        "remove": "Remove photo",
+        "unsupported": "Unsupported file format",
+        "tooLarge": "File too large",
+        "uploadFailed": "Upload failed"
+      }
     }
   },
   "buyer": {

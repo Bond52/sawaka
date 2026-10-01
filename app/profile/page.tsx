@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MapPin, Pencil } from "lucide-react";
+import ContributorAvatar from "./ContributorAvatar";
 import ContributorProfileEditor from "./ContributorProfileEditor";
 import { useTranslation } from "@/src/i18n/I18nProvider";
 import { readStoredUser } from "@/app/lib/authUser";
@@ -31,13 +32,6 @@ function formatLocation(
     .map((part) => (part || "").trim())
     .filter(Boolean);
   return parts.join(", ") || t("contributorProfile.locationUnavailable");
-}
-
-function initials(displayName: string): string {
-  const parts = displayName.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
-  return `${parts[0].slice(0, 1)}${parts[parts.length - 1].slice(0, 1)}`.toUpperCase();
 }
 
 /**
@@ -185,19 +179,19 @@ export default function ContributorProfilePage() {
               setEditing(false);
               setSavedNotice(true);
             }}
+            onDraftPersisted={(next) => setProfile(next)}
             onCancel={() => setEditing(false)}
           />
         ) : (
         <>
         <header className="mb-8" data-testid="contributor-profile-header">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-            <div
-              className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground"
-              aria-hidden
-              data-testid="contributor-profile-avatar"
-            >
-              {initials(profile.displayName)}
-            </div>
+            <ContributorAvatar
+              name={profile.displayName}
+              photoUrl={profile.photoUrl}
+              alt={t("contributorProfile.photoAlt", { name: profile.displayName })}
+              imageTestId="contributor-profile-photo"
+            />
             <div className="min-w-0 flex-1">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <h1
