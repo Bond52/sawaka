@@ -4,6 +4,7 @@ const contributorSkillSchema = require("./ContributorSkill");
 const PROFILE_STATUS = Object.freeze({
   PENDING_EMAIL_VERIFICATION: "Pending Email Verification",
   ACTIVE: "Active",
+  INACTIVE: "Inactive",
 });
 
 const contributorProfileSchema = new mongoose.Schema(

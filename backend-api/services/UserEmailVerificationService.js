@@ -159,6 +159,9 @@ async function activateEligibleProfile(user) {
   if (!profile) {
     return { profile: null, profileActivated: false };
   }
+  if (profile.status === PROFILE_STATUS.INACTIVE) {
+    return { profile, profileActivated: false };
+  }
   if (!profileMeetsPublicationCriteria(profile)) {
     return { profile, profileActivated: false };
   }
