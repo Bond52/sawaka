@@ -117,26 +117,51 @@ test.describe("Contributor profile overview (/profile)", () => {
     await expect(page.getByTestId("contributor-profile-badges-empty")).toBeVisible();
     await expect(page.getByTestId("contributor-profile-reviews-empty")).toBeVisible();
     await expect(page.getByTestId("contributor-profile-reputation")).toHaveCount(0);
-    await expect(page.getByTestId("contributor-profile-realizations")).toBeHidden();
+    await expect(page.getByRole("tab")).toHaveCount(2);
+    await expect(page.getByTestId("contributor-profile-tab-profile")).toHaveCount(0);
+    await expect(page.getByTestId("contributor-profile-realizations")).toBeVisible();
     await expect(
       page.getByTestId("contributor-profile-collaborations")
     ).toBeHidden();
 
-    const profilePanel = page.getByTestId("contributor-profile-panel-profile");
-    await expect(profilePanel.getByTestId("contributor-profile-realizations")).toHaveCount(0);
-    await expect(profilePanel.getByTestId("contributor-profile-collaborations")).toHaveCount(0);
-
-    await expect(page.getByTestId("contributor-profile-tab-profile")).toHaveText("Profil");
     await expect(page.getByTestId("contributor-profile-tab-realizations")).toHaveText(
       "Réalisations"
     );
     await expect(page.getByTestId("contributor-profile-tab-collaborations")).toHaveText(
       "Collaborations"
     );
-    await expect(page.getByTestId("contributor-profile-tab-profile")).toHaveAttribute(
+    await expect(page.getByTestId("contributor-profile-tab-realizations")).toHaveAttribute(
       "aria-selected",
       "true"
     );
+
+    const order = await page.evaluate(() => {
+      const ids = [
+        "contributor-profile-skills",
+        "contributor-profile-badges",
+        "contributor-profile-tabs",
+        "contributor-profile-realizations",
+        "contributor-profile-reviews",
+        "contributor-profile-deactivate-zone",
+      ];
+      const nodes = ids.map((id) => document.querySelector(`[data-testid="${id}"]`));
+      if (nodes.some((node) => !node)) return false;
+      for (let index = 1; index < nodes.length; index += 1) {
+        const before = nodes[index - 1];
+        const after = nodes[index];
+        if (
+          !before ||
+          !after ||
+          !(
+            before.compareDocumentPosition(after) & Node.DOCUMENT_POSITION_FOLLOWING
+          )
+        ) {
+          return false;
+        }
+      }
+      return true;
+    });
+    expect(order).toBe(true);
 
     // Privacy: account email / password must not appear on contributor overview.
     await expect(page.getByText(/@example\.com/i)).toHaveCount(0);
@@ -566,19 +591,26 @@ test.describe("Contributor profile owner edit mode", () => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto("/profile");
 
-    await expect(page.getByTestId("contributor-profile-tab-profile")).toHaveText("Profile");
+    await expect(page.getByRole("tab")).toHaveCount(2);
+    await expect(page.getByTestId("contributor-profile-tab-profile")).toHaveCount(0);
     await expect(page.getByTestId("contributor-profile-tab-realizations")).toHaveText(
       "Realizations"
     );
     await expect(page.getByTestId("contributor-profile-tab-collaborations")).toHaveText(
       "Collaborations"
     );
-    await expect(page.getByTestId("contributor-profile-tab-profile")).toHaveAttribute(
+    await expect(page.getByTestId("contributor-profile-tab-realizations")).toHaveAttribute(
       "aria-selected",
       "true"
     );
     await expect(page.getByTestId("contributor-profile-edit")).toBeVisible();
+    await expect(page.getByTestId("contributor-profile-skills")).toBeVisible();
+    await expect(page.getByTestId("contributor-profile-badges")).toBeVisible();
+    await expect(page.getByTestId("contributor-profile-reviews")).toBeVisible();
     await expect(page.getByTestId("contributor-profile-deactivate-open")).toBeVisible();
+    await expect(page.getByTestId("contributor-profile-realizations")).toBeVisible();
+    await expect(page.getByTestId("contributor-profile-realizations-empty")).toBeVisible();
+    await expect(page.getByTestId("contributor-profile-collaborations")).toBeHidden();
 
     const overview = page.getByTestId("contributor-profile-overview");
     await expect(overview).toHaveCSS("background-color", "rgb(255, 255, 255)");
@@ -586,17 +618,6 @@ test.describe("Contributor profile owner edit mode", () => {
       getComputedStyle(document.body).backgroundColor
     );
     expect(bodyBackground).toBe("rgb(250, 249, 247)");
-
-    await page.getByTestId("contributor-profile-tab-realizations").click();
-    await expect(page.getByTestId("contributor-profile-tab-realizations")).toHaveAttribute(
-      "aria-selected",
-      "true"
-    );
-    await expect(page.getByTestId("contributor-profile-realizations")).toBeVisible();
-    await expect(page.getByTestId("contributor-profile-realizations-empty")).toBeVisible();
-    await expect(page.getByTestId("contributor-profile-panel-profile")).toBeHidden();
-    await expect(page.getByTestId("contributor-profile-collaborations")).toBeHidden();
-    await expect(page.getByTestId("contributor-profile-deactivate-open")).toBeHidden();
 
     await page.getByTestId("contributor-profile-tab-collaborations").click();
     await expect(page.getByTestId("contributor-profile-tab-collaborations")).toHaveAttribute(
@@ -608,14 +629,29 @@ test.describe("Contributor profile owner edit mode", () => {
       page.getByTestId("contributor-profile-collaborations-empty")
     ).toBeVisible();
     await expect(page.getByTestId("contributor-profile-realizations")).toBeHidden();
-    await expect(page.getByTestId("contributor-profile-panel-profile")).toBeHidden();
-
-    await page.getByTestId("contributor-profile-tab-profile").click();
     await expect(page.getByTestId("contributor-profile-skills")).toBeVisible();
     await expect(page.getByTestId("contributor-profile-badges")).toBeVisible();
     await expect(page.getByTestId("contributor-profile-reviews")).toBeVisible();
+    await expect(page.getByTestId("contributor-profile-deactivate-open")).toBeVisible();
     await expect(page.getByTestId("contributor-profile-photo")).toHaveCount(0);
     await expect(page.getByTestId("contributor-profile-avatar")).toBeVisible();
+
+    const belowTabs = await page.evaluate(() => {
+      const tabs = document.querySelector('[data-testid="contributor-profile-tabs"]');
+      const reviews = document.querySelector('[data-testid="contributor-profile-reviews"]');
+      const deactivate = document.querySelector(
+        '[data-testid="contributor-profile-deactivate-zone"]'
+      );
+      if (!tabs || !reviews || !deactivate) return false;
+      const reviewsAfterTabs = Boolean(
+        tabs.compareDocumentPosition(reviews) & Node.DOCUMENT_POSITION_FOLLOWING
+      );
+      const deactivateAfterReviews = Boolean(
+        reviews.compareDocumentPosition(deactivate) & Node.DOCUMENT_POSITION_FOLLOWING
+      );
+      return reviewsAfterTabs && deactivateAfterReviews;
+    });
+    expect(belowTabs).toBe(true);
   });
 
   test("moves between profile tabs with the keyboard", async ({ page }) => {
@@ -624,19 +660,21 @@ test.describe("Contributor profile owner edit mode", () => {
     await mockContributorMe(page, { profile: CONTRIBUTOR_PROFILE });
     await page.goto("/profile");
 
-    const profileTab = page.getByTestId("contributor-profile-tab-profile");
-    await profileTab.focus();
-    await expect(profileTab).toBeFocused();
-    await page.keyboard.press("ArrowRight");
     const realizationsTab = page.getByTestId("contributor-profile-tab-realizations");
+    const collaborationsTab = page.getByTestId("contributor-profile-tab-collaborations");
+    await realizationsTab.focus();
     await expect(realizationsTab).toBeFocused();
     await expect(realizationsTab).toHaveAttribute("aria-selected", "true");
-    await expect(page.getByTestId("contributor-profile-realizations")).toBeVisible();
     await page.keyboard.press("ArrowRight");
-    await expect(page.getByTestId("contributor-profile-tab-collaborations")).toBeFocused();
+    await expect(collaborationsTab).toBeFocused();
+    await expect(collaborationsTab).toHaveAttribute("aria-selected", "true");
     await expect(page.getByTestId("contributor-profile-collaborations")).toBeVisible();
-    await page.keyboard.press("ArrowLeft");
+    await expect(page.getByTestId("contributor-profile-reviews")).toBeVisible();
+    await page.keyboard.press("ArrowRight");
+    await expect(realizationsTab).toBeFocused();
     await expect(realizationsTab).toHaveAttribute("aria-selected", "true");
+    await page.keyboard.press("ArrowLeft");
+    await expect(collaborationsTab).toHaveAttribute("aria-selected", "true");
   });
 
   test("does not expose owner profile actions to a signed-out visitor", async ({
@@ -658,7 +696,13 @@ test.describe("Contributor profile owner edit mode", () => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto("/profile");
       await expect(page.getByTestId("contributor-profile-tabs")).toBeVisible();
-      await expect(page.getByTestId("contributor-profile-tab-profile")).toHaveText("Profil");
+      await expect(page.getByRole("tab")).toHaveCount(2);
+      await expect(page.getByTestId("contributor-profile-tab-realizations")).toHaveText(
+        "Réalisations"
+      );
+      await expect(page.getByTestId("contributor-profile-skills")).toBeVisible();
+      await expect(page.getByTestId("contributor-profile-badges")).toBeVisible();
+      await expect(page.getByTestId("contributor-profile-reviews")).toBeVisible();
       await expect(page.getByTestId("contributor-profile-edit")).toBeVisible();
       await expect(page.getByTestId("contributor-profile-deactivate-open")).toBeVisible();
       const fits = await page.evaluate(

@@ -557,8 +557,7 @@
     "reviewsEmpty": "Aucun avis de la communauté pour le moment.",
     "photoAlt": "Photo de profil de {name}",
     "tabs": {
-      "label": "Sections du profil",
-      "profile": "Profil",
+      "label": "Activité",
       "realizations": "Réalisations",
       "collaborations": "Collaborations"
     },
