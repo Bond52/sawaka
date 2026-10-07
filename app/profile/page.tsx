@@ -25,9 +25,9 @@ function skillLabel(skill: ContributorSkillPayload, locale: string): string {
   );
 }
 
-type ProfileTab = "profile" | "realizations" | "collaborations";
+type ActivityTab = "realizations" | "collaborations";
 
-const PROFILE_TABS: ProfileTab[] = ["profile", "realizations", "collaborations"];
+const ACTIVITY_TABS: ActivityTab[] = ["realizations", "collaborations"];
 
 function formatLocation(
   profile: ContributorProfileDetail,
@@ -54,7 +54,7 @@ export default function ContributorProfilePage() {
   const [error, setError] = useState("");
   const [editing, setEditing] = useState(false);
   const [savedNotice, setSavedNotice] = useState(false);
-  const [activeTab, setActiveTab] = useState<ProfileTab>("profile");
+  const [activeTab, setActiveTab] = useState<ActivityTab>("realizations");
 
   useEffect(() => {
     const stored = readStoredUser();
@@ -248,27 +248,78 @@ export default function ContributorProfilePage() {
         </>
         )}
 
+        {!editing ? (
+          <section
+            className="mb-10"
+            aria-labelledby="contributor-skills-heading"
+            data-testid="contributor-profile-skills"
+          >
+            <h2 id="contributor-skills-heading" className="sr-only">
+              {t("contributorProfile.skillsTitle")}
+            </h2>
+            {skills.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {t("contributorProfile.skillsEmpty")}
+              </p>
+            ) : (
+              <ul className="flex flex-wrap gap-2">
+                {skills.map((skill, index) => {
+                  const label = skillLabel(skill, locale);
+                  if (!label) return null;
+                  return (
+                    <li
+                      key={skill.id || `custom-${index}-${label}`}
+                      className="rounded-full border border-border bg-secondary px-3 py-1 text-sm text-foreground"
+                    >
+                      {label}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+        ) : null}
+
+        <section
+          className="mb-10"
+          aria-labelledby="contributor-badges-heading"
+          data-testid="contributor-profile-badges"
+        >
+          <h2
+            id="contributor-badges-heading"
+            className="mb-3 text-xl font-semibold text-foreground"
+          >
+            {t("contributorProfile.badgesTitle")}
+          </h2>
+          <p
+            className="text-sm text-muted-foreground"
+            data-testid="contributor-profile-badges-empty"
+          >
+            {t("contributorProfile.badgesEmpty")}
+          </p>
+        </section>
+
         <div
           role="tablist"
           aria-label={t("contributorProfile.tabs.label")}
           data-testid="contributor-profile-tabs"
           className="mb-8 flex gap-1 overflow-x-auto border-b border-border"
           onKeyDown={(event) => {
-            const index = PROFILE_TABS.indexOf(activeTab);
+            const index = ACTIVITY_TABS.indexOf(activeTab);
             let next = index;
-            if (event.key === "ArrowRight") next = (index + 1) % PROFILE_TABS.length;
+            if (event.key === "ArrowRight") next = (index + 1) % ACTIVITY_TABS.length;
             else if (event.key === "ArrowLeft") {
-              next = (index - 1 + PROFILE_TABS.length) % PROFILE_TABS.length;
+              next = (index - 1 + ACTIVITY_TABS.length) % ACTIVITY_TABS.length;
             } else if (event.key === "Home") next = 0;
-            else if (event.key === "End") next = PROFILE_TABS.length - 1;
+            else if (event.key === "End") next = ACTIVITY_TABS.length - 1;
             else return;
             event.preventDefault();
-            const tab = PROFILE_TABS[next];
+            const tab = ACTIVITY_TABS[next];
             setActiveTab(tab);
             document.getElementById(`contributor-profile-tab-${tab}`)?.focus();
           }}
         >
-          {PROFILE_TABS.map((tab) => {
+          {ACTIVITY_TABS.map((tab) => {
             const selected = activeTab === tab;
             return (
               <button
@@ -291,102 +342,6 @@ export default function ContributorProfilePage() {
               </button>
             );
           })}
-        </div>
-
-        <div
-          id="contributor-profile-panel-profile"
-          role="tabpanel"
-          aria-labelledby="contributor-profile-tab-profile"
-          hidden={activeTab !== "profile"}
-          data-testid="contributor-profile-panel-profile"
-        >
-          {!editing ? (
-            <section
-              className="mb-10"
-              aria-labelledby="contributor-skills-heading"
-              data-testid="contributor-profile-skills"
-            >
-              <h2 id="contributor-skills-heading" className="sr-only">
-                {t("contributorProfile.skillsTitle")}
-              </h2>
-              {skills.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {t("contributorProfile.skillsEmpty")}
-                </p>
-              ) : (
-                <ul className="flex flex-wrap gap-2">
-                  {skills.map((skill, index) => {
-                    const label = skillLabel(skill, locale);
-                    if (!label) return null;
-                    return (
-                      <li
-                        key={skill.id || `custom-${index}-${label}`}
-                        className="rounded-full border border-border bg-secondary px-3 py-1 text-sm text-foreground"
-                      >
-                        {label}
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </section>
-          ) : null}
-
-          <section
-            className="mb-10"
-            aria-labelledby="contributor-badges-heading"
-            data-testid="contributor-profile-badges"
-          >
-            <h2
-              id="contributor-badges-heading"
-              className="mb-3 text-xl font-semibold text-foreground"
-            >
-              {t("contributorProfile.badgesTitle")}
-            </h2>
-            <p
-              className="text-sm text-muted-foreground"
-              data-testid="contributor-profile-badges-empty"
-            >
-              {t("contributorProfile.badgesEmpty")}
-            </p>
-          </section>
-
-          <section
-            className="mb-6"
-            aria-labelledby="contributor-reviews-heading"
-            data-testid="contributor-profile-reviews"
-          >
-            <h2
-              id="contributor-reviews-heading"
-              className="mb-3 text-xl font-semibold text-foreground"
-            >
-              {t("contributorProfile.reviewsTitle")}
-            </h2>
-            <p
-              className="text-sm text-muted-foreground"
-              data-testid="contributor-profile-reviews-empty"
-            >
-              {t("contributorProfile.reviewsEmpty")}
-            </p>
-          </section>
-
-          <ContributorDeactivation
-          profile={profile}
-          editing={editing}
-          onDeactivated={(next) => {
-            setProfile(next);
-            setEditing(false);
-            router.push("/dashboard?profileDeactivated=1");
-          }}
-          onAlreadyInactive={() => {
-            setProfile((current) =>
-              current
-                ? { ...current, status: "Inactive", isVisible: false }
-                : current
-            );
-            setEditing(false);
-          }}
-        />
         </div>
 
         <section
@@ -436,6 +391,43 @@ export default function ContributorProfilePage() {
             {t("contributorProfile.collaborationsEmpty")}
           </p>
         </section>
+
+        <section
+          className="mb-6"
+          aria-labelledby="contributor-reviews-heading"
+          data-testid="contributor-profile-reviews"
+        >
+          <h2
+            id="contributor-reviews-heading"
+            className="mb-3 text-xl font-semibold text-foreground"
+          >
+            {t("contributorProfile.reviewsTitle")}
+          </h2>
+          <p
+            className="text-sm text-muted-foreground"
+            data-testid="contributor-profile-reviews-empty"
+          >
+            {t("contributorProfile.reviewsEmpty")}
+          </p>
+        </section>
+
+        <ContributorDeactivation
+          profile={profile}
+          editing={editing}
+          onDeactivated={(next) => {
+            setProfile(next);
+            setEditing(false);
+            router.push("/dashboard?profileDeactivated=1");
+          }}
+          onAlreadyInactive={() => {
+            setProfile((current) =>
+              current
+                ? { ...current, status: "Inactive", isVisible: false }
+                : current
+            );
+            setEditing(false);
+          }}
+        />
       </div>
     </main>
   );
