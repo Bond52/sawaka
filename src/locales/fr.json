@@ -556,6 +556,12 @@
     "reviewsTitle": "Avis de la communauté",
     "reviewsEmpty": "Aucun avis de la communauté pour le moment.",
     "photoAlt": "Photo de profil de {name}",
+    "tabs": {
+      "label": "Sections du profil",
+      "profile": "Profil",
+      "realizations": "Réalisations",
+      "collaborations": "Collaborations"
+    },
     "edit": {
       "action": "Modifier mon profil",
       "save": "Enregistrer",

@@ -113,32 +113,30 @@ test.describe("Contributor profile overview (/profile)", () => {
     );
 
     const badges = page.getByTestId("contributor-profile-badges");
-    const reputation = page.getByTestId("contributor-profile-reputation");
-    const realizations = page.getByTestId("contributor-profile-realizations");
     await expect(badges).toBeVisible();
     await expect(page.getByTestId("contributor-profile-badges-empty")).toBeVisible();
-    await expect(reputation).toBeVisible();
-    await expect(realizations).toBeVisible();
-    await expect(
-      page.getByTestId("contributor-profile-collaborations-empty")
-    ).toBeVisible();
     await expect(page.getByTestId("contributor-profile-reviews-empty")).toBeVisible();
+    await expect(page.getByTestId("contributor-profile-reputation")).toHaveCount(0);
+    await expect(page.getByTestId("contributor-profile-realizations")).toBeHidden();
+    await expect(
+      page.getByTestId("contributor-profile-collaborations")
+    ).toBeHidden();
 
-    // Badges must appear before Reputation in the document order.
-    const order = await page.evaluate(() => {
-      const badgesEl = document.querySelector(
-        '[data-testid="contributor-profile-badges"]'
-      );
-      const reputationEl = document.querySelector(
-        '[data-testid="contributor-profile-reputation"]'
-      );
-      if (!badgesEl || !reputationEl) return -1;
-      return badgesEl.compareDocumentPosition(reputationEl) &
-        Node.DOCUMENT_POSITION_FOLLOWING
-        ? 1
-        : 0;
-    });
-    expect(order).toBe(1);
+    const profilePanel = page.getByTestId("contributor-profile-panel-profile");
+    await expect(profilePanel.getByTestId("contributor-profile-realizations")).toHaveCount(0);
+    await expect(profilePanel.getByTestId("contributor-profile-collaborations")).toHaveCount(0);
+
+    await expect(page.getByTestId("contributor-profile-tab-profile")).toHaveText("Profil");
+    await expect(page.getByTestId("contributor-profile-tab-realizations")).toHaveText(
+      "Réalisations"
+    );
+    await expect(page.getByTestId("contributor-profile-tab-collaborations")).toHaveText(
+      "Collaborations"
+    );
+    await expect(page.getByTestId("contributor-profile-tab-profile")).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
 
     // Privacy: account email / password must not appear on contributor overview.
     await expect(page.getByText(/@example\.com/i)).toHaveCount(0);
@@ -559,5 +557,118 @@ test.describe("Contributor profile owner edit mode", () => {
     await page.getByTestId("contributor-profile-cancel").click();
     await expect(page.getByTestId("contributor-profile-deactivate-open")).toBeVisible();
     await expect(page.getByTestId("contributor-profile-reviews")).toBeVisible();
+  });
+
+  test("switches activity tabs without duplicating profile content", async ({ page }) => {
+    await setLocale(page, "en");
+    await seedUser(page);
+    await mockContributorMe(page, { profile: CONTRIBUTOR_PROFILE });
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/profile");
+
+    await expect(page.getByTestId("contributor-profile-tab-profile")).toHaveText("Profile");
+    await expect(page.getByTestId("contributor-profile-tab-realizations")).toHaveText(
+      "Realizations"
+    );
+    await expect(page.getByTestId("contributor-profile-tab-collaborations")).toHaveText(
+      "Collaborations"
+    );
+    await expect(page.getByTestId("contributor-profile-tab-profile")).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
+    await expect(page.getByTestId("contributor-profile-edit")).toBeVisible();
+    await expect(page.getByTestId("contributor-profile-deactivate-open")).toBeVisible();
+
+    const overview = page.getByTestId("contributor-profile-overview");
+    await expect(overview).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    const bodyBackground = await page.evaluate(() =>
+      getComputedStyle(document.body).backgroundColor
+    );
+    expect(bodyBackground).toBe("rgb(250, 249, 247)");
+
+    await page.getByTestId("contributor-profile-tab-realizations").click();
+    await expect(page.getByTestId("contributor-profile-tab-realizations")).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
+    await expect(page.getByTestId("contributor-profile-realizations")).toBeVisible();
+    await expect(page.getByTestId("contributor-profile-realizations-empty")).toBeVisible();
+    await expect(page.getByTestId("contributor-profile-panel-profile")).toBeHidden();
+    await expect(page.getByTestId("contributor-profile-collaborations")).toBeHidden();
+    await expect(page.getByTestId("contributor-profile-deactivate-open")).toBeHidden();
+
+    await page.getByTestId("contributor-profile-tab-collaborations").click();
+    await expect(page.getByTestId("contributor-profile-tab-collaborations")).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
+    await expect(page.getByTestId("contributor-profile-collaborations")).toBeVisible();
+    await expect(
+      page.getByTestId("contributor-profile-collaborations-empty")
+    ).toBeVisible();
+    await expect(page.getByTestId("contributor-profile-realizations")).toBeHidden();
+    await expect(page.getByTestId("contributor-profile-panel-profile")).toBeHidden();
+
+    await page.getByTestId("contributor-profile-tab-profile").click();
+    await expect(page.getByTestId("contributor-profile-skills")).toBeVisible();
+    await expect(page.getByTestId("contributor-profile-badges")).toBeVisible();
+    await expect(page.getByTestId("contributor-profile-reviews")).toBeVisible();
+    await expect(page.getByTestId("contributor-profile-photo")).toHaveCount(0);
+    await expect(page.getByTestId("contributor-profile-avatar")).toBeVisible();
+  });
+
+  test("moves between profile tabs with the keyboard", async ({ page }) => {
+    await setLocale(page, "en");
+    await seedUser(page);
+    await mockContributorMe(page, { profile: CONTRIBUTOR_PROFILE });
+    await page.goto("/profile");
+
+    const profileTab = page.getByTestId("contributor-profile-tab-profile");
+    await profileTab.focus();
+    await expect(profileTab).toBeFocused();
+    await page.keyboard.press("ArrowRight");
+    const realizationsTab = page.getByTestId("contributor-profile-tab-realizations");
+    await expect(realizationsTab).toBeFocused();
+    await expect(realizationsTab).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByTestId("contributor-profile-realizations")).toBeVisible();
+    await page.keyboard.press("ArrowRight");
+    await expect(page.getByTestId("contributor-profile-tab-collaborations")).toBeFocused();
+    await expect(page.getByTestId("contributor-profile-collaborations")).toBeVisible();
+    await page.keyboard.press("ArrowLeft");
+    await expect(realizationsTab).toHaveAttribute("aria-selected", "true");
+  });
+
+  test("does not expose owner profile actions to a signed-out visitor", async ({
+    page,
+  }) => {
+    await page.goto("/profile");
+    await expect(page).toHaveURL(/\/login/);
+    await expect(page.getByTestId("contributor-profile-edit")).toHaveCount(0);
+    await expect(page.getByTestId("contributor-profile-deactivate-open")).toHaveCount(0);
+    await expect(page.getByTestId("contributor-profile-tabs")).toHaveCount(0);
+  });
+
+  test("keeps profile tabs usable on tablet and phone widths", async ({ page }) => {
+    await setLocale(page, "fr");
+    await seedUser(page);
+    await mockContributorMe(page, { profile: CONTRIBUTOR_PROFILE });
+
+    for (const width of [768, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/profile");
+      await expect(page.getByTestId("contributor-profile-tabs")).toBeVisible();
+      await expect(page.getByTestId("contributor-profile-tab-profile")).toHaveText("Profil");
+      await expect(page.getByTestId("contributor-profile-edit")).toBeVisible();
+      await expect(page.getByTestId("contributor-profile-deactivate-open")).toBeVisible();
+      const fits = await page.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1
+      );
+      expect(fits).toBe(true);
+      const background = await page
+        .getByTestId("contributor-profile-overview")
+        .evaluate((element) => getComputedStyle(element).backgroundColor);
+      expect(background).toBe("rgb(255, 255, 255)");
+    }
   });
 });

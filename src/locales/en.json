@@ -556,6 +556,12 @@
     "reviewsTitle": "Community reviews",
     "reviewsEmpty": "No community reviews yet.",
     "photoAlt": "Profile photo of {name}",
+    "tabs": {
+      "label": "Profile sections",
+      "profile": "Profile",
+      "realizations": "Realizations",
+      "collaborations": "Collaborations"
+    },
     "edit": {
       "action": "Edit my profile",
       "save": "Save",
