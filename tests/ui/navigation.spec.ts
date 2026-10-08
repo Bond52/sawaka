@@ -179,7 +179,10 @@ test.describe("Public navigation", () => {
     await expect(page.getByTestId("header-my-realizations")).toHaveText(
       "Mes réalisations"
     );
-    await expect(page.getByTestId("header-my-realizations")).toBeDisabled();
+    await expect(page.getByTestId("header-my-realizations")).toHaveAttribute(
+      "href",
+      "/vendeur/articles"
+    );
     await expect(page.getByTestId("header-my-projects")).toHaveText("Mes projets");
     await expect(page.getByTestId("header-my-projects")).toBeDisabled();
     await expect(page.getByTestId("header-my-collaborations")).toHaveText(
@@ -227,6 +230,10 @@ test.describe("Public navigation", () => {
     await expect(page.getByTestId("header-my-realizations")).toHaveText(
       "My Realizations"
     );
+    await expect(page.getByTestId("header-my-realizations")).toHaveAttribute(
+      "href",
+      "/vendeur/articles"
+    );
     await expect(page.getByTestId("header-my-projects")).toHaveText("My Projects");
     await expect(page.getByTestId("header-my-collaborations")).toHaveText(
       "My Collaborations"
@@ -236,7 +243,6 @@ test.describe("Public navigation", () => {
       "href",
       "/settings"
     );
-    await expect(page.getByTestId("header-my-realizations")).toBeDisabled();
     await expect(page.getByTestId("header-my-projects")).toBeDisabled();
     await expect(page.getByTestId("header-my-collaborations")).toBeDisabled();
     await expect(page.getByTestId("header-logout")).toHaveText("Log out");
@@ -270,7 +276,10 @@ test.describe("Public navigation", () => {
       "href",
       "/profile"
     );
-    await expect(page.getByTestId("header-mobile-realizations")).toBeDisabled();
+    await expect(page.getByTestId("header-mobile-realizations")).toHaveAttribute(
+      "href",
+      "/vendeur/articles"
+    );
     await expect(page.getByTestId("header-mobile-my-projects")).toBeDisabled();
     await expect(page.getByTestId("header-mobile-collaborations")).toBeDisabled();
     await expect(page.getByTestId("header-mobile-settings")).toHaveAttribute(
@@ -283,5 +292,112 @@ test.describe("Public navigation", () => {
     await expect(
       page.getByRole("link", { name: "Créer un profil contributeur" })
     ).toHaveCount(0);
+  });
+
+  test("My Realizations opens the existing creations page", async ({ page }) => {
+    await setLocale(page, "fr");
+    await page.addInitScript(() => {
+      window.localStorage.setItem(
+        "user",
+        JSON.stringify({
+          token: "user-jwt-token",
+          roles: ["vendeur"],
+          username: "amina",
+          firstName: "Amina",
+        })
+      );
+    });
+    await page.route("**/api/auth/me", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: "user-1",
+          roles: ["vendeur"],
+          username: "amina",
+        }),
+      });
+    });
+    await page.route("**/api/seller/articles**", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ items: [], total: 0, page: 1, pages: 1 }),
+      });
+    });
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/");
+    await page.getByTestId("header-user-menu").click();
+    await page.getByTestId("header-my-realizations").click();
+    await expect(page).toHaveURL(/\/vendeur\/articles$/);
+    await expect(page.getByRole("heading", { name: "Mes créations" })).toBeVisible();
+  });
+
+  test("My Realizations opens the existing creations page from the keyboard", async ({
+    page,
+  }) => {
+    await setLocale(page, "fr");
+    await page.addInitScript(() => {
+      window.localStorage.setItem(
+        "user",
+        JSON.stringify({
+          token: "user-jwt-token",
+          roles: ["vendeur"],
+          username: "amina",
+          firstName: "Amina",
+        })
+      );
+    });
+    await page.route("**/api/auth/me", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: "user-1",
+          roles: ["vendeur"],
+          username: "amina",
+        }),
+      });
+    });
+    await page.route("**/api/seller/articles**", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ items: [], total: 0, page: 1, pages: 1 }),
+      });
+    });
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/");
+    await page.getByTestId("header-user-menu").click();
+    const link = page.getByTestId("header-my-realizations");
+    await link.focus();
+    await expect(link).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(/\/vendeur\/articles$/);
+    await expect(page.getByRole("heading", { name: "Mes créations" })).toBeVisible();
+  });
+
+  test("an unauthenticated visit does not load private creations", async ({ page }) => {
+    await setLocale(page, "fr");
+    let articleCalls = 0;
+    await page.route("**/api/auth/me", async (route) => {
+      await route.fulfill({
+        status: 401,
+        contentType: "application/json",
+        body: JSON.stringify({ message: "Non autorisé." }),
+      });
+    });
+    await page.route("**/api/seller/articles**", async (route) => {
+      articleCalls += 1;
+      await route.fulfill({
+        status: 401,
+        contentType: "application/json",
+        body: JSON.stringify({ message: "Non autorisé." }),
+      });
+    });
+    await page.goto("/vendeur/articles");
+    await expect(page.getByRole("heading", { name: "Mes créations" })).toBeVisible();
+    await expect(page.getByTestId("header-my-realizations")).toHaveCount(0);
+    expect(articleCalls).toBe(0);
   });
 });

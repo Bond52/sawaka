@@ -71,12 +71,12 @@ const PUBLIC_NAV = [
 
 /**
  * Authenticated account destinations.
- * Available routes: /dashboard, /profile.
+ * Available routes: /dashboard, /profile, /vendeur/articles, /settings.
+ * My Realizations reuses the existing product management page. It does not
+ * implement Feature #346 beyond that page.
  * Unavailable (disabled interim UX — do not invent Features here):
- * - My Realizations → Feature #346
  * - My Projects → EPIC #215 (no dedicated “my projects” area; /projets is public browse)
  * - My Collaborations → Feature #347
- * - Settings → `/settings` (account editing preserved after Task #393 moved it off `/profile`)
  * Create Contributor Profile must not appear (Bug #392).
  */
 const ACCOUNT_MENU_ITEMS: AccountMenuItem[] = [
@@ -101,7 +101,8 @@ const ACCOUNT_MENU_ITEMS: AccountMenuItem[] = [
     labelKey: "navigation.myRealizations",
     testId: "header-my-realizations",
     icon: Hammer,
-    available: false,
+    href: "/vendeur/articles",
+    available: true,
   },
   {
     id: "my-projects",
