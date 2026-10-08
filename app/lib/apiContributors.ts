@@ -460,3 +460,79 @@ export async function verifyAccountEmail(
 
   return { ok: true, profileActivated };
 }
+
+export type PublicDirectoryQuery = {
+  q?: string;
+  domainId?: string;
+  skillIds?: string[];
+  country?: string;
+  region?: string;
+  city?: string;
+};
+
+function isContributorProfile(value: unknown): value is ContributorProfileDetail {
+  if (!value || typeof value !== "object") return false;
+  const record = value as { id?: unknown; displayName?: unknown };
+  return typeof record.id === "string" && typeof record.displayName === "string";
+}
+
+export async function listPublicContributors(
+  query: PublicDirectoryQuery
+): Promise<
+  { ok: true; profiles: ContributorProfileDetail[] } | { ok: false; status: number }
+> {
+  const params = new URLSearchParams();
+  if (query.q) params.set("q", query.q);
+  if (query.domainId) params.set("domainId", query.domainId);
+  if (query.skillIds && query.skillIds.length > 0) {
+    params.set("skillIds", query.skillIds.join(","));
+  }
+  if (query.country) params.set("country", query.country);
+  if (query.region) params.set("region", query.region);
+  if (query.city) params.set("city", query.city);
+  const suffix = params.toString();
+  try {
+    const res = await fetch(
+      `${resolveApiBaseUrl()}/api/contributors${suffix ? `?${suffix}` : ""}`,
+      { cache: "no-store" }
+    );
+    const data = await readJson(res);
+    if (!res.ok) return { ok: false, status: res.status };
+    const profiles =
+      data &&
+      typeof data === "object" &&
+      Array.isArray((data as { profiles?: unknown }).profiles)
+        ? (data as { profiles: unknown[] }).profiles.filter(isContributorProfile)
+        : [];
+    return { ok: true, profiles };
+  } catch (err) {
+    console.error("[apiContributors] listPublicContributors: network error", { err });
+    return { ok: false, status: 0 };
+  }
+}
+
+export async function getPublicContributor(
+  profileId: string
+): Promise<OwnProfileResult> {
+  try {
+    const res = await fetch(
+      `${resolveApiBaseUrl()}/api/contributors/${encodeURIComponent(profileId)}`,
+      { cache: "no-store" }
+    );
+    const data = await readJson(res);
+    if (!res.ok) {
+      return { ok: false, status: res.status, code: readErrorCode(data) };
+    }
+    const profile =
+      data && typeof data === "object"
+        ? (data as { profile?: unknown }).profile
+        : null;
+    if (!isContributorProfile(profile)) {
+      return { ok: false, status: res.status, code: "SERVER_ERROR" };
+    }
+    return { ok: true, profile };
+  } catch (err) {
+    console.error("[apiContributors] getPublicContributor: network error", { err });
+    return { ok: false, status: 0, code: "NETWORK" };
+  }
+}

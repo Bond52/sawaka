@@ -67,6 +67,7 @@ router.post(
   contributorController.deactivateOwnContributor
 );
 router.post("/", optionalAuth, contributorController.createContributor);
+router.get("/", contributorController.listPublicContributors);
 router.get("/:id", contributorController.getPublicContributor);
 
 module.exports = router;

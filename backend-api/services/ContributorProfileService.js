@@ -26,6 +26,16 @@ const CUSTOM_SKILL_MAX = 30;
 const BIOGRAPHY_MAX = 2000;
 /** Technical bound for free-text location. No controlled country list is approved. */
 const LOCATION_MAX = 120;
+const DIRECTORY_QUERY_MAX = 80;
+const DIRECTORY_RESULT_LIMIT = 100;
+const DIRECTORY_QUERY_FIELDS = new Set([
+  "q",
+  "domainId",
+  "skillIds",
+  "country",
+  "region",
+  "city",
+]);
 
 const PROFILE_FIELDS = new Set([
   "displayName",
@@ -56,11 +66,18 @@ function isPlainObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+function publicProfileCriteria() {
+  return {
+    status: PROFILE_STATUS.ACTIVE,
+    isVisible: true,
+  };
+}
+
 function isPubliclyAvailableProfile(profile) {
-  return Boolean(
-    profile &&
-      profile.status === PROFILE_STATUS.ACTIVE &&
-      profile.isVisible === true
+  if (!profile) return false;
+  const criteria = publicProfileCriteria();
+  return (
+    profile.status === criteria.status && profile.isVisible === criteria.isVisible
   );
 }
 
@@ -686,6 +703,148 @@ async function getPublicProfile(profileId) {
   return shapeProfile(profile, domain, skillDocs, { includeLifecycle: false });
 }
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function readDirectoryString(value, field, max) {
+  if (value === undefined || value === null || value === "") return "";
+  if (typeof value !== "string") {
+    throw new ContributorProfileError("VALIDATION_ERROR", 400, {
+      fields: { [field]: "INVALID" },
+    });
+  }
+  const trimmed = value.trim();
+  if ([...trimmed].length > max) {
+    throw new ContributorProfileError("VALIDATION_ERROR", 400, {
+      fields: { [field]: "LENGTH" },
+    });
+  }
+  return trimmed;
+}
+
+async function shapePublicProfiles(profiles) {
+  const domainIds = [
+    ...new Set(profiles.map((profile) => String(profile.domainId)).filter(Boolean)),
+  ];
+  const skillIds = [
+    ...new Set(
+      profiles.flatMap((profile) =>
+        (profile.skills || [])
+          .filter((skill) => !skill.isCustom && skill.skillId)
+          .map((skill) => String(skill.skillId))
+      )
+    ),
+  ];
+  const [domains, skillDocs] = await Promise.all([
+    domainIds.length ? Domain.find({ _id: { $in: domainIds } }) : [],
+    skillIds.length ? Skill.find({ _id: { $in: skillIds } }) : [],
+  ]);
+  const domainsById = new Map(domains.map((domain) => [String(domain._id), domain]));
+  return profiles.map((profile) =>
+    shapeProfile(profile, domainsById.get(String(profile.domainId)) || null, skillDocs, {
+      includeLifecycle: false,
+    })
+  );
+}
+
+/**
+ * Public directory search.
+ * Skill matching is ANY: a profile matches when it has at least one selected canonical skill.
+ * No approved ALL rule exists for this directory.
+ */
+async function listPublicProfiles(rawQuery) {
+  const query = isPlainObject(rawQuery) ? rawQuery : {};
+  const unexpected = {};
+  for (const key of Object.keys(query)) {
+    if (!DIRECTORY_QUERY_FIELDS.has(key)) unexpected[key] = "UNEXPECTED";
+  }
+  if (Object.keys(unexpected).length > 0) {
+    throw new ContributorProfileError("VALIDATION_ERROR", 400, { fields: unexpected });
+  }
+
+  const q = readDirectoryString(query.q, "q", DIRECTORY_QUERY_MAX);
+  const domainId = readDirectoryString(query.domainId, "domainId", 24);
+  const country = readDirectoryString(query.country, "country", LOCATION_MAX);
+  const region = readDirectoryString(query.region, "region", LOCATION_MAX);
+  const city = readDirectoryString(query.city, "city", LOCATION_MAX);
+
+  let skillIds = [];
+  if (query.skillIds !== undefined && query.skillIds !== "" && query.skillIds !== null) {
+    const rawIds = Array.isArray(query.skillIds)
+      ? query.skillIds
+      : String(query.skillIds).split(",");
+    if (rawIds.some((id) => typeof id !== "string")) {
+      throw new ContributorProfileError("VALIDATION_ERROR", 400, {
+        fields: { skillIds: "INVALID" },
+      });
+    }
+    skillIds = [...new Set(rawIds.map((id) => id.trim()).filter(Boolean))];
+    if (skillIds.length > MAX_SELECTED_SKILLS) {
+      throw new ContributorProfileError("VALIDATION_ERROR", 400, {
+        fields: { skillIds: "TOO_MANY" },
+      });
+    }
+    if (skillIds.some((id) => !OBJECT_ID_PATTERN.test(id))) {
+      throw new ContributorProfileError("VALIDATION_ERROR", 400, {
+        fields: { skillIds: "INVALID" },
+      });
+    }
+  }
+  if (domainId && !OBJECT_ID_PATTERN.test(domainId)) {
+    throw new ContributorProfileError("VALIDATION_ERROR", 400, {
+      fields: { domainId: "INVALID" },
+    });
+  }
+
+  const filter = publicProfileCriteria();
+  const clauses = [];
+  if (domainId) filter.domainId = new mongoose.Types.ObjectId(domainId);
+  if (skillIds.length > 0) {
+    clauses.push({
+      "skills.skillId": {
+        $in: skillIds.map((id) => new mongoose.Types.ObjectId(id)),
+      },
+    });
+  }
+  if (country) clauses.push({ country: new RegExp(`^${escapeRegExp(country)}$`, "i") });
+  if (region) clauses.push({ region: new RegExp(`^${escapeRegExp(region)}$`, "i") });
+  if (city) clauses.push({ city: new RegExp(`^${escapeRegExp(city)}$`, "i") });
+
+  if (q) {
+    const pattern = new RegExp(escapeRegExp(q), "i");
+    const [domains, skills] = await Promise.all([
+      Domain.find({
+        isActive: true,
+        $or: [{ nameFR: pattern }, { nameEN: pattern }],
+      }).select("_id"),
+      Skill.find({
+        isActive: true,
+        $or: [{ nameFR: pattern }, { nameEN: pattern }],
+      }).select("_id"),
+    ]);
+    const keywordOr = [
+      { displayName: pattern },
+      { biography: pattern },
+      { "skills.customLabel": pattern },
+    ];
+    if (domains.length > 0) {
+      keywordOr.push({ domainId: { $in: domains.map((domain) => domain._id) } });
+    }
+    if (skills.length > 0) {
+      keywordOr.push({ "skills.skillId": { $in: skills.map((skill) => skill._id) } });
+    }
+    clauses.push({ $or: keywordOr });
+  }
+  if (clauses.length > 0) filter.$and = clauses;
+
+  const profiles = await ContributorProfile.find(filter)
+    .collation({ locale: "en", strength: 2 })
+    .sort({ displayName: 1 })
+    .limit(DIRECTORY_RESULT_LIMIT);
+  return shapePublicProfiles(profiles);
+}
+
 async function listActiveDomains() {
   const domains = await Domain.find({ isActive: true }).sort({ nameEN: 1 });
   return domains.map((domain) => ({
@@ -737,6 +896,7 @@ module.exports = {
   deactivateOwnContributorProfile,
   getOwnProfile,
   getPublicProfile,
+  listPublicProfiles,
   listActiveDomains,
   listSkillsForDomain,
 };
