@@ -140,6 +140,19 @@ async function getOwnContributor(req, res) {
   }
 }
 
+async function listPublicContributors(req, res) {
+  try {
+    const profiles = await ContributorProfileService.listPublicProfiles(req.query);
+    return res.json({ profiles });
+  } catch (err) {
+    if (err instanceof ContributorProfileError) {
+      return sendFunctionalError(res, err);
+    }
+    logContributorError("listPublicContributors", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
 async function getPublicContributor(req, res) {
   try {
     const profile = await ContributorProfileService.getPublicProfile(req.params.id);
@@ -211,6 +224,7 @@ module.exports = {
   removeOwnContributorPhoto,
   deactivateOwnContributor,
   getOwnContributor,
+  listPublicContributors,
   getPublicContributor,
   listDomains,
   listDomainSkills,

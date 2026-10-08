@@ -481,6 +481,21 @@
     "legend3": "3+ artisans",
     "osmAttribution": "© OpenStreetMap contributors"
   },
+  "contributorDirectory": {
+    "title": "Artisans",
+    "searchLabel": "Recherche",
+    "searchPlaceholder": "Rechercher un artisan...",
+    "filters": "Filtres",
+    "domainAll": "Tous les domaines",
+    "skillMatch": "Un artisan correspond s'il possède au moins une compétence sélectionnée.",
+    "reset": "Réinitialiser les filtres",
+    "empty": "Aucun artisan public pour le moment.",
+    "noResults": "Aucun artisan ne correspond à votre recherche.",
+    "loadError": "L'annuaire n'a pas pu être chargé.",
+    "loading": "Chargement…",
+    "back": "Retour à l'annuaire",
+    "unavailable": "Ce profil d'artisan n'est pas disponible."
+  },
   "cart": {
     "title": "Mon Panier",
     "empty": "Votre panier est vide.",

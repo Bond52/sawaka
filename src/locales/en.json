@@ -481,6 +481,21 @@
     "legend3": "3+ artisans",
     "osmAttribution": "© OpenStreetMap contributors"
   },
+  "contributorDirectory": {
+    "title": "Contributors",
+    "searchLabel": "Search",
+    "searchPlaceholder": "Search contributors...",
+    "filters": "Filters",
+    "domainAll": "All domains",
+    "skillMatch": "A contributor matches when they have at least one selected skill.",
+    "reset": "Reset filters",
+    "empty": "No public contributors yet.",
+    "noResults": "No contributors match your search.",
+    "loadError": "The directory could not be loaded.",
+    "loading": "Loading…",
+    "back": "Back to the directory",
+    "unavailable": "This contributor profile is not available."
+  },
   "cart": {
     "title": "My Cart",
     "empty": "Your cart is empty.",
