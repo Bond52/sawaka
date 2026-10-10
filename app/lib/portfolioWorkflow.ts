@@ -1,15 +1,24 @@
 /**
- * In-memory handoff from photo selection (#436) to grouping (#437).
+ * In-memory portfolio import workflow.
  *
- * Files stay in this browser tab. Nothing is uploaded, stored, or published.
- * A refresh clears the module, and another signed-in user cannot read it.
- * The snapshot is the contract the future metadata step can read.
- * That step is not implemented here.
+ * Files, groups, and optional metadata stay in this browser tab.
+ * Nothing is uploaded, stored, or published. A refresh clears the module,
+ * and another signed-in user cannot read it.
+ * `readReviewContract` is the handoff #438 can read. That page is not built here.
  */
 
 export type PhotoRef = { id: string; name: string };
 
-export type RealizationGroup = {
+/** Same ceiling as a contributor biography. Empty text is valid. */
+export const REALIZATION_DESCRIPTION_MAX = 2000;
+
+export type RealizationDetails = {
+  description: string;
+  domainId: string | null;
+  completedOn: string | null;
+};
+
+export type RealizationGroup = RealizationDetails & {
   id: string;
   sequence: number;
   photoIds: string[];
@@ -29,6 +38,7 @@ export type WorkflowView =
       ownerKey: string;
       photos: WorkflowPhotoView[];
       groups: RealizationGroup[];
+      reviewPrepared: boolean;
     };
 
 type StoredPhoto = WorkflowPhotoView & { file: File };
@@ -37,6 +47,7 @@ type Memory = {
   ownerKey: string;
   photos: StoredPhoto[];
   groups: RealizationGroup[];
+  reviewPrepared: boolean;
 };
 
 const EMPTY: WorkflowView = { status: "empty" };
@@ -67,6 +78,7 @@ export function groupPerPhoto(state: GroupingState, selectedIds: string[]): Grou
     id: newId(),
     sequence: sequence++,
     photoIds: [id],
+    ...blankDetails(),
   }));
   return { photos: state.photos, groups: [...state.groups, ...created] };
 }
@@ -126,6 +138,69 @@ export function createEmptyGroup(state: GroupingState): GroupingState {
   };
 }
 
+/** A realization is ready to publish when it still contains at least one image. */
+export function isRealizationReady(group: { photoIds: string[] }): boolean {
+  return group.photoIds.length > 0;
+}
+
+export function descriptionIssue(description: string): "DESCRIPTION_TOO_LONG" | null {
+  if (description.length > REALIZATION_DESCRIPTION_MAX) return "DESCRIPTION_TOO_LONG";
+  return null;
+}
+
+export function completionDateIssue(value: string | null): "DATE_INVALID" | null {
+  if (!value) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return "DATE_INVALID";
+  const [year, month, day] = value.split("-").map((part) => Number(part));
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return "DATE_INVALID";
+  }
+  return null;
+}
+
+export function updateGroupDetails(
+  state: GroupingState,
+  groupId: string,
+  patch: Partial<RealizationDetails>
+): GroupingState {
+  return {
+    photos: state.photos,
+    groups: state.groups.map((group) => {
+      if (group.id !== groupId) return group;
+      return {
+        ...group,
+        description: patch.description !== undefined ? patch.description : group.description,
+        domainId: patch.domainId !== undefined ? patch.domainId : group.domainId,
+        completedOn: patch.completedOn !== undefined ? patch.completedOn : group.completedOn,
+      };
+    }),
+  };
+}
+
+export function readReviewContract(ownerKey: string):
+  | { status: "empty" }
+  | {
+      status: "ready";
+      reviewPrepared: boolean;
+      realizations: Array<RealizationGroup & { ready: boolean }>;
+    } {
+  const snapshot = getWorkflowSnapshot(ownerKey);
+  if (snapshot.status !== "ready") return { status: "empty" };
+  return {
+    status: "ready",
+    reviewPrepared: snapshot.reviewPrepared,
+    realizations: snapshot.groups.map((group) => ({
+      ...group,
+      ready: isRealizationReady(group),
+    })),
+  };
+}
+
 export function replacePhotos(state: GroupingState, photos: PhotoRef[]): GroupingState {
   const keep = new Set(photos.map((photo) => photo.id));
   return {
@@ -163,6 +238,7 @@ export function handoffImportSelection(
       ownerKey,
       photos: incoming.map(storePhoto),
       groups: [],
+      reviewPrepared: false,
     });
     return;
   }
@@ -174,7 +250,20 @@ export function handoffImportSelection(
   }
   const photos = incoming.map((photo) => previous.get(photo.id) ?? storePhoto(photo));
   const grouped = replacePhotos(groupingOf(memory), photos);
-  commit({ ownerKey, photos, groups: grouped.groups });
+  commit({ ownerKey, photos, groups: grouped.groups, reviewPrepared: memory.reviewPrepared });
+}
+
+export function updateWorkflowGroupDetails(
+  ownerKey: string,
+  groupId: string,
+  patch: Partial<RealizationDetails>
+): void {
+  update(ownerKey, (state) => updateGroupDetails(state, groupId, patch));
+}
+
+export function prepareReviewHandoff(ownerKey: string): void {
+  if (!memory || memory.ownerKey !== ownerKey) return;
+  commit({ ...memory, reviewPrepared: true });
 }
 
 export function groupSelectedIntoOne(ownerKey: string, selectedIds: string[]): void {
@@ -218,8 +307,12 @@ function nextSequence(groups: RealizationGroup[]): number {
   return groups.reduce((max, group) => Math.max(max, group.sequence), 0) + 1;
 }
 
+function blankDetails(): RealizationDetails {
+  return { description: "", domainId: null, completedOn: null };
+}
+
 function createGroup(groups: RealizationGroup[], photoIds: string[]): RealizationGroup {
-  return { id: newId(), sequence: nextSequence(groups), photoIds };
+  return { id: newId(), sequence: nextSequence(groups), photoIds, ...blankDetails() };
 }
 
 function newId(): string {
@@ -248,6 +341,7 @@ function update(ownerKey: string, recipe: (state: GroupingState) => GroupingStat
     ownerKey,
     photos: memory.photos.filter((photo) => keep.has(photo.id)),
     groups: next.groups,
+    reviewPrepared: memory.reviewPrepared,
   });
 }
 
@@ -258,6 +352,7 @@ function commit(next: Memory): void {
     ownerKey: next.ownerKey,
     photos: next.photos.map(({ id, name, previewUrl }) => ({ id, name, previewUrl })),
     groups: next.groups,
+    reviewPrepared: next.reviewPrepared,
   };
   listeners.forEach((listener) => listener());
 }

@@ -2,17 +2,24 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   addPhotosToGroup,
+  completionDateIssue,
   createEmptyGroup,
+  descriptionIssue,
   dissolveGroup,
   getWorkflowSnapshot,
   groupIntoOne,
   groupPerPhoto,
+  groupSelectedIntoOne,
   handoffImportSelection,
+  isRealizationReady,
+  prepareReviewHandoff,
   readImportSelection,
+  readReviewContract,
   removePhotoFromGroup,
   removePhotos,
   replacePhotos,
   unassignedPhotoIds,
+  updateGroupDetails,
   type GroupingState,
 } from "./portfolioWorkflow.ts";
 
@@ -118,6 +125,63 @@ test("another signed-in user cannot read the in-memory workflow", () => {
   }
   assert.equal(getWorkflowSnapshot("other").status, "empty");
   assert.equal(readImportSelection("other").length, 0);
+});
+
+test("a grouped realization is ready even when optional details are empty", () => {
+  const next = groupIntoOne(state(), ["a", "b"]);
+  assert.equal(isRealizationReady(next.groups[0]), true);
+  assert.equal(next.groups[0].description, "");
+  assert.equal(next.groups[0].domainId, null);
+  assert.equal(next.groups[0].completedOn, null);
+  assert.equal(descriptionIssue(""), null);
+  assert.equal(completionDateIssue(null), null);
+});
+
+test("a realization without an image is incomplete", () => {
+  const next = createEmptyGroup(state());
+  assert.equal(isRealizationReady(next.groups[0]), false);
+});
+
+test("editing one realization keeps the details of the others", () => {
+  const grouped = groupPerPhoto(state(), ["a", "b"]);
+  const first = updateGroupDetails(grouped, grouped.groups[0].id, {
+    description: "Chair",
+    domainId: "wood",
+    completedOn: "2024-05-01",
+  });
+  const second = updateGroupDetails(first, first.groups[1].id, { description: "Gate" });
+  assert.equal(second.groups[0].description, "Chair");
+  assert.equal(second.groups[0].domainId, "wood");
+  assert.equal(second.groups[0].completedOn, "2024-05-01");
+  assert.equal(second.groups[1].description, "Gate");
+  assert.deepEqual(second.groups[0].photoIds, ["a"]);
+  assert.equal(descriptionIssue("x".repeat(2001)), "DESCRIPTION_TOO_LONG");
+  assert.equal(completionDateIssue("2024-02-31"), "DATE_INVALID");
+});
+
+test("the review contract reports readiness without publishing", () => {
+  const urlApi = URL as URL & {
+    createObjectURL: (blob: Blob) => string;
+    revokeObjectURL: (url: string) => void;
+  };
+  urlApi.createObjectURL = () => "blob:http://localhost/photo";
+  urlApi.revokeObjectURL = () => {};
+  const file = new File([new Uint8Array([1, 2, 3])], "a.jpg", { type: "image/jpeg" });
+  handoffImportSelection("review-owner", [{ id: "a", name: "a.jpg", file }]);
+  groupSelectedIntoOne("review-owner", ["a"]);
+  const before = readReviewContract("review-owner");
+  assert.equal(before.status, "ready");
+  if (before.status === "ready") {
+    assert.equal(before.reviewPrepared, false);
+    assert.equal(before.realizations.length, 1);
+    assert.equal(before.realizations[0].ready, true);
+    assert.deepEqual(before.realizations[0].photoIds, ["a"]);
+  }
+  prepareReviewHandoff("review-owner");
+  const after = readReviewContract("review-owner");
+  assert.equal(after.status, "ready");
+  if (after.status === "ready") assert.equal(after.reviewPrepared, true);
+  assert.equal(readReviewContract("someone-else").status, "empty");
 });
 
 test("an empty group can be created without assigning photos", () => {

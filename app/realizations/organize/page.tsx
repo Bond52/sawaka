@@ -446,16 +446,13 @@ function OrganizeWorkspace({
         >
           {t("portfolio.organize.back")}
         </Link>
-        <button
-          type="button"
+        <Link
+          href="/realizations/complete"
           data-testid="portfolio-organize-continue"
-          className={`inline-flex min-h-[44px] cursor-not-allowed items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground opacity-70 ${focusRing}`}
-          aria-disabled="true"
-          title={t("dashboard.actionUnavailable")}
-          onClick={(event) => event.preventDefault()}
+          className={`inline-flex min-h-[44px] items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground ${focusRing}`}
         >
           {t("portfolio.organize.continue")}
-        </button>
+        </Link>
       </div>
     </>
   );
