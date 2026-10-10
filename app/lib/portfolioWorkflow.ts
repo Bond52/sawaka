@@ -266,6 +266,50 @@ export function prepareReviewHandoff(ownerKey: string): void {
   commit({ ...memory, reviewPrepared: true });
 }
 
+export type PublicationHandoff = {
+  publishedCount: number;
+  draftCount: number;
+  failedCount: number;
+  outcome: "success" | "partial" | "failed";
+};
+
+let publicationHandoff: { ownerKey: string; result: PublicationHandoff } | null = null;
+
+/** Counts use isRealizationReady. Optional details do not change them. */
+export function reviewSummary(state: GroupingState): {
+  realizations: number;
+  photos: number;
+  ready: number;
+  incomplete: number;
+} {
+  const photoIds = new Set(state.groups.flatMap((group) => group.photoIds));
+  const ready = state.groups.filter((group) => isRealizationReady(group)).length;
+  return {
+    realizations: state.groups.length,
+    photos: photoIds.size,
+    ready,
+    incomplete: state.groups.length - ready,
+  };
+}
+
+export function rememberPublicationHandoff(ownerKey: string, result: PublicationHandoff): void {
+  if (!ownerKey) return;
+  publicationHandoff = { ownerKey, result };
+}
+
+export function readPublicationHandoff(ownerKey: string): PublicationHandoff | null {
+  if (!publicationHandoff || publicationHandoff.ownerKey !== ownerKey) return null;
+  return publicationHandoff.result;
+}
+
+export function closeWorkflow(ownerKey: string): void {
+  if (!memory || memory.ownerKey !== ownerKey) return;
+  release(memory);
+  memory = null;
+  view = EMPTY;
+  listeners.forEach((listener) => listener());
+}
+
 export function groupSelectedIntoOne(ownerKey: string, selectedIds: string[]): void {
   update(ownerKey, (state) => groupIntoOne(state, selectedIds));
 }

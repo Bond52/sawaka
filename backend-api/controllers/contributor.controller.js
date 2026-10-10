@@ -1,4 +1,6 @@
 const { profilePhotoIssue } = require("../services/profilePhoto");
+const realizationService = require("../services/realizationService");
+const { RealizationError } = realizationService;
 const ContributorProfileService = require("../services/ContributorProfileService");
 const { ContributorProfileError } = ContributorProfileService;
 const {
@@ -248,6 +250,44 @@ async function validateImportPhotos(req, res) {
   return res.json({ accepted, rejected });
 }
 
+async function commitRealizations(req, res) {
+  try {
+    const result = await realizationService.commitBatch({
+      ownerId: req.user.id,
+      manifest: req.body && req.body.manifest,
+      files: req.files,
+    });
+    const status = result.outcome === "failed" ? 422 : 200;
+    return res.status(status).json(result);
+  } catch (err) {
+    if (err instanceof RealizationError) return sendFunctionalError(res, err);
+    logContributorError("commitRealizations", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function listOwnRealizations(req, res) {
+  try {
+    const result = await realizationService.listOwned(req.user.id);
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof RealizationError) return sendFunctionalError(res, err);
+    logContributorError("listOwnRealizations", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function listPublicRealizations(req, res) {
+  try {
+    const result = await realizationService.listPublic(req.params.id);
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof ContributorProfileError) return sendFunctionalError(res, err);
+    logContributorError("listPublicRealizations", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
 module.exports = {
   createContributor,
   updateOwnContributor,
@@ -262,4 +302,7 @@ module.exports = {
   resendVerificationEmail,
   verifyAccountEmail,
   validateImportPhotos,
+  commitRealizations,
+  listOwnRealizations,
+  listPublicRealizations,
 };

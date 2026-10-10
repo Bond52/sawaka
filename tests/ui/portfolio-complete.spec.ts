@@ -62,7 +62,7 @@ test.describe("Complete realization metadata", () => {
     await expect(page.getByTestId("portfolio-complete-editor")).toHaveCount(0);
   });
 
-  test("French details stay with each group and continue does not open review", async ({ page }) => {
+  test("French details stay with each group and continue opens review", async ({ page }) => {
     await authenticate(page);
     await mockApis(page);
     await importAndOpenComplete(page, ["chair-1.jpg", "chair-2.jpg", "chair-3.jpg", "gate.jpg"]);
@@ -121,10 +121,10 @@ test.describe("Complete realization metadata", () => {
     await expect(page.getByTestId("portfolio-complete-status")).toHaveText("Prête");
 
     await page.getByTestId("portfolio-complete-continue").click();
+    await expect(page).toHaveURL(/\/realizations\/review/);
+    await expect(page.getByRole("heading", { name: "Vérifier les réalisations" })).toBeVisible();
+    await page.getByTestId("portfolio-review-back").click();
     await expect(page).toHaveURL(/\/realizations\/complete/);
-    await expect(page.getByTestId("portfolio-complete-review-pending")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Vérifier les réalisations" })).toHaveCount(0);
-    await expect(page.getByText("Publier")).toHaveCount(0);
 
     await page.getByTestId("portfolio-complete-back").click();
     await expect(page).toHaveURL(/\/realizations\/organize/);
