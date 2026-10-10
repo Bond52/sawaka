@@ -773,6 +773,25 @@
       "categoryInvalid": "La catégorie choisie n'est pas disponible.",
       "itemFailed": "Cette réalisation n'a pas pu être enregistrée.",
       "myRealizations": "Mes réalisations"
+    },
+    "confirmation": {
+      "eyebrowPublished": "PUBLICATION TERMINÉE",
+      "eyebrowDrafts": "ENREGISTREMENT TERMINÉ",
+      "titlePublished": "Vos réalisations ont été publiées.",
+      "titleDrafts": "Vos réalisations ont été enregistrées comme brouillons.",
+      "explanation": "Votre portfolio est à jour. Les réalisations publiées apparaissent dans l'onglet public Réalisations de votre profil.",
+      "publishedOne": "réalisation publiée",
+      "publishedMany": "réalisations publiées",
+      "draftOne": "enregistrée comme brouillon",
+      "draftMany": "enregistrées comme brouillons",
+      "publishedSummaryOne": "{count} réalisation publiée",
+      "publishedSummaryMany": "{count} réalisations publiées",
+      "draftSummaryOne": "{count} enregistrée comme brouillon",
+      "draftSummaryMany": "{count} enregistrées comme brouillons",
+      "privacyTitle": "Seules les réalisations publiées sont visibles.",
+      "privacyBody": "Vos brouillons restent privés jusqu'à leur publication.",
+      "addMore": "Ajouter d'autres réalisations",
+      "viewPortfolio": "Voir mon portfolio"
     }
   },
   "buyer": {

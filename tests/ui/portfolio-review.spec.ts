@@ -119,14 +119,13 @@ test.describe("Review bulk realizations", () => {
     await publish.focus();
     await expect(publish).toBeFocused();
     await page.keyboard.press("Enter");
-    await expect(page.getByTestId("portfolio-review-handoff")).toBeVisible();
-    await expect(page.getByTestId("portfolio-review-published-count")).toHaveText("2 publiées.");
-    await expect(page.getByTestId("portfolio-review-draft-count")).toHaveText("1 conservée comme brouillon.");
-    await expect(page).toHaveURL(/\/realizations\/review/);
-    await expect(page).not.toHaveURL(/\/realizations\/confirmation/);
+    await expect(page).toHaveURL(/\/realizations\/confirmation/);
+    await expect(page.getByRole("heading", { name: "Vos réalisations ont été publiées." })).toBeVisible();
+    await expect(page.getByTestId("portfolio-confirmation-published-count")).toHaveText("2");
+    await expect(page.getByTestId("portfolio-confirmation-draft-count")).toHaveText("1");
     expect(publishedBody).toContain("publish-ready");
 
-    await page.getByTestId("portfolio-review-my-realizations").click();
+    await page.getByTestId("portfolio-confirmation-portfolio").click();
     await expect(page).toHaveURL(/\/vendeur\/articles/);
   });
 
@@ -183,8 +182,11 @@ test.describe("Review bulk realizations", () => {
     await save.focus();
     await expect(save).toBeFocused();
     await page.keyboard.press("Enter");
-    await expect(page.getByText("Every realization was saved as a draft. Nothing was published.")).toBeVisible();
-    await expect(page.getByTestId("portfolio-review-published-count")).toHaveText("0 published.");
+    await expect(page).toHaveURL(/\/realizations\/confirmation/);
+    await expect(page.getByRole("heading", { name: "Your realizations were saved as drafts." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Your realizations have been published." })).toHaveCount(0);
+    await expect(page.getByTestId("portfolio-confirmation-published-count")).toHaveText("0");
+    await expect(page.getByTestId("portfolio-confirmation-draft-count")).toHaveText("1");
     expect(intent).toContain("save-drafts");
     expect(intent).not.toContain("publish-ready");
   });

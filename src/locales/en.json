@@ -773,6 +773,25 @@
       "categoryInvalid": "The selected category is not available.",
       "itemFailed": "This realization could not be saved.",
       "myRealizations": "My Realizations"
+    },
+    "confirmation": {
+      "eyebrowPublished": "PUBLICATION COMPLETE",
+      "eyebrowDrafts": "SAVING COMPLETE",
+      "titlePublished": "Your realizations have been published.",
+      "titleDrafts": "Your realizations were saved as drafts.",
+      "explanation": "Your portfolio is up to date. Published realizations appear in the public Realizations tab of your profile.",
+      "publishedOne": "realization published",
+      "publishedMany": "realizations published",
+      "draftOne": "saved as a draft",
+      "draftMany": "saved as drafts",
+      "publishedSummaryOne": "{count} realization published",
+      "publishedSummaryMany": "{count} realizations published",
+      "draftSummaryOne": "{count} saved as a draft",
+      "draftSummaryMany": "{count} saved as drafts",
+      "privacyTitle": "Only published realizations are visible.",
+      "privacyBody": "Your drafts stay private until they are published.",
+      "addMore": "Add More Realizations",
+      "viewPortfolio": "View My Portfolio"
     }
   },
   "buyer": {
