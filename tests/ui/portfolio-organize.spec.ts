@@ -119,9 +119,11 @@ test.describe("Organize imported photos", () => {
     await page.getByTestId("portfolio-import-continue").click();
     await expect(page.getByTestId("portfolio-group")).toHaveCount(4);
 
-    await page.getByTestId("portfolio-organize-continue").click({ force: true });
+    await page.getByTestId("portfolio-organize-continue").click();
+    await expect(page).toHaveURL(/\/realizations\/complete/);
+    await page.getByTestId("portfolio-complete-back").click();
     await expect(page).toHaveURL(/\/realizations\/organize/);
-    await expect(page.getByTestId("portfolio-organize-continue")).toHaveAttribute("aria-disabled", "true");
+    await expect(page.getByTestId("portfolio-group")).toHaveCount(4);
 
     await page.reload();
     await expect(page.getByTestId("portfolio-organize-recovery")).toBeVisible();
