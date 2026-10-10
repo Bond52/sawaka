@@ -13,6 +13,9 @@ import {
   handoffImportSelection,
   isRealizationReady,
   prepareReviewHandoff,
+  readPublicationHandoff,
+  rememberPublicationHandoff,
+  reviewSummary,
   readImportSelection,
   readReviewContract,
   removePhotoFromGroup,
@@ -182,6 +185,31 @@ test("the review contract reports readiness without publishing", () => {
   assert.equal(after.status, "ready");
   if (after.status === "ready") assert.equal(after.reviewPrepared, true);
   assert.equal(readReviewContract("someone-else").status, "empty");
+});
+
+test("review counts follow image readiness and stay private to the owner", () => {
+  const grouped = groupPerPhoto(state(), ["a", "b"]);
+  const withEmpty = createEmptyGroup(grouped);
+  const summary = reviewSummary(withEmpty);
+  assert.equal(summary.realizations, 3);
+  assert.equal(summary.photos, 2);
+  assert.equal(summary.ready, 2);
+  assert.equal(summary.incomplete, 1);
+  assert.equal(isRealizationReady(withEmpty.groups[0]), true);
+  withEmpty.groups[0].description = "";
+  withEmpty.groups[0].domainId = null;
+  withEmpty.groups[0].completedOn = null;
+  assert.equal(reviewSummary(withEmpty).ready, 2);
+
+  rememberPublicationHandoff("amina", {
+    outcome: "success",
+    publishedCount: 2,
+    draftCount: 1,
+    failedCount: 0,
+  });
+  assert.equal(readPublicationHandoff("other"), null);
+  assert.equal(readPublicationHandoff("amina")?.publishedCount, 2);
+  assert.equal(readPublicationHandoff("amina")?.draftCount, 1);
 });
 
 test("an empty group can be created without assigning photos", () => {

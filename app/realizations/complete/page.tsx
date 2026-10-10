@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
@@ -25,7 +25,7 @@ const steps = [
   { key: "importStep", state: "complete", href: "/realizations/import" },
   { key: "organizeStep", state: "complete", href: "/realizations/organize" },
   { key: "completeStep", state: "active" },
-  { key: "reviewStep", state: "upcoming" },
+  { key: "reviewStep", state: "upcoming", href: "/realizations/review" },
 ] as const;
 
 export default function CompleteRealizationMetadataPage() {
@@ -37,6 +37,7 @@ export default function CompleteRealizationMetadataPage() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [domains, setDomains] = useState<TaxonomyItem[]>([]);
   const [domainsFailed, setDomainsFailed] = useState(false);
+  const appliedGroup = useRef(false);
 
   useEffect(() => {
     const user = readStoredUser();
@@ -51,6 +52,16 @@ export default function CompleteRealizationMetadataPage() {
     setReady(true);
     return subscribeWorkflow(apply);
   }, [router]);
+
+  useEffect(() => {
+    if (appliedGroup.current || workflow.status !== "ready") return;
+    const id = new URLSearchParams(window.location.search).get("group");
+    if (!id) return;
+    const index = workflow.groups.findIndex((group) => group.id === id);
+    if (index < 0) return;
+    appliedGroup.current = true;
+    setSelectedIndex(index);
+  }, [workflow]);
 
   useEffect(() => {
     let active = true;
@@ -183,6 +194,7 @@ function CompleteWorkspace({
   domainsFailed: boolean;
   locale: string;
 }) {
+  const router = useRouter();
   const { t } = useTranslation();
   const groups = workflow.groups;
   const index = groups.length === 0 ? 0 : Math.min(selectedIndex, groups.length - 1);
@@ -405,17 +417,15 @@ function CompleteWorkspace({
             type="button"
             data-testid="portfolio-complete-continue"
             className={`inline-flex min-h-[44px] items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground ${focusRing}`}
-            onClick={() => prepareReviewHandoff(ownerKey)}
+            onClick={() => {
+              prepareReviewHandoff(ownerKey);
+              router.push("/realizations/review");
+            }}
           >
             {t("portfolio.complete.continue")}
           </button>
         </div>
       </div>
-      {workflow.reviewPrepared ? (
-        <p className="mt-3 text-sm text-muted-foreground" role="status" data-testid="portfolio-complete-review-pending">
-          {t("portfolio.complete.reviewPending")}
-        </p>
-      ) : null}
     </>
   );
 }

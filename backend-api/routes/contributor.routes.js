@@ -4,6 +4,7 @@ const { createRateLimiter } = require("../middleware/rateLimit");
 const contributorController = require("../controllers/contributor.controller");
 const { profilePhotoUpload } = require("../middleware/profilePhotoUpload");
 const { importPhotoUpload } = require("../middleware/portfolioImportUpload");
+const { realizationBatchUpload } = require("../middleware/realizationBatchUpload");
 
 const router = express.Router();
 
@@ -57,6 +58,13 @@ router.post(
   contributorController.validateImportPhotos
 );
 router.post(
+  "/me/realizations",
+  requireAuth,
+  realizationBatchUpload,
+  contributorController.commitRealizations
+);
+router.get("/me/realizations", requireAuth, contributorController.listOwnRealizations);
+router.post(
   "/me/photo",
   requireAuth,
   profilePhotoUpload,
@@ -75,6 +83,7 @@ router.post(
 );
 router.post("/", optionalAuth, contributorController.createContributor);
 router.get("/", contributorController.listPublicContributors);
+router.get("/:id/realizations", contributorController.listPublicRealizations);
 router.get("/:id", contributorController.getPublicContributor);
 
 module.exports = router;
