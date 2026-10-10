@@ -55,7 +55,7 @@ test.describe("My Realizations portfolio page", () => {
     await expect(page.getByTestId("portfolio-category")).toContainText("Toutes les catégories");
     await expect(page.getByTestId("portfolio-category")).toContainText("Menuiserie");
     await expect(page.getByTestId("portfolio-add")).toHaveAttribute("aria-disabled", "true");
-    await expect(page.getByTestId("portfolio-import")).toHaveAttribute("aria-disabled", "true");
+    await expect(page.getByTestId("portfolio-import")).toHaveAttribute("href", "/realizations/import");
     await expect(page.getByText("Prix")).toHaveCount(0);
     await expect(page.getByText("Stock")).toHaveCount(0);
     await expect(page.getByText("SKU")).toHaveCount(0);

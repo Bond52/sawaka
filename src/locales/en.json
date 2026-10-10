@@ -639,7 +639,30 @@
     "edit": "Edit",
     "preview": "Preview",
     "imageCount": "{count} photos",
-    "selectItem": "Select {title}"
+    "selectItem": "Select {title}",
+    "import": {
+      "eyebrow": "Portfolio",
+      "title": "Add realizations",
+      "subtitle": "Choose the method that matches how many projects you want to present.",
+      "singleTitle": "Add one realization",
+      "singleDescription": "Add the photos and details of a single project.",
+      "bulkTitle": "Import multiple realizations",
+      "bulkDescription": "Import several photos, then organize them quickly.",
+      "drop": "Drop your photos here",
+      "dropHint": "or choose several images from your device",
+      "select": "Select photos",
+      "formats": "JPG, PNG or WEBP · {megabytes} MB maximum per photo",
+      "tipLabel": "Tip",
+      "tip": "You will be able to group several views of the same project in the next step.",
+      "selectedOne": "{count} photo selected",
+      "selectedMany": "{count} photos selected",
+      "remove": "Remove {name}",
+      "unsupported": "{name} is not a JPG, PNG, or WEBP image.",
+      "tooLarge": "{name} is over {megabytes} MB.",
+      "emptyFile": "{name} is empty.",
+      "checkFailed": "The photos could not be checked. Try again.",
+      "dropLabel": "Photo drop area"
+    }
   },
   "buyer": {
     "welcome": "Welcome buyer",

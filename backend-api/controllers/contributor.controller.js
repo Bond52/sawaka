@@ -1,3 +1,4 @@
+const { profilePhotoIssue } = require("../services/profilePhoto");
 const ContributorProfileService = require("../services/ContributorProfileService");
 const { ContributorProfileError } = ContributorProfileService;
 const {
@@ -217,6 +218,36 @@ async function verifyAccountEmail(req, res) {
   }
 }
 
+function safeFileName(name) {
+  const base = String(name || "photo").split(/[/\\]/).pop() || "photo";
+  return base.slice(0, 120);
+}
+
+/**
+ * Checks selected photos against the profile image rules and discards the bytes.
+ * Nothing is stored and no Realization is created.
+ */
+async function validateImportPhotos(req, res) {
+  const files = Array.isArray(req.files) ? req.files : [];
+  if (files.length === 0) {
+    return res.status(400).json({
+      error: { code: "VALIDATION_ERROR", fields: { photos: "PHOTO_REQUIRED" } },
+    });
+  }
+
+  const accepted = [];
+  const rejected = [];
+  files.forEach((file, index) => {
+    const name = safeFileName(file.originalname);
+    const code = profilePhotoIssue(file);
+    if (code) rejected.push({ index, name, code });
+    else accepted.push({ index, name, size: file.size });
+    file.buffer = null;
+  });
+
+  return res.json({ accepted, rejected });
+}
+
 module.exports = {
   createContributor,
   updateOwnContributor,
@@ -230,4 +261,5 @@ module.exports = {
   listDomainSkills,
   resendVerificationEmail,
   verifyAccountEmail,
+  validateImportPhotos,
 };

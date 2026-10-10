@@ -639,7 +639,30 @@
     "edit": "Modifier",
     "preview": "Aperçu",
     "imageCount": "{count} photos",
-    "selectItem": "Sélectionner {title}"
+    "selectItem": "Sélectionner {title}",
+    "import": {
+      "eyebrow": "Portfolio",
+      "title": "Ajouter des réalisations",
+      "subtitle": "Choisissez la méthode qui correspond au nombre de projets que vous souhaitez présenter.",
+      "singleTitle": "Ajouter une réalisation",
+      "singleDescription": "Ajoutez les photos et les détails d'un seul projet.",
+      "bulkTitle": "Importer plusieurs réalisations",
+      "bulkDescription": "Importez plusieurs photos, puis organisez-les rapidement.",
+      "drop": "Déposez vos photos ici",
+      "dropHint": "ou choisissez plusieurs images depuis votre appareil",
+      "select": "Sélectionner des photos",
+      "formats": "JPG, PNG ou WEBP · {megabytes} Mo maximum par photo",
+      "tipLabel": "Astuce",
+      "tip": "Vous pourrez regrouper plusieurs vues d'un même projet à l'étape suivante.",
+      "selectedOne": "{count} photo sélectionnée",
+      "selectedMany": "{count} photos sélectionnées",
+      "remove": "Retirer {name}",
+      "unsupported": "{name} n'est pas une image JPG, PNG ou WEBP.",
+      "tooLarge": "{name} dépasse {megabytes} Mo.",
+      "emptyFile": "{name} est vide.",
+      "checkFailed": "Les photos n'ont pas pu être vérifiées. Réessayez.",
+      "dropLabel": "Zone de dépôt des photos"
+    }
   },
   "buyer": {
     "welcome": "Bienvenue acheteur",
