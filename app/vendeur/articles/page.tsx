@@ -1,448 +1,362 @@
 "use client";
 
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { LayoutGrid, List, Plus, Search, Upload } from "lucide-react";
 import { useTranslation } from "@/src/i18n/I18nProvider";
-import UploadImages from "../../components/UploadImages";
-import { listMyArticles, createArticle, updateArticle, deleteArticle } from "../../lib/apiSeller";
-import type { Article } from "../../lib/apiSeller";
+import { listContributorDomains, taxonomyLabel, type TaxonomyItem } from "../../lib/apiContributors";
+import {
+  filterPortfolioRealizations,
+  loadOwnerPortfolio,
+  type OwnerPortfolio,
+  type PortfolioRealization,
+  type RealizationStatus,
+} from "../../lib/portfolioRealizations";
 
+const focusRing =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
-/* ============================================================
-   🧵 PAGE RESPÉRANT EXACTEMENT TON MOCKUP
-============================================================ */
-
-
-/* ============================================================
-   🧵 VendorArticlesPage — version MAQUETTE complète
-============================================================ */
-const SELLER_CATEGORIES = [
-  { value: "Mode & Accessoires", key: "fashion" },
-  { value: "Maison & Décoration", key: "home" },
-  { value: "Art & Artisanat", key: "art" },
-  { value: "Beauté & Bien-être", key: "beauty" },
-  { value: "Bijoux", key: "jewelry" },
-  { value: "Textile", key: "textile" },
-] as const;
-
-export default function VendorArticlesPage() {
-  const { t } = useTranslation();
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(1);
-
-  const emptyForm: Article = {
-    title: "",
-    description: "",
-    price: 0,
-    stock: 0,
-    status: "draft",
-    images: [],
-    categories: [],
-    sku: "",
-    promotion: {
-      isActive: false,
-      discountPercent: 0,
-      newPrice: 0,
-      durationDays: 0,
-      durationHours: 0,
-      startDate: "",
-      endDate: "",
-    },
-    auction: {
-      isActive: false,
-      endDate: "",
-      highestBid: 0,
-    },
-  };
-
-  const [form, setForm] = useState<Article>(emptyForm);
-  const [editingId, setEditingId] = useState<string | null>(null);
-
-  // 👤 utilisateur connecté
-const [user, setUser] = useState<any>(null);
-
-
-    // 🔥 Empêche la perte du mode édition lorsque le composant re-render
-  const editingRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    editingRef.current = editingId;
-  }, [editingId]);
-
-
-// 🔍 Charger l'utilisateur connecté
-useEffect(() => {
-  async function fetchUser() {
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE || "https://ecommerce-web-avec-tailwind.onrender.com"}/api/auth/me`,
-        { credentials: "include" }
-      );
-
-
-if (res.ok) {
-  const data = await res.json();
-  setUser(data);    // utilisateur connecté
-} else {
-  setUser(false);   // utilisateur NON connecté
-}
-
-
-
-    } catch {
-
-      setUser(false);
-
-    }
-  }
-  fetchUser();
-}, []);
-
-console.log("USER =", user)
-
-
-  async function load() {
-    setLoading(true);
-    const res = await listMyArticles({ page, q: "", status: "" });
-    setData(res);
-    setLoading(false);
-  }
-
-// 📌 Recharger les articles quand l'utilisateur ou la page change
-useEffect(() => {
-  // Tant que user === null → on attend la réponse du backend
-  if (user === null) return;
-
-  // Si user = false → pas connecté → on vide l’inventaire
-  if (user === false) {
-    setData({ items: [], total: 0, pages: 1 });
-    return;
-  }
-
-  // Si user est un objet → charger l’inventaire
-  load();
-}, [user, page]);
-
-
-  function onEdit(a: Article) {
-    setEditingId(a._id!);
-
-    setForm({
-      ...a,
-      images: a.images ?? [],
-      promotion: {
-        isActive: a.promotion?.isActive ?? false,
-        discountPercent: a.promotion?.discountPercent ?? 0,
-        newPrice: a.promotion?.newPrice ?? 0,
-        durationDays: a.promotion?.durationDays ?? 0,
-        durationHours: a.promotion?.durationHours ?? 0,
-        startDate: a.promotion?.startDate ?? "",
-        endDate: a.promotion?.endDate ?? "",
-      },
-    });
-  }
-
-  async function onSubmit(e: any) {
-    e.preventDefault();
-    if (editingId) {
-      await updateArticle(editingId, form);
-    } else {
-      await createArticle(form);
-    }
-    setForm(emptyForm);
-    setEditingId(null);
-    load();
-  }
-
-  console.log("📤 FORMULAIRE ENVOYÉ AU BACKEND :", JSON.stringify(form, null, 2));
-
-
-  async function onDelete(id?: string) {
-  if (!id) return;
-  if (!confirm(t("alerts.deleteArticleConfirm"))) return;
-
-  await deleteArticle(id);
-  load();
-}
-
+function UnavailableButton({
+  label,
+  unavailable,
+  testId,
+  variant,
+}: {
+  label: string;
+  unavailable: string;
+  testId: string;
+  variant: "primary" | "secondary";
+}) {
+  const className =
+    variant === "primary"
+      ? "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground opacity-70"
+      : "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground opacity-70";
 
   return (
-    <div className="wrap py-10 space-y-12">
+    <button
+      type="button"
+      data-testid={testId}
+      className={`${className} cursor-not-allowed ${focusRing}`}
+      aria-disabled="true"
+      title={unavailable}
+      onClick={(event) => event.preventDefault()}
+    >
+      {variant === "primary" ? (
+        <Upload className="h-4 w-4" aria-hidden />
+      ) : (
+        <Plus className="h-4 w-4" aria-hidden />
+      )}
+      {label}
+    </button>
+  );
+}
 
-      {/* ========================= */}
-      {/* TITRE */}
-      {/* ========================= */}
-      <h1 className="font-display text-3xl text-sawaka-900">{t("seller.myCreations")}</h1>
+function RealizationCard({
+  item,
+  selected,
+  onToggle,
+  layout,
+}: {
+  item: PortfolioRealization;
+  selected: boolean;
+  onToggle: (id: string) => void;
+  layout: "grid" | "list";
+}) {
+  const { t, locale } = useTranslation();
+  const unavailable = t("dashboard.actionUnavailable");
+  const completed = item.completedAt
+    ? new Date(item.completedAt).toLocaleDateString(locale === "fr" ? "fr" : "en", {
+        month: "short",
+        year: "numeric",
+      })
+    : "";
 
-      {/* ========================= */}
-      {/* FORMULAIRE PRINCIPAL */}
-      {/* ========================= */}
-      <form
-        onSubmit={onSubmit}
-        className="bg-white border border-cream-200 shadow-card rounded-2xl p-8 space-y-6"
+  return (
+    <article
+      data-testid="portfolio-card"
+      className={`overflow-hidden rounded-xl border bg-card ${
+        selected ? "border-primary" : "border-border"
+      } ${layout === "list" ? "flex flex-col sm:flex-row" : ""}`}
+    >
+      <div
+        className={`relative bg-secondary bg-cover bg-center ${
+          layout === "list" ? "h-36 sm:h-auto sm:w-40" : "aspect-[4/3]"
+        }`}
+        style={item.coverUrl ? { backgroundImage: `url("${item.coverUrl}")` } : undefined}
+        role="img"
+        aria-label={item.title}
       >
-        <h2 className="font-display text-2xl text-sawaka-900 mb-6">
-          {t("seller.addProduct")}
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Input label={t("seller.title")} value={form.title} onChange={(v) => setForm({ ...form, title: v })} />
-          <Select
-            label={t("seller.category")}
-            value={form.categories?.[0] || ""}
-            onChange={(v) => setForm({ ...form, categories: [v] })}
-            options={SELLER_CATEGORIES.map((c) => c.value)}
-            optionLabels={Object.fromEntries(
-              SELLER_CATEGORIES.map((c) => [c.value, t(`seller.categories.${c.key}`)])
-            )}
-            placeholder={t("seller.chooseOption")}
+        <label className="absolute left-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-md bg-card shadow-sm">
+          <input
+            type="checkbox"
+            className={`h-4 w-4 accent-primary ${focusRing}`}
+            checked={selected}
+            aria-label={t("portfolio.selectItem", { title: item.title })}
+            onChange={() => onToggle(item.id)}
           />
-
-          <Input label={t("seller.price")} numeric value={form.price} onChange={(v) => setForm({ ...form, price: v })} />
-          <Input label={t("seller.stock")} numeric value={form.stock} onChange={(v) => setForm({ ...form, stock: v })} />
-
-          <Input label={t("seller.sku")} value={form.sku} onChange={(v) => setForm({ ...form, sku: v })} />
-          <Select
-            label={t("seller.status")}
-            value={form.status}
-            onChange={(v) => setForm({ ...form, status: v })}
-            options={["draft", "published"]}
-            displayMap={{ draft: t("seller.draft"), published: t("seller.published") }}
-            placeholder={t("seller.chooseOption")}
+        </label>
+        <span className="absolute bottom-3 right-3 rounded-full bg-foreground/80 px-2 py-1 text-xs text-card">
+          {t("portfolio.imageCount", { count: item.imageCount })}
+        </span>
+      </div>
+      <div className="flex flex-1 flex-col gap-3 p-4">
+        <p className="text-sm text-foreground">
+          <span
+            className={`mr-2 inline-block h-2 w-2 rounded-full ${
+              item.status === "published" ? "bg-emerald-600" : "bg-amber-700"
+            }`}
+            aria-hidden
           />
-        </div>
-
-        {/* ========================= */}
-        {/* DESCRIPTION */}
-        {/* ========================= */}
-        <textarea
-          value={form.description}
-          onChange={(e) => setForm({ ...form, description: e.target.value })}
-          className="border border-gray-300 rounded-xl p-4 w-full h-32"
-          placeholder={t("seller.descriptionPlaceholder")}
-        />
-
-        {/* ========================= */}
-        {/* 📸 UPLOAD IMAGES — CORRIGÉ */}
-        {/* ========================= */}
-        <UploadImages
-          existingImages={form.images}
-          onRemoveExisting={(url) =>
-            setForm((f) => ({ ...f, images: f.images.filter((i) => i !== url) }))
-          }
-          onUploadComplete={(urls) =>
-            setForm((f) => ({ ...f, images: [...f.images, ...urls] }))
-          }
-        />
-
-        {/* ========================= */}
-        {/* CTA */}
-        {/* ========================= */}
-<button
-  type="submit"
-  className="mt-6 px-6 py-3 rounded-xl bg-sawaka-700 text-white hover:bg-sawaka-800"
->
- {editingId ? t("seller.updateProduct") : t("seller.createProduct")}
-</button>
-
-      </form>
-
-      {/* ======================================================= */}
-      {/* 📦 INVENTAIRE ACTUEL */}
-      {/* ======================================================= */}
-
-      <h2 className="font-display text-2xl text-sawaka-900 mt-10">
-        {t("seller.inventory")}
-      </h2>
-
-      <div className="bg-white border border-cream-200 rounded-2xl shadow-card p-6">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="text-sawaka-700 text-xs border-b bg-cream-50">
-                <th className="p-3 text-left">{t("seller.colTitle")}</th>
-                <th className="p-3 text-left">{t("seller.colPrice")}</th>
-                <th className="p-3 text-left">{t("seller.colStock")}</th>
-                <th className="p-3 text-left">{t("seller.colCategory")}</th>
-                <th className="p-3 text-left">{t("seller.colStatus")}</th>
-                <th className="p-3 text-left">{t("seller.colPromo")}</th>
-                <th className="p-3 text-left">{t("seller.colActions")}</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={7} className="p-4 text-center">
-                    {t("common.loadingShort")}
-                  </td>
-                </tr>
-              ) : data?.items?.length ? (
-                data.items.map((a: Article) => (
-                  <tr key={a._id} className="border-b last:border-0">
-                    {/* Titre */}
-                    <td className="p-3 font-medium text-sawaka-900">
-                      {a.title}
-                    </td>
-
-                    {/* Prix */}
-                    <td className="p-3">{a.price?.toLocaleString()} FCFA</td>
-
-                    {/* Stock */}
-                    <td className="p-3">{a.stock}</td>
-
-                    {/* Catégorie */}
-                    <td className="p-3">
-                      {a.categories?.length ? (
-                        <span className="px-3 py-1 rounded-full bg-cream-100 text-sawaka-800 text-xs">
-                          {a.categories[0]}
-                        </span>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-
-                    {/* Statut */}
-                    <td className="p-3">
-                      {a.status === "published" ? (
-                        <span className="px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
-                          ● {t("seller.published")}
-                        </span>
-                      ) : (
-                        <span className="px-3 py-1 rounded-full bg-gray-200 text-gray-700 text-xs font-semibold">
-                          ● {t("seller.draft")}
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Promotion */}
-                    <td className="p-3">
-                      {a.promotion?.isActive ? (
-                        <span className="text-sawaka-800 font-medium">
-                          {a.promotion.discountPercent}%{" "}
-                          <span className="text-xs text-sawaka-600">
-                            ({a.promotion.newPrice} FCFA)
-                          </span>
-                        </span>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-
-                    {/* Actions */}
-                    <td className="p-3 flex gap-3">
-                      <button
-                        onClick={() => onEdit(a)}
-                        className="text-sawaka-700 hover:underline"
-                      >
-                        {t("common.edit")}
-                      </button>
-
-                      <button
-                        onClick={() => onDelete(a._id)}
-                        className="text-red-600 hover:underline"
-                      >
-                        {t("common.delete")}
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={7} className="p-4 text-center text-sawaka-700">
-                    {t("seller.empty")}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* ======================================================= */}
-        {/* PAGINATION */}
-        {/* ======================================================= */}
-        <div className="flex items-center justify-between mt-4 text-sm text-sawaka-700">
-          <p>
-            {t("seller.showing", { shown: data?.items?.length ?? 0, total: data?.total ?? 0 })}
-          </p>
-
-          <div className="flex gap-3">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className={`px-3 py-1 rounded-lg border ${
-                page === 1
-                  ? "opacity-40 cursor-not-allowed"
-                  : "hover:bg-cream-50"
-              }`}
-            >
-              {t("common.prev")}
-            </button>
-
-            <button
-              onClick={() => setPage((p) => Math.min(data?.pages ?? 1, p + 1))}
-              disabled={page === data?.pages}
-              className={`px-3 py-1 rounded-lg border ${
-                page === data?.pages
-                  ? "opacity-40 cursor-not-allowed"
-                  : "hover:bg-cream-50"
-              }`}
-            >
-              {t("common.next")}
-            </button>
-          </div>
+          {item.status === "published"
+            ? t("portfolio.statusPublished")
+            : t("portfolio.statusDraft")}
+        </p>
+        <h2 className="text-lg font-semibold text-foreground">{item.title}</h2>
+        <p className="text-sm text-muted-foreground">
+          {[item.categoryLabel, completed].filter(Boolean).join(" · ")}
+        </p>
+        <div className="mt-auto flex gap-2">
+          <button
+            type="button"
+            className={`rounded-md px-2 py-1 text-sm text-foreground ${focusRing}`}
+            aria-disabled="true"
+            title={unavailable}
+            onClick={(event) => event.preventDefault()}
+          >
+            {t("portfolio.edit")}
+          </button>
+          <button
+            type="button"
+            className={`rounded-md px-2 py-1 text-sm text-foreground ${focusRing}`}
+            aria-disabled="true"
+            title={unavailable}
+            onClick={(event) => event.preventDefault()}
+          >
+            {t("portfolio.preview")}
+          </button>
         </div>
       </div>
-    </div>
+    </article>
   );
 }
 
-/* ======================================================= */
-/* 🔧 INPUT + SELECT Components (identiques au mockup UI)  */
-/* ======================================================= */
-function Input({ label, value, onChange, placeholder, numeric }: any) {
+export default function VendorArticlesPage() {
+  const { t, locale } = useTranslation();
+  const unavailable = t("dashboard.actionUnavailable");
+  const [portfolio, setPortfolio] = useState<OwnerPortfolio>({ available: false });
+  const [domains, setDomains] = useState<TaxonomyItem[]>([]);
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState<"" | RealizationStatus>("");
+  const [domainId, setDomainId] = useState("");
+  const [layout, setLayout] = useState<"grid" | "list">("grid");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadOwnerPortfolio().then((result) => {
+      if (!cancelled) setPortfolio(result);
+    });
+    listContributorDomains()
+      .then((result) => {
+        if (!cancelled && result.ok) setDomains(result.domains);
+      })
+      .catch(() => {
+        if (!cancelled) setDomains([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const visible = useMemo(() => {
+    const items = portfolio.available ? portfolio.items : [];
+    return filterPortfolioRealizations(items, { query, status, domainId });
+  }, [portfolio, query, status, domainId]);
+  const filtersActive = query.trim() !== "" || status !== "" || domainId !== "";
+  const selectedCount = selectedIds.length;
+
+  function toggleSelected(id: string) {
+    setSelectedIds((current) =>
+      current.includes(id) ? current.filter((value) => value !== id) : [...current, id]
+    );
+  }
+
   return (
-    <div>
-      <label className="text-sm text-sawaka-800 mb-1 block">{label}</label>
-      <input
-        type="text"
-        inputMode={numeric ? "numeric" : undefined}
-        pattern={numeric ? "[0-9]*" : undefined}
-        value={value}
-        placeholder={placeholder}
-        onChange={(e) => {
-          const raw = e.target.value;
-          if (!numeric) return onChange(raw);
-          const digits = raw.replace(/\D/g, "");
-          onChange(digits === "" ? 0 : Number(digits));
-        }}
-        onKeyDown={(e) => {
-          if (!numeric) return;
-          if (["-", "+", "e", "E", ".", ","].includes(e.key)) e.preventDefault();
-        }}
-        className="border border-gray-300 rounded-xl p-3 w-full"
-      />
+    <div className="wrap py-8" data-testid="portfolio-management">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <h1 className="font-display text-3xl text-foreground lg:text-4xl">
+          {t("portfolio.title")}
+        </h1>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <UnavailableButton
+            label={t("portfolio.add")}
+            unavailable={unavailable}
+            testId="portfolio-add"
+            variant="secondary"
+          />
+          <UnavailableButton
+            label={t("portfolio.importMultiple")}
+            unavailable={unavailable}
+            testId="portfolio-import"
+            variant="primary"
+          />
+        </div>
+      </div>
+      <p className="mt-3 max-w-3xl text-sm text-muted-foreground">{t("portfolio.subtitle")}</p>
+
+      <div className="mt-8 flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="relative min-w-0 flex-1">
+          <label htmlFor="portfolio-search" className="sr-only">
+            {t("portfolio.searchLabel")}
+          </label>
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <input
+            id="portfolio-search"
+            data-testid="portfolio-search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={t("portfolio.searchPlaceholder")}
+            className={`h-11 w-full rounded-lg border border-border bg-card pl-10 pr-3 text-sm ${focusRing}`}
+          />
+        </div>
+        <label className="sr-only" htmlFor="portfolio-status">
+          {t("portfolio.statusLabel")}
+        </label>
+        <select
+          id="portfolio-status"
+          data-testid="portfolio-status"
+          value={status}
+          onChange={(event) => setStatus(event.target.value as "" | RealizationStatus)}
+          className={`h-11 rounded-lg border border-border bg-card px-3 text-sm ${focusRing}`}
+        >
+          <option value="">{t("portfolio.statusAll")}</option>
+          <option value="published">{t("portfolio.statusPublished")}</option>
+          <option value="draft">{t("portfolio.statusDraft")}</option>
+        </select>
+        <label className="sr-only" htmlFor="portfolio-category">
+          {t("portfolio.categoryLabel")}
+        </label>
+        <select
+          id="portfolio-category"
+          data-testid="portfolio-category"
+          value={domainId}
+          onChange={(event) => setDomainId(event.target.value)}
+          className={`h-11 rounded-lg border border-border bg-card px-3 text-sm ${focusRing}`}
+        >
+          <option value="">{t("portfolio.categoryAll")}</option>
+          {domains.map((domain) => (
+            <option key={domain.id} value={domain.id}>
+              {taxonomyLabel(domain, locale)}
+            </option>
+          ))}
+        </select>
+        <div
+          role="group"
+          aria-label={t("portfolio.viewLabel")}
+          className="flex h-11 shrink-0 overflow-hidden rounded-lg border border-border bg-card"
+        >
+          <button
+            type="button"
+            data-testid="portfolio-view-grid"
+            aria-pressed={layout === "grid"}
+            className={`inline-flex w-11 items-center justify-center ${focusRing} ${
+              layout === "grid" ? "bg-primary text-primary-foreground" : "text-foreground"
+            }`}
+            onClick={() => setLayout("grid")}
+          >
+            <LayoutGrid className="h-4 w-4" aria-hidden />
+            <span className="sr-only">{t("portfolio.viewGrid")}</span>
+          </button>
+          <button
+            type="button"
+            data-testid="portfolio-view-list"
+            aria-pressed={layout === "list"}
+            className={`inline-flex w-11 items-center justify-center ${focusRing} ${
+              layout === "list" ? "bg-primary text-primary-foreground" : "text-foreground"
+            }`}
+            onClick={() => setLayout("list")}
+          >
+            <List className="h-4 w-4" aria-hidden />
+            <span className="sr-only">{t("portfolio.viewList")}</span>
+          </button>
+        </div>
+      </div>
+
+      {selectedCount > 0 ? (
+        <div
+          data-testid="portfolio-selection-toolbar"
+          className="mt-4 flex flex-wrap items-center gap-2 rounded-lg bg-foreground px-3 py-2 text-sm text-card"
+        >
+          <span>
+            {t(selectedCount === 1 ? "portfolio.selectedOne" : "portfolio.selectedMany", {
+              count: selectedCount,
+            })}
+          </span>
+          {(["publish", "archive", "changeCategory", "associateProject"] as const).map((action) => (
+            <button
+              key={action}
+              type="button"
+              className={`rounded-md px-2 py-1 text-card/80 ${focusRing}`}
+              aria-disabled="true"
+              title={unavailable}
+              onClick={(event) => event.preventDefault()}
+            >
+              {t(`portfolio.${action}`)}
+            </button>
+          ))}
+          <button
+            type="button"
+            data-testid="portfolio-clear-selection"
+            className={`ml-auto rounded-md px-2 py-1 ${focusRing}`}
+            onClick={() => setSelectedIds([])}
+          >
+            {t("portfolio.clearSelection")}
+          </button>
+        </div>
+      ) : null}
+
+      {visible.length === 0 ? (
+        <div
+          data-testid={filtersActive && portfolio.available ? "portfolio-no-results" : "portfolio-empty"}
+          className="mt-8 rounded-xl border border-border bg-card px-6 py-12 text-center"
+        >
+          <p className="text-base text-foreground">
+            {filtersActive && portfolio.available ? t("portfolio.noResults") : t("portfolio.empty")}
+          </p>
+          <div className="mt-6 flex flex-col items-center justify-center gap-2 sm:flex-row">
+            <UnavailableButton
+              label={t("portfolio.add")}
+              unavailable={unavailable}
+              testId="portfolio-empty-add"
+              variant="secondary"
+            />
+            <UnavailableButton
+              label={t("portfolio.importMultiple")}
+              unavailable={unavailable}
+              testId="portfolio-empty-import"
+              variant="primary"
+            />
+          </div>
+        </div>
+      ) : (
+        <div
+          data-testid="portfolio-results"
+          className={
+            layout === "grid"
+              ? "mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
+              : "mt-8 flex flex-col gap-4"
+          }
+        >
+          {visible.map((item) => (
+            <RealizationCard
+              key={item.id}
+              item={item}
+              layout={layout}
+              selected={selectedIds.includes(item.id)}
+              onToggle={toggleSelected}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
-
-function Select({ label, value, onChange, options, displayMap, optionLabels, placeholder }: any) {
-  return (
-    <div>
-      <label className="text-sm text-sawaka-800 mb-1 block">{label}</label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="border border-gray-300 rounded-xl p-3 w-full"
-      >
-        <option value="">{placeholder}</option>
-        {options.map((opt: string) => (
-          <option key={opt} value={opt}>
-            {optionLabels?.[opt] ?? displayMap?.[opt] ?? opt}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
