@@ -82,7 +82,11 @@ export default function ReviewRealizationsPage() {
     }
     setItems(result.items || []);
     setHandoff(readPublicationHandoff(ownerKey));
-    setRequestFailed(!result.ok || ("outcome" in result && result.outcome === "partial"));
+    if (result.ok && result.outcome === "success") {
+      router.push("/realizations/confirmation");
+      return;
+    }
+    setRequestFailed(!result.ok || result.outcome === "partial");
   }
 
   if (!ready) {
@@ -120,7 +124,11 @@ export default function ReviewRealizationsPage() {
       <h1 className="mt-8 font-display text-4xl text-foreground">{t("portfolio.review.title")}</h1>
       <p className="mt-3 max-w-3xl text-muted-foreground">{t("portfolio.review.subtitle")}</p>
 
-      {groups.length === 0 && handoff ? (
+      {groups.length === 0 && handoff?.outcome === "success" ? (
+        <p className="mt-8 text-muted-foreground" data-testid="portfolio-review-leaving">
+          {t("common.loading")}
+        </p>
+      ) : groups.length === 0 && handoff ? (
         <Handoff handoff={handoff} />
       ) : groups.length === 0 ? (
         <div className="mt-8 rounded-xl border border-border bg-card p-6" data-testid="portfolio-review-recovery" role="status">
