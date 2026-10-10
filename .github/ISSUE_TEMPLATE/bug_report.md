@@ -1,21 +1,23 @@
 ---
-name: 🐛 Bug Report
-about: Signaler un bug dans Sawaka
+name: Bug report
+about: Report a bug
+title: "[BUG] "
+labels: ["bug"]
 ---
 
-# 🐛 Description du bug
-Décrivez clairement le problème rencontré.
+### Description
+What is the bug?
 
-## 🔁 Étapes pour reproduire
-1. …
-2. …
-3. …
+### Steps to Reproduce
+1. ...
+2. ...
 
-## ✔ Comportement attendu
-Décrivez ce qui aurait dû se produire.
+### Expected Behavior
+...
 
-## 🖥️ Environnement
-- OS :
-- Navigateur :
-- Version backend :
-- Version frontend :
+### Actual Behavior
+...
+
+### Definition of Done
+- [ ] Bug fixed
+- [ ] Regression tested

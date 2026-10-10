@@ -1,0 +1,673 @@
+{
+  "sourceFile": "Sawaka_Simplified_Domain_Skills.xlsx",
+  "sheet": "Domaines - Tags par defaut",
+  "domainCount": 14,
+  "skillCount": 133,
+  "rows": [
+    {
+      "domainFR": "Construction et bâtiment",
+      "nameFR": "Maçonnerie",
+      "nameEN": "Masonry"
+    },
+    {
+      "domainFR": "Construction et bâtiment",
+      "nameFR": "Peinture bâtiment",
+      "nameEN": "Building painting"
+    },
+    {
+      "domainFR": "Construction et bâtiment",
+      "nameFR": "Plâtrerie",
+      "nameEN": "Plastering"
+    },
+    {
+      "domainFR": "Construction et bâtiment",
+      "nameFR": "Toiture",
+      "nameEN": "Roofing"
+    },
+    {
+      "domainFR": "Construction et bâtiment",
+      "nameFR": "Enduit et finition",
+      "nameEN": "Rendering & finishing"
+    },
+    {
+      "domainFR": "Construction et bâtiment",
+      "nameFR": "Coffrage",
+      "nameEN": "Formwork"
+    },
+    {
+      "domainFR": "Construction et bâtiment",
+      "nameFR": "Ferraillage",
+      "nameEN": "Reinforcement work"
+    },
+    {
+      "domainFR": "Construction et bâtiment",
+      "nameFR": "Isolation",
+      "nameEN": "Insulation"
+    },
+    {
+      "domainFR": "Construction et bâtiment",
+      "nameFR": "Démolition",
+      "nameEN": "Demolition"
+    },
+    {
+      "domainFR": "Construction et bâtiment",
+      "nameFR": "Rénovation",
+      "nameEN": "Renovation"
+    },
+    {
+      "domainFR": "Menuiserie, travail du bois et mobilier",
+      "nameFR": "Fabrication de meubles",
+      "nameEN": "Furniture making"
+    },
+    {
+      "domainFR": "Menuiserie, travail du bois et mobilier",
+      "nameFR": "Sculpture sur bois",
+      "nameEN": "Wood carving"
+    },
+    {
+      "domainFR": "Menuiserie, travail du bois et mobilier",
+      "nameFR": "Ponçage",
+      "nameEN": "Sanding"
+    },
+    {
+      "domainFR": "Menuiserie, travail du bois et mobilier",
+      "nameFR": "Vernissage",
+      "nameEN": "Varnishing"
+    },
+    {
+      "domainFR": "Menuiserie, travail du bois et mobilier",
+      "nameFR": "Finition du bois",
+      "nameEN": "Wood finishing"
+    },
+    {
+      "domainFR": "Menuiserie, travail du bois et mobilier",
+      "nameFR": "Fabrication d'armoires",
+      "nameEN": "Cabinet making"
+    },
+    {
+      "domainFR": "Menuiserie, travail du bois et mobilier",
+      "nameFR": "Restauration de meubles",
+      "nameEN": "Furniture restoration"
+    },
+    {
+      "domainFR": "Menuiserie, travail du bois et mobilier",
+      "nameFR": "Tressage et vannerie",
+      "nameEN": "Wickerwork"
+    },
+    {
+      "domainFR": "Plomberie, eau et assainissement",
+      "nameFR": "Plomberie",
+      "nameEN": "Plumbing"
+    },
+    {
+      "domainFR": "Plomberie, eau et assainissement",
+      "nameFR": "Installation de tuyaux",
+      "nameEN": "Pipe installation"
+    },
+    {
+      "domainFR": "Plomberie, eau et assainissement",
+      "nameFR": "Réparation de fuites",
+      "nameEN": "Leak repair"
+    },
+    {
+      "domainFR": "Plomberie, eau et assainissement",
+      "nameFR": "Installation sanitaire",
+      "nameEN": "Sanitary installation"
+    },
+    {
+      "domainFR": "Plomberie, eau et assainissement",
+      "nameFR": "Installation de chauffe-eau",
+      "nameEN": "Water heater installation"
+    },
+    {
+      "domainFR": "Plomberie, eau et assainissement",
+      "nameFR": "Entretien de canalisations",
+      "nameEN": "Pipe maintenance"
+    },
+    {
+      "domainFR": "Plomberie, eau et assainissement",
+      "nameFR": "Récupération d'eau",
+      "nameEN": "Water harvesting"
+    },
+    {
+      "domainFR": "Plomberie, eau et assainissement",
+      "nameFR": "Assainissement",
+      "nameEN": "Sanitation"
+    },
+    {
+      "domainFR": "Électricité, électronique et solaire",
+      "nameFR": "Installation électrique",
+      "nameEN": "Electrical installation"
+    },
+    {
+      "domainFR": "Électricité, électronique et solaire",
+      "nameFR": "Câblage électrique",
+      "nameEN": "Electrical wiring"
+    },
+    {
+      "domainFR": "Électricité, électronique et solaire",
+      "nameFR": "Réparation électrique",
+      "nameEN": "Electrical repair"
+    },
+    {
+      "domainFR": "Électricité, électronique et solaire",
+      "nameFR": "Tableaux électriques",
+      "nameEN": "Electrical panels"
+    },
+    {
+      "domainFR": "Électricité, électronique et solaire",
+      "nameFR": "Éclairage",
+      "nameEN": "Lighting"
+    },
+    {
+      "domainFR": "Électricité, électronique et solaire",
+      "nameFR": "Prises et interrupteurs",
+      "nameEN": "Sockets & switches"
+    },
+    {
+      "domainFR": "Électricité, électronique et solaire",
+      "nameFR": "Installation solaire",
+      "nameEN": "Solar installation"
+    },
+    {
+      "domainFR": "Électricité, électronique et solaire",
+      "nameFR": "Panneaux solaires",
+      "nameEN": "Solar panels"
+    },
+    {
+      "domainFR": "Électricité, électronique et solaire",
+      "nameFR": "Batteries solaires",
+      "nameEN": "Solar batteries"
+    },
+    {
+      "domainFR": "Électricité, électronique et solaire",
+      "nameFR": "Onduleurs",
+      "nameEN": "Inverters"
+    },
+    {
+      "domainFR": "Électricité, électronique et solaire",
+      "nameFR": "Câblage solaire",
+      "nameEN": "Solar wiring"
+    },
+    {
+      "domainFR": "Électricité, électronique et solaire",
+      "nameFR": "Circuits électroniques",
+      "nameEN": "Electronic circuits"
+    },
+    {
+      "domainFR": "Électricité, électronique et solaire",
+      "nameFR": "Installation d'antennes",
+      "nameEN": "Antenna installation"
+    },
+    {
+      "domainFR": "Électricité, électronique et solaire",
+      "nameFR": "Systèmes de sécurité",
+      "nameEN": "Security systems"
+    },
+    {
+      "domainFR": "Électricité, électronique et solaire",
+      "nameFR": "Équipements domestiques",
+      "nameEN": "Home appliances"
+    },
+    {
+      "domainFR": "Travail du métal et fabrication",
+      "nameFR": "Soudure",
+      "nameEN": "Welding"
+    },
+    {
+      "domainFR": "Travail du métal et fabrication",
+      "nameFR": "Ferronnerie",
+      "nameEN": "Ironwork"
+    },
+    {
+      "domainFR": "Travail du métal et fabrication",
+      "nameFR": "Forge",
+      "nameEN": "Blacksmithing"
+    },
+    {
+      "domainFR": "Travail du métal et fabrication",
+      "nameFR": "Découpe de métal",
+      "nameEN": "Metal cutting"
+    },
+    {
+      "domainFR": "Travail du métal et fabrication",
+      "nameFR": "Pliage de métal",
+      "nameEN": "Metal bending"
+    },
+    {
+      "domainFR": "Travail du métal et fabrication",
+      "nameFR": "Assemblage métallique",
+      "nameEN": "Metal assembly"
+    },
+    {
+      "domainFR": "Travail du métal et fabrication",
+      "nameFR": "Fabrication métallique",
+      "nameEN": "Metal fabrication"
+    },
+    {
+      "domainFR": "Travail du métal et fabrication",
+      "nameFR": "Meulage",
+      "nameEN": "Grinding"
+    },
+    {
+      "domainFR": "Travail du métal et fabrication",
+      "nameFR": "Perçage du métal",
+      "nameEN": "Metal drilling"
+    },
+    {
+      "domainFR": "Travail du métal et fabrication",
+      "nameFR": "Tôlerie",
+      "nameEN": "Sheet metal work"
+    },
+    {
+      "domainFR": "Automobile, moto et vélo",
+      "nameFR": "Mécanique automobile, moto",
+      "nameEN": "Auto mechanics"
+    },
+    {
+      "domainFR": "Automobile, moto et vélo",
+      "nameFR": "Réparation de vélos",
+      "nameEN": "Bicycle repair"
+    },
+    {
+      "domainFR": "Automobile, moto et vélo",
+      "nameFR": "Vidange et entretien",
+      "nameEN": "Oil change & servicing"
+    },
+    {
+      "domainFR": "Automobile, moto et vélo",
+      "nameFR": "Électricité automobile",
+      "nameEN": "Auto electrical"
+    },
+    {
+      "domainFR": "Automobile, moto et vélo",
+      "nameFR": "Batterie",
+      "nameEN": "Battery service"
+    },
+    {
+      "domainFR": "Automobile, moto et vélo",
+      "nameFR": "Climatisation automobile",
+      "nameEN": "Auto air conditioning"
+    },
+    {
+      "domainFR": "Automobile, moto et vélo",
+      "nameFR": "Carrosserie",
+      "nameEN": "Bodywork"
+    },
+    {
+      "domainFR": "Automobile, moto et vélo",
+      "nameFR": "Peinture automobile",
+      "nameEN": "Auto painting"
+    },
+    {
+      "domainFR": "Textile, mode et couture",
+      "nameFR": "Couture",
+      "nameEN": "Sewing"
+    },
+    {
+      "domainFR": "Textile, mode et couture",
+      "nameFR": "Confection de vêtements",
+      "nameEN": "Garment making"
+    },
+    {
+      "domainFR": "Textile, mode et couture",
+      "nameFR": "Broderie",
+      "nameEN": "Embroidery"
+    },
+    {
+      "domainFR": "Textile, mode et couture",
+      "nameFR": "Tricot",
+      "nameEN": "Knitting"
+    },
+    {
+      "domainFR": "Textile, mode et couture",
+      "nameFR": "Crochet",
+      "nameEN": "Crochet"
+    },
+    {
+      "domainFR": "Textile, mode et couture",
+      "nameFR": "Tissage",
+      "nameEN": "Weaving"
+    },
+    {
+      "domainFR": "Textile, mode et couture",
+      "nameFR": "Teinture textile",
+      "nameEN": "Textile dyeing"
+    },
+    {
+      "domainFR": "Textile, mode et couture",
+      "nameFR": "Impression textile",
+      "nameEN": "Textile printing"
+    },
+    {
+      "domainFR": "Textile, mode et couture",
+      "nameFR": "Finition textile",
+      "nameEN": "Textile finishing"
+    },
+    {
+      "domainFR": "Textile, mode et couture",
+      "nameFR": "Confection traditionnelle",
+      "nameEN": "Traditional clothing"
+    },
+    {
+      "domainFR": "Textile, mode et couture",
+      "nameFR": "Confection d'accessoires",
+      "nameEN": "Accessory making"
+    },
+    {
+      "domainFR": "Textile, mode et couture",
+      "nameFR": "Stylisme",
+      "nameEN": "Fashion design"
+    },
+    {
+      "domainFR": "Cuir, chaussures et sacs",
+      "nameFR": "Maroquinerie",
+      "nameEN": "Leather goods making"
+    },
+    {
+      "domainFR": "Cuir, chaussures et sacs",
+      "nameFR": "Fabrication de chaussures",
+      "nameEN": "Shoemaking"
+    },
+    {
+      "domainFR": "Cuir, chaussures et sacs",
+      "nameFR": "Fabrication de sacs",
+      "nameEN": "Bag making"
+    },
+    {
+      "domainFR": "Bijouterie et accessoires",
+      "nameFR": "Création de bijoux",
+      "nameEN": "Jewelry design"
+    },
+    {
+      "domainFR": "Bijouterie et accessoires",
+      "nameFR": "Fabrication de bracelets",
+      "nameEN": "Bracelet making"
+    },
+    {
+      "domainFR": "Bijouterie et accessoires",
+      "nameFR": "Fabrication de colliers",
+      "nameEN": "Necklace making"
+    },
+    {
+      "domainFR": "Bijouterie et accessoires",
+      "nameFR": "Fabrication de boucles d'oreilles",
+      "nameEN": "Earring making"
+    },
+    {
+      "domainFR": "Bijouterie et accessoires",
+      "nameFR": "Travail de l'or",
+      "nameEN": "Gold work"
+    },
+    {
+      "domainFR": "Bijouterie et accessoires",
+      "nameFR": "Travail de l'argent",
+      "nameEN": "Silver work"
+    },
+    {
+      "domainFR": "Bijouterie et accessoires",
+      "nameFR": "Taille de pierres",
+      "nameEN": "Gem cutting"
+    },
+    {
+      "domainFR": "Bijouterie et accessoires",
+      "nameFR": "Restauration de bijoux",
+      "nameEN": "Jewelry restoration"
+    },
+    {
+      "domainFR": "Bijouterie et accessoires",
+      "nameFR": "Création d'accessoires",
+      "nameEN": "Accessory making"
+    },
+    {
+      "domainFR": "Céramique, verre et artisanat traditionnel",
+      "nameFR": "Poterie",
+      "nameEN": "Pottery"
+    },
+    {
+      "domainFR": "Céramique, verre et artisanat traditionnel",
+      "nameFR": "Céramique",
+      "nameEN": "Ceramics"
+    },
+    {
+      "domainFR": "Céramique, verre et artisanat traditionnel",
+      "nameFR": "Émaillage",
+      "nameEN": "Glazing"
+    },
+    {
+      "domainFR": "Céramique, verre et artisanat traditionnel",
+      "nameFR": "Décoration céramique",
+      "nameEN": "Ceramic decoration"
+    },
+    {
+      "domainFR": "Céramique, verre et artisanat traditionnel",
+      "nameFR": "Sculpture artisanale",
+      "nameEN": "Craft sculpture"
+    },
+    {
+      "domainFR": "Céramique, verre et artisanat traditionnel",
+      "nameFR": "Vannerie",
+      "nameEN": "Basketry"
+    },
+    {
+      "domainFR": "Céramique, verre et artisanat traditionnel",
+      "nameFR": "Tressage",
+      "nameEN": "Weaving & braiding"
+    },
+    {
+      "domainFR": "Céramique, verre et artisanat traditionnel",
+      "nameFR": "Travail du verre",
+      "nameEN": "Glasswork"
+    },
+    {
+      "domainFR": "Céramique, verre et artisanat traditionnel",
+      "nameFR": "Fabrication d'objets décoratifs",
+      "nameEN": "Decorative object making"
+    },
+    {
+      "domainFR": "Céramique, verre et artisanat traditionnel",
+      "nameFR": "Artisanat traditionnel",
+      "nameEN": "Traditional crafts"
+    },
+    {
+      "domainFR": "Céramique, verre et artisanat traditionnel",
+      "nameFR": "Travail des fibres naturelles",
+      "nameEN": "Natural fiber crafts"
+    },
+    {
+      "domainFR": "Alimentation, boulangerie et transformation",
+      "nameFR": "Boulangerie",
+      "nameEN": "Baking"
+    },
+    {
+      "domainFR": "Alimentation, boulangerie et transformation",
+      "nameFR": "Pâtisserie",
+      "nameEN": "Pastry making"
+    },
+    {
+      "domainFR": "Alimentation, boulangerie et transformation",
+      "nameFR": "Cuisine",
+      "nameEN": "Cooking"
+    },
+    {
+      "domainFR": "Alimentation, boulangerie et transformation",
+      "nameFR": "Transformation alimentaire",
+      "nameEN": "Food processing"
+    },
+    {
+      "domainFR": "Alimentation, boulangerie et transformation",
+      "nameFR": "Séchage des aliments",
+      "nameEN": "Food drying"
+    },
+    {
+      "domainFR": "Alimentation, boulangerie et transformation",
+      "nameFR": "Fumage des aliments",
+      "nameEN": "Food smoking"
+    },
+    {
+      "domainFR": "Alimentation, boulangerie et transformation",
+      "nameFR": "Fermentation",
+      "nameEN": "Fermentation"
+    },
+    {
+      "domainFR": "Alimentation, boulangerie et transformation",
+      "nameFR": "Hygiène alimentaire",
+      "nameEN": "Food hygiene"
+    },
+    {
+      "domainFR": "Alimentation, boulangerie et transformation",
+      "nameFR": "Emballage alimentaire",
+      "nameEN": "Food packaging"
+    },
+    {
+      "domainFR": "Agriculture, élevage et transformation agricole",
+      "nameFR": "Maraîchage",
+      "nameEN": "Market gardening"
+    },
+    {
+      "domainFR": "Agriculture, élevage et transformation agricole",
+      "nameFR": "Préparation des sols",
+      "nameEN": "Soil preparation"
+    },
+    {
+      "domainFR": "Agriculture, élevage et transformation agricole",
+      "nameFR": "Semis et plantation",
+      "nameEN": "Sowing & planting"
+    },
+    {
+      "domainFR": "Agriculture, élevage et transformation agricole",
+      "nameFR": "Irrigation",
+      "nameEN": "Irrigation"
+    },
+    {
+      "domainFR": "Agriculture, élevage et transformation agricole",
+      "nameFR": "Entretien des cultures",
+      "nameEN": "Crop maintenance"
+    },
+    {
+      "domainFR": "Agriculture, élevage et transformation agricole",
+      "nameFR": "Récolte",
+      "nameEN": "Harvesting"
+    },
+    {
+      "domainFR": "Agriculture, élevage et transformation agricole",
+      "nameFR": "Élevage d'animaux",
+      "nameEN": "Poultry farming"
+    },
+    {
+      "domainFR": "Agriculture, élevage et transformation agricole",
+      "nameFR": "Apiculture",
+      "nameEN": "Beekeeping"
+    },
+    {
+      "domainFR": "Agriculture, élevage et transformation agricole",
+      "nameFR": "Pisciculture",
+      "nameEN": "Fish farming"
+    },
+    {
+      "domainFR": "Agriculture, élevage et transformation agricole",
+      "nameFR": "Soins aux animaux",
+      "nameEN": "Animal care"
+    },
+    {
+      "domainFR": "Agriculture, élevage et transformation agricole",
+      "nameFR": "Lutte contre les parasites",
+      "nameEN": "Pest control"
+    },
+    {
+      "domainFR": "Agriculture, élevage et transformation agricole",
+      "nameFR": "Compostage",
+      "nameEN": "Composting"
+    },
+    {
+      "domainFR": "Agriculture, élevage et transformation agricole",
+      "nameFR": "Transformation agricole",
+      "nameEN": "Agro-processing"
+    },
+    {
+      "domainFR": "Création, design et médias",
+      "nameFR": "Design graphique",
+      "nameEN": "Graphic design"
+    },
+    {
+      "domainFR": "Création, design et médias",
+      "nameFR": "Illustration",
+      "nameEN": "Illustration"
+    },
+    {
+      "domainFR": "Création, design et médias",
+      "nameFR": "Dessin",
+      "nameEN": "Drawing"
+    },
+    {
+      "domainFR": "Création, design et médias",
+      "nameFR": "Photographie",
+      "nameEN": "Photography"
+    },
+    {
+      "domainFR": "Création, design et médias",
+      "nameFR": "Montage vidéo",
+      "nameEN": "Video editing"
+    },
+    {
+      "domainFR": "Création, design et médias",
+      "nameFR": "Animation",
+      "nameEN": "Animation"
+    },
+    {
+      "domainFR": "Création, design et médias",
+      "nameFR": "Création de contenu",
+      "nameEN": "Content creation"
+    },
+    {
+      "domainFR": "Création, design et médias",
+      "nameFR": "Design d'affiches",
+      "nameEN": "Poster design"
+    },
+    {
+      "domainFR": "Création, design et médias",
+      "nameFR": "Design d'emballages",
+      "nameEN": "Packaging design"
+    },
+    {
+      "domainFR": "Création, design et médias",
+      "nameFR": "Sérigraphie",
+      "nameEN": "Screen printing"
+    },
+    {
+      "domainFR": "Création, design et médias",
+      "nameFR": "Peinture artistique",
+      "nameEN": "Art painting"
+    },
+    {
+      "domainFR": "Fabrication numérique et technologies maker",
+      "nameFR": "Impression 3D",
+      "nameEN": "3D printing"
+    },
+    {
+      "domainFR": "Fabrication numérique et technologies maker",
+      "nameFR": "Modélisation 3D",
+      "nameEN": "3D modeling"
+    },
+    {
+      "domainFR": "Fabrication numérique et technologies maker",
+      "nameFR": "Découpe laser",
+      "nameEN": "Laser cutting"
+    },
+    {
+      "domainFR": "Fabrication numérique et technologies maker",
+      "nameFR": "Gravure laser",
+      "nameEN": "Laser engraving"
+    },
+    {
+      "domainFR": "Fabrication numérique et technologies maker",
+      "nameFR": "Électronique maker",
+      "nameEN": "Maker electronics"
+    },
+    {
+      "domainFR": "Fabrication numérique et technologies maker",
+      "nameFR": "Robotique",
+      "nameEN": "Robotics"
+    }
+  ]
+}

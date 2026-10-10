@@ -1,0 +1,92 @@
+const express = require("express");
+const { requireAuth, optionalAuth } = require("../middleware/auth");
+const { createRateLimiter } = require("../middleware/rateLimit");
+const contributorController = require("../controllers/contributor.controller");
+const { profilePhotoUpload } = require("../middleware/profilePhotoUpload");
+const { importPhotoUpload } = require("../middleware/portfolioImportUpload");
+const { realizationBatchUpload } = require("../middleware/realizationBatchUpload");
+
+const router = express.Router();
+
+function clientIp(req) {
+  const forwarded = req.headers["x-forwarded-for"];
+  const forwardedIp =
+    typeof forwarded === "string" ? forwarded.split(",")[0].trim() : "";
+  return forwardedIp || req.ip || req.socket?.remoteAddress || "unknown";
+}
+
+const verificationResendRateLimit = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  keyGenerator: (req) => `user-verify-resend:${clientIp(req)}:${req.user?.id || "unknown"}`,
+  message: "Too many requests. Please try again later.",
+});
+
+const verificationConsumeRateLimit = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  keyGenerator: (req) => `user-verify-consume:${clientIp(req)}`,
+  message: "Too many requests. Please try again later.",
+});
+
+const deactivateRateLimit = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  keyGenerator: (req) => `contributor-deactivate:${clientIp(req)}:${req.user?.id || "unknown"}`,
+  message: "Too many requests. Please try again later.",
+});
+
+router.get("/domains", contributorController.listDomains);
+router.get("/domains/:domainId/skills", contributorController.listDomainSkills);
+router.post(
+  "/email-verification",
+  verificationConsumeRateLimit,
+  contributorController.verifyAccountEmail
+);
+router.post(
+  "/me/verification-email",
+  requireAuth,
+  verificationResendRateLimit,
+  contributorController.resendVerificationEmail
+);
+router.get("/me", requireAuth, contributorController.getOwnContributor);
+router.patch("/me", requireAuth, contributorController.updateOwnContributor);
+router.post(
+  "/me/import-photos/validate",
+  requireAuth,
+  importPhotoUpload,
+  contributorController.validateImportPhotos
+);
+router.post(
+  "/me/realizations",
+  requireAuth,
+  realizationBatchUpload,
+  contributorController.commitRealizations
+);
+router.get("/me/realizations", requireAuth, contributorController.listOwnRealizations);
+router.post(
+  "/me/photo",
+  requireAuth,
+  profilePhotoUpload,
+  contributorController.updateOwnContributorPhoto
+);
+router.delete(
+  "/me/photo",
+  requireAuth,
+  contributorController.removeOwnContributorPhoto
+);
+router.post(
+  "/me/deactivate",
+  requireAuth,
+  deactivateRateLimit,
+  contributorController.deactivateOwnContributor
+);
+router.post("/", optionalAuth, contributorController.createContributor);
+router.get("/", contributorController.listPublicContributors);
+router.get("/:id/realizations", contributorController.listPublicRealizations);
+router.get("/:id", contributorController.getPublicContributor);
+
+module.exports = router;
+module.exports.verificationResendRateLimit = verificationResendRateLimit;
+module.exports.verificationConsumeRateLimit = verificationConsumeRateLimit;
+module.exports.deactivateRateLimit = deactivateRateLimit;

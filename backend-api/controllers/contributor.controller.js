@@ -1,0 +1,308 @@
+const { profilePhotoIssue } = require("../services/profilePhoto");
+const realizationService = require("../services/realizationService");
+const { RealizationError } = realizationService;
+const ContributorProfileService = require("../services/ContributorProfileService");
+const { ContributorProfileError } = ContributorProfileService;
+const {
+  AccountRegistrationError,
+} = require("../services/accountRegistration");
+const {
+  issueSessionToken,
+  sessionCookieOptions,
+} = require("../services/accountRegistration");
+const {
+  resendForAuthenticatedUser,
+  consumeVerificationToken,
+  UserEmailVerificationError,
+} = require("../services/UserEmailVerificationService");
+
+function sendFunctionalError(res, err) {
+  const body = { error: { code: err.code } };
+  if (err.fields) body.error.fields = err.fields;
+  if (err.profileId) body.error.profileId = err.profileId;
+  return res.status(err.status || 400).json(body);
+}
+
+function logContributorError(operation, err) {
+  console.error(`contributor.controller.${operation}:`, {
+    name: err && err.name,
+    code: err && err.code,
+  });
+}
+
+async function createContributor(req, res) {
+  try {
+    const result = await ContributorProfileService.createContributorProfile({
+      authUserId: req.user ? req.user.id : null,
+      body: req.body,
+    });
+    const profile = ContributorProfileService.shapeProfile(
+      result.profile,
+      result.domain,
+      result.canonical,
+      { includeLifecycle: true }
+    );
+    const payload = {
+      profile,
+      accountCreated: result.accountCreated,
+      verificationRequired: result.verificationRequired === true,
+      verificationEmailSent: result.verificationEmailSent === true,
+    };
+
+    if (result.accountCreated) {
+      const token = issueSessionToken(result.user);
+      res.cookie("token", token, sessionCookieOptions());
+      payload.token = token;
+      payload.roles = result.user.roles;
+      payload.username = result.user.username;
+    }
+
+    return res.status(201).json(payload);
+  } catch (err) {
+    if (err instanceof ContributorProfileError || err instanceof AccountRegistrationError) {
+      return sendFunctionalError(res, err);
+    }
+    logContributorError("createContributor", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function updateOwnContributor(req, res) {
+  try {
+    const profile = await ContributorProfileService.updateOwnContributorProfile({
+      authUserId: req.user.id,
+      body: req.body,
+    });
+    return res.json({ profile });
+  } catch (err) {
+    if (err instanceof ContributorProfileError) {
+      return sendFunctionalError(res, err);
+    }
+    logContributorError("updateOwnContributor", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function updateOwnContributorPhoto(req, res) {
+  try {
+    const profile = await ContributorProfileService.updateOwnContributorPhoto({
+      authUserId: req.user.id,
+      file: req.file,
+    });
+    return res.json({ profile });
+  } catch (err) {
+    if (err instanceof ContributorProfileError) {
+      return sendFunctionalError(res, err);
+    }
+    logContributorError("updateOwnContributorPhoto", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function removeOwnContributorPhoto(req, res) {
+  try {
+    const profile = await ContributorProfileService.removeOwnContributorPhoto({
+      authUserId: req.user.id,
+    });
+    return res.json({ profile });
+  } catch (err) {
+    if (err instanceof ContributorProfileError) {
+      return sendFunctionalError(res, err);
+    }
+    logContributorError("removeOwnContributorPhoto", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function deactivateOwnContributor(req, res) {
+  try {
+    const profile = await ContributorProfileService.deactivateOwnContributorProfile({
+      authUserId: req.user.id,
+      body: req.body,
+    });
+    return res.json({ profile });
+  } catch (err) {
+    if (err instanceof ContributorProfileError) {
+      return sendFunctionalError(res, err);
+    }
+    logContributorError("deactivateOwnContributor", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function getOwnContributor(req, res) {
+  try {
+    const profile = await ContributorProfileService.getOwnProfile(req.user.id);
+    return res.json({ profile });
+  } catch (err) {
+    if (err instanceof ContributorProfileError) {
+      return sendFunctionalError(res, err);
+    }
+    logContributorError("getOwnContributor", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function listPublicContributors(req, res) {
+  try {
+    const profiles = await ContributorProfileService.listPublicProfiles(req.query);
+    return res.json({ profiles });
+  } catch (err) {
+    if (err instanceof ContributorProfileError) {
+      return sendFunctionalError(res, err);
+    }
+    logContributorError("listPublicContributors", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function getPublicContributor(req, res) {
+  try {
+    const profile = await ContributorProfileService.getPublicProfile(req.params.id);
+    return res.json({ profile });
+  } catch (err) {
+    if (err instanceof ContributorProfileError) {
+      return sendFunctionalError(res, err);
+    }
+    logContributorError("getPublicContributor", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function listDomains(_req, res) {
+  try {
+    const domains = await ContributorProfileService.listActiveDomains();
+    return res.json({ domains });
+  } catch (err) {
+    logContributorError("listDomains", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function listDomainSkills(req, res) {
+  try {
+    const skills = await ContributorProfileService.listSkillsForDomain(
+      req.params.domainId
+    );
+    return res.json({ skills });
+  } catch (err) {
+    if (err instanceof ContributorProfileError) {
+      return sendFunctionalError(res, err);
+    }
+    logContributorError("listDomainSkills", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function resendVerificationEmail(req, res) {
+  try {
+    const result = await resendForAuthenticatedUser(req.user.id);
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof UserEmailVerificationError) {
+      return sendFunctionalError(res, err);
+    }
+    logContributorError("resendVerificationEmail", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function verifyAccountEmail(req, res) {
+  try {
+    const result = await consumeVerificationToken(req.body && req.body.token);
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof UserEmailVerificationError) {
+      return sendFunctionalError(res, err);
+    }
+    logContributorError("verifyAccountEmail", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+function safeFileName(name) {
+  const base = String(name || "photo").split(/[/\\]/).pop() || "photo";
+  return base.slice(0, 120);
+}
+
+/**
+ * Checks selected photos against the profile image rules and discards the bytes.
+ * Nothing is stored and no Realization is created.
+ */
+async function validateImportPhotos(req, res) {
+  const files = Array.isArray(req.files) ? req.files : [];
+  if (files.length === 0) {
+    return res.status(400).json({
+      error: { code: "VALIDATION_ERROR", fields: { photos: "PHOTO_REQUIRED" } },
+    });
+  }
+
+  const accepted = [];
+  const rejected = [];
+  files.forEach((file, index) => {
+    const name = safeFileName(file.originalname);
+    const code = profilePhotoIssue(file);
+    if (code) rejected.push({ index, name, code });
+    else accepted.push({ index, name, size: file.size });
+    file.buffer = null;
+  });
+
+  return res.json({ accepted, rejected });
+}
+
+async function commitRealizations(req, res) {
+  try {
+    const result = await realizationService.commitBatch({
+      ownerId: req.user.id,
+      manifest: req.body && req.body.manifest,
+      files: req.files,
+    });
+    const status = result.outcome === "failed" ? 422 : 200;
+    return res.status(status).json(result);
+  } catch (err) {
+    if (err instanceof RealizationError) return sendFunctionalError(res, err);
+    logContributorError("commitRealizations", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function listOwnRealizations(req, res) {
+  try {
+    const result = await realizationService.listOwned(req.user.id);
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof RealizationError) return sendFunctionalError(res, err);
+    logContributorError("listOwnRealizations", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function listPublicRealizations(req, res) {
+  try {
+    const result = await realizationService.listPublic(req.params.id);
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof ContributorProfileError) return sendFunctionalError(res, err);
+    logContributorError("listPublicRealizations", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+module.exports = {
+  createContributor,
+  updateOwnContributor,
+  updateOwnContributorPhoto,
+  removeOwnContributorPhoto,
+  deactivateOwnContributor,
+  getOwnContributor,
+  listPublicContributors,
+  getPublicContributor,
+  listDomains,
+  listDomainSkills,
+  resendVerificationEmail,
+  verifyAccountEmail,
+  validateImportPhotos,
+  commitRealizations,
+  listOwnRealizations,
+  listPublicRealizations,
+};
