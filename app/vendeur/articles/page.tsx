@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { LayoutGrid, List, Plus, Search, Upload } from "lucide-react";
 import { useTranslation } from "@/src/i18n/I18nProvider";
 import { listContributorDomains, taxonomyLabel, type TaxonomyItem } from "../../lib/apiContributors";
@@ -14,6 +15,19 @@ import {
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+function ImportLink({ label, testId }: { label: string; testId: string }) {
+  return (
+    <Link
+      href="/realizations/import"
+      data-testid={testId}
+      className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground ${focusRing}`}
+    >
+      <Upload className="h-4 w-4" aria-hidden />
+      {label}
+    </Link>
+  );
+}
 
 function UnavailableButton({
   label,
@@ -193,12 +207,7 @@ export default function VendorArticlesPage() {
             testId="portfolio-add"
             variant="secondary"
           />
-          <UnavailableButton
-            label={t("portfolio.importMultiple")}
-            unavailable={unavailable}
-            testId="portfolio-import"
-            variant="primary"
-          />
+          <ImportLink label={t("portfolio.importMultiple")} testId="portfolio-import" />
         </div>
       </div>
       <p className="mt-3 max-w-3xl text-sm text-muted-foreground">{t("portfolio.subtitle")}</p>
@@ -329,12 +338,7 @@ export default function VendorArticlesPage() {
               testId="portfolio-empty-add"
               variant="secondary"
             />
-            <UnavailableButton
-              label={t("portfolio.importMultiple")}
-              unavailable={unavailable}
-              testId="portfolio-empty-import"
-              variant="primary"
-            />
+            <ImportLink label={t("portfolio.importMultiple")} testId="portfolio-empty-import" />
           </div>
         </div>
       ) : (

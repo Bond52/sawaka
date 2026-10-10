@@ -3,6 +3,7 @@ const { requireAuth, optionalAuth } = require("../middleware/auth");
 const { createRateLimiter } = require("../middleware/rateLimit");
 const contributorController = require("../controllers/contributor.controller");
 const { profilePhotoUpload } = require("../middleware/profilePhotoUpload");
+const { importPhotoUpload } = require("../middleware/portfolioImportUpload");
 
 const router = express.Router();
 
@@ -49,6 +50,12 @@ router.post(
 );
 router.get("/me", requireAuth, contributorController.getOwnContributor);
 router.patch("/me", requireAuth, contributorController.updateOwnContributor);
+router.post(
+  "/me/import-photos/validate",
+  requireAuth,
+  importPhotoUpload,
+  contributorController.validateImportPhotos
+);
 router.post(
   "/me/photo",
   requireAuth,
