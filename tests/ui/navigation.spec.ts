@@ -330,7 +330,7 @@ test.describe("Public navigation", () => {
     await page.getByTestId("header-user-menu").click();
     await page.getByTestId("header-my-realizations").click();
     await expect(page).toHaveURL(/\/vendeur\/articles$/);
-    await expect(page.getByRole("heading", { name: "Mes créations" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Mes réalisations" })).toBeVisible();
   });
 
   test("My Realizations opens the existing creations page from the keyboard", async ({
@@ -374,7 +374,7 @@ test.describe("Public navigation", () => {
     await expect(link).toBeFocused();
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(/\/vendeur\/articles$/);
-    await expect(page.getByRole("heading", { name: "Mes créations" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Mes réalisations" })).toBeVisible();
   });
 
   test("an unauthenticated visit does not load private creations", async ({ page }) => {
@@ -396,7 +396,7 @@ test.describe("Public navigation", () => {
       });
     });
     await page.goto("/vendeur/articles");
-    await expect(page.getByRole("heading", { name: "Mes créations" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Mes réalisations" })).toBeVisible();
     await expect(page.getByTestId("header-my-realizations")).toHaveCount(0);
     expect(articleCalls).toBe(0);
   });

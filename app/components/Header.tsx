@@ -72,8 +72,8 @@ const PUBLIC_NAV = [
 /**
  * Authenticated account destinations.
  * Available routes: /dashboard, /profile, /vendeur/articles, /settings.
- * My Realizations reuses the existing product management page. It does not
- * implement Feature #346 beyond that page.
+ * My Realizations opens the portfolio page at /vendeur/articles.
+ * Bulk import and the rest of Feature #346 stay out of this menu.
  * Unavailable (disabled interim UX — do not invent Features here):
  * - My Projects → EPIC #215 (no dedicated “my projects” area; /projets is public browse)
  * - My Collaborations → Feature #347
