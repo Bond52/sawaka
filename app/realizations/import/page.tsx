@@ -12,6 +12,7 @@ import {
   type PhotoIssueCode,
 } from "@/app/lib/imageFilePolicy";
 import { validateImportPhotos } from "@/app/lib/portfolioImport";
+import { handoffImportSelection, readImportSelection } from "@/app/lib/portfolioWorkflow";
 
 const focusRing = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
@@ -42,9 +43,14 @@ export default function ImportRealizationsPage() {
   const megabytes = MAX_PORTFOLIO_PHOTO_BYTES / (1024 * 1024);
 
   useEffect(() => {
-    if (!readStoredUser()) {
+    const user = readStoredUser();
+    if (!user) {
       router.replace("/login?redirect=/realizations/import");
       return;
+    }
+    const restored = readImportSelection(user.username);
+    if (restored.length > 0) {
+      setAccepted(restored.map(({ id, name, file }) => ({ id, name, file })));
     }
     setReady(true);
   }, [router]);
@@ -232,6 +238,29 @@ export default function ImportRealizationsPage() {
             </li>
           ))}
         </ul>
+      ) : null}
+
+      {selectedCount > 0 ? (
+        <button
+          type="button"
+          data-testid="portfolio-import-continue"
+          className={`mt-4 inline-flex min-h-[44px] items-center gap-2 rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground ${focusRing}`}
+          onClick={() => {
+            const user = readStoredUser();
+            if (!user) {
+              router.replace("/login?redirect=/realizations/import");
+              return;
+            }
+            handoffImportSelection(
+              user.username,
+              accepted.map((photo) => ({ id: photo.id, name: photo.name, file: photo.file }))
+            );
+            router.push("/realizations/organize");
+          }}
+        >
+          {t("portfolio.import.continue")}
+          <ArrowRight className="h-4 w-4" aria-hidden />
+        </button>
       ) : null}
 
       {checkFailed || rejected.length > 0 ? (
