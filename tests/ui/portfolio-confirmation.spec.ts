@@ -66,6 +66,13 @@ test.describe("Publication confirmation", () => {
 
   test("a direct visit without a result does not show success", async ({ page }) => {
     await authenticate(page);
+    await page.route("**/api/contributors/me/realizations", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ realizations: [] }),
+      });
+    });
     await page.goto("/realizations/confirmation");
     await expect(page).toHaveURL(/\/vendeur\/articles/);
     await expect(page.getByRole("heading", { name: "Your realizations have been published." })).toHaveCount(0);
@@ -84,6 +91,14 @@ test.describe("Publication confirmation", () => {
       items: [],
     });
     await page.route("**/api/contributors/me/realizations", async (route) => {
+      if (route.request().method() === "GET") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ realizations: [] }),
+        });
+        return;
+      }
       publishCalls += 1;
       await route.fulfill({
         status: 200,

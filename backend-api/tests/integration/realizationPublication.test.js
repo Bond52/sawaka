@@ -311,4 +311,82 @@ describe("realization publication", () => {
     expect(oversized.body.error.fields.photos).toBe("IMAGE_TOO_LARGE");
     expect(await Realization.countDocuments()).toBe(0);
   });
+
+  it("shows the owner drafts and published realizations without exposing them to others", async () => {
+    const owner = await account("owner-portfolio");
+    const other = await account("other-portfolio");
+    const domain = await Domain.create({
+      slug: "wood-owner-portfolio",
+      nameFR: "Bois",
+      nameEN: "Wood",
+      isActive: true,
+    });
+    const profile = await ContributorProfile.create({
+      userId: owner.user._id,
+      displayName: "Amina",
+      country: "Cameroon",
+      domainId: domain._id,
+      status: PROFILE_STATUS.ACTIVE,
+      isVisible: true,
+    });
+
+    const draft = await request(app)
+      .post("/api/contributors/me/realizations")
+      .set("Cookie", owner.cookie)
+      .field(
+        "manifest",
+        manifest("save-drafts", [
+          {
+            clientId: "group-private-1",
+            sequence: 1,
+            description: "Brouillon privé",
+            photoIds: ["photo-private-1"],
+          },
+        ])
+      )
+      .attach("photos", jpeg(), { filename: "photo-private-1", contentType: "image/jpeg" });
+    expect(draft.status).toBe(200);
+
+    const published = await request(app)
+      .post("/api/contributors/me/realizations")
+      .set("Cookie", owner.cookie)
+      .field(
+        "manifest",
+        manifest("publish-ready", [
+          {
+            clientId: "group-public-01",
+            sequence: 2,
+            description: "Chaise publique",
+            domainId: String(domain._id),
+            completedOn: "2024-05-01",
+            photoIds: ["photo-public-01"],
+          },
+        ])
+      )
+      .attach("photos", jpeg(), { filename: "photo-public-01", contentType: "image/jpeg" });
+    expect(published.status).toBe(200);
+
+    const own = await request(app).get("/api/contributors/me/realizations").set("Cookie", owner.cookie);
+    expect(own.status).toBe(200);
+    expect(own.body.realizations.map((item) => item.status).sort()).toEqual(["draft", "published"]);
+    expect(own.body.realizations.some((item) => item.description === "Brouillon privé")).toBe(true);
+    expect(JSON.stringify(own.body)).not.toMatch(/publicId|email|password/i);
+    expect(await Article.countDocuments()).toBe(0);
+
+    const foreign = await request(app)
+      .get("/api/contributors/me/realizations")
+      .set("Cookie", other.cookie);
+    expect(foreign.status).toBe(200);
+    expect(foreign.body.realizations).toEqual([]);
+    expect(JSON.stringify(foreign.body)).not.toContain("Brouillon privé");
+
+    const anonymous = await request(app).get("/api/contributors/me/realizations");
+    expect(anonymous.status).toBe(401);
+
+    const pub = await request(app).get(`/api/contributors/${profile._id}/realizations`);
+    expect(pub.status).toBe(200);
+    expect(pub.body.realizations).toHaveLength(1);
+    expect(pub.body.realizations[0].description).toBe("Chaise publique");
+    expect(JSON.stringify(pub.body)).not.toContain("Brouillon privé");
+  });
 });
