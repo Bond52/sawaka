@@ -5,16 +5,18 @@ import Link from "next/link";
 import { LayoutGrid, List, Plus, Search, Upload } from "lucide-react";
 import { useTranslation } from "@/src/i18n/I18nProvider";
 import { listContributorDomains, taxonomyLabel, type TaxonomyItem } from "../../lib/apiContributors";
+import { readStoredUser } from "../../lib/authUser";
 import {
   filterPortfolioRealizations,
   loadOwnerPortfolio,
-  type OwnerPortfolio,
   type PortfolioRealization,
   type RealizationStatus,
 } from "../../lib/portfolioRealizations";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+type Phase = "loading" | "ready" | "error" | "signed-out";
 
 function ImportLink({ label, testId }: { label: string; testId: string }) {
   return (
@@ -64,55 +66,75 @@ function UnavailableButton({
   );
 }
 
+function categoryName(item: PortfolioRealization, domains: TaxonomyItem[], locale: string): string {
+  if (!item.domainId) return "";
+  const domain = domains.find((entry) => entry.id === item.domainId);
+  return domain ? taxonomyLabel(domain, locale) : "";
+}
+
+function formatCompletedOn(value: string, locale: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return "";
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString(locale === "fr" ? "fr" : "en", {
+    month: "short",
+    year: "numeric",
+  });
+}
+
 function RealizationCard({
   item,
+  category,
   selected,
   onToggle,
   layout,
 }: {
   item: PortfolioRealization;
+  category: string;
   selected: boolean;
   onToggle: (id: string) => void;
   layout: "grid" | "list";
 }) {
   const { t, locale } = useTranslation();
   const unavailable = t("dashboard.actionUnavailable");
-  const completed = item.completedAt
-    ? new Date(item.completedAt).toLocaleDateString(locale === "fr" ? "fr" : "en", {
-        month: "short",
-        year: "numeric",
-      })
-    : "";
+  const description = item.description.trim();
+  const label = category || description || t("portfolio.itemLabel", { number: item.sequence });
+  const completed = item.completedOn ? formatCompletedOn(item.completedOn, locale) : "";
+  const showDescription = Boolean(category && description);
 
   return (
     <article
       data-testid="portfolio-card"
+      data-status={item.status}
       className={`overflow-hidden rounded-xl border bg-card ${
         selected ? "border-primary" : "border-border"
       } ${layout === "list" ? "flex flex-col sm:flex-row" : ""}`}
     >
       <div
-        className={`relative bg-secondary bg-cover bg-center ${
-          layout === "list" ? "h-36 sm:h-auto sm:w-40" : "aspect-[4/3]"
+        className={`relative overflow-hidden bg-secondary bg-cover bg-center ${
+          layout === "list" ? "h-36 shrink-0 sm:h-auto sm:w-40 sm:self-stretch" : "aspect-[4/3]"
         }`}
-        style={item.coverUrl ? { backgroundImage: `url("${item.coverUrl}")` } : undefined}
+        style={item.imageUrl ? { backgroundImage: `url("${item.imageUrl}")` } : undefined}
         role="img"
-        aria-label={item.title}
+        aria-label={label}
       >
         <label className="absolute left-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-md bg-card shadow-sm">
           <input
             type="checkbox"
             className={`h-4 w-4 accent-primary ${focusRing}`}
             checked={selected}
-            aria-label={t("portfolio.selectItem", { title: item.title })}
+            aria-label={t("portfolio.selectItem", { label })}
             onChange={() => onToggle(item.id)}
           />
         </label>
         <span className="absolute bottom-3 right-3 rounded-full bg-foreground/80 px-2 py-1 text-xs text-card">
-          {t("portfolio.imageCount", { count: item.imageCount })}
+          {t(item.imageCount === 1 ? "portfolio.imageCountOne" : "portfolio.imageCount", {
+            count: item.imageCount,
+          })}
         </span>
       </div>
-      <div className="flex flex-1 flex-col gap-3 p-4">
+      <div className="flex min-w-0 flex-1 flex-col gap-3 p-4">
         <p className="text-sm text-foreground">
           <span
             className={`mr-2 inline-block h-2 w-2 rounded-full ${
@@ -124,10 +146,16 @@ function RealizationCard({
             ? t("portfolio.statusPublished")
             : t("portfolio.statusDraft")}
         </p>
-        <h2 className="text-lg font-semibold text-foreground">{item.title}</h2>
-        <p className="text-sm text-muted-foreground">
-          {[item.categoryLabel, completed].filter(Boolean).join(" · ")}
-        </p>
+        <h2 className="break-words text-lg font-semibold text-foreground">
+          {category || (description ? <span className="line-clamp-3">{description}</span> : label)}
+        </h2>
+        {showDescription || completed ? (
+          <p className="break-words text-sm text-muted-foreground">
+            {showDescription ? <span className="line-clamp-3">{description}</span> : null}
+            {showDescription && completed ? " · " : null}
+            {completed}
+          </p>
+        ) : null}
         <div className="mt-auto flex gap-2">
           <button
             type="button"
@@ -156,7 +184,9 @@ function RealizationCard({
 export default function VendorArticlesPage() {
   const { t, locale } = useTranslation();
   const unavailable = t("dashboard.actionUnavailable");
-  const [portfolio, setPortfolio] = useState<OwnerPortfolio>({ available: false });
+  const [phase, setPhase] = useState<Phase>("loading");
+  const [items, setItems] = useState<PortfolioRealization[]>([]);
+  const [reloadToken, setReloadToken] = useState(0);
   const [domains, setDomains] = useState<TaxonomyItem[]>([]);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"" | RealizationStatus>("");
@@ -166,9 +196,23 @@ export default function VendorArticlesPage() {
 
   useEffect(() => {
     let cancelled = false;
-    loadOwnerPortfolio().then((result) => {
-      if (!cancelled) setPortfolio(result);
-    });
+    const user = readStoredUser();
+    if (!user) {
+      setPhase("signed-out");
+      setItems([]);
+    } else {
+      setPhase("loading");
+      loadOwnerPortfolio().then((result) => {
+        if (cancelled) return;
+        if ("items" in result) {
+          setItems(result.items);
+          setPhase("ready");
+          return;
+        }
+        setItems([]);
+        setPhase(result.status === 401 ? "signed-out" : "error");
+      });
+    }
     listContributorDomains()
       .then((result) => {
         if (!cancelled && result.ok) setDomains(result.domains);
@@ -179,13 +223,17 @@ export default function VendorArticlesPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadToken]);
 
-  const visible = useMemo(() => {
-    const items = portfolio.available ? portfolio.items : [];
-    return filterPortfolioRealizations(items, { query, status, domainId });
-  }, [portfolio, query, status, domainId]);
-  const filtersActive = query.trim() !== "" || status !== "" || domainId !== "";
+  const labelFor = useMemo(
+    () => (item: PortfolioRealization) => categoryName(item, domains, locale),
+    [domains, locale]
+  );
+
+  const visible = useMemo(
+    () => filterPortfolioRealizations(items, { query, status, domainId }, labelFor),
+    [items, query, status, domainId, labelFor]
+  );
   const selectedCount = selectedIds.length;
 
   function toggleSelected(id: string) {
@@ -323,14 +371,57 @@ export default function VendorArticlesPage() {
         </div>
       ) : null}
 
-      {visible.length === 0 ? (
+      {phase === "loading" ? (
+        <p
+          data-testid="portfolio-loading"
+          role="status"
+          aria-live="polite"
+          className="mt-8 text-sm text-muted-foreground"
+        >
+          {t("portfolio.loading")}
+        </p>
+      ) : null}
+
+      {phase === "error" ? (
         <div
-          data-testid={filtersActive && portfolio.available ? "portfolio-no-results" : "portfolio-empty"}
+          data-testid="portfolio-error"
+          role="alert"
           className="mt-8 rounded-xl border border-border bg-card px-6 py-12 text-center"
         >
-          <p className="text-base text-foreground">
-            {filtersActive && portfolio.available ? t("portfolio.noResults") : t("portfolio.empty")}
-          </p>
+          <p className="text-base text-foreground">{t("portfolio.loadError")}</p>
+          <button
+            type="button"
+            data-testid="portfolio-retry"
+            className={`mt-6 inline-flex min-h-[44px] items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground ${focusRing}`}
+            onClick={() => setReloadToken((current) => current + 1)}
+          >
+            {t("portfolio.retry")}
+          </button>
+        </div>
+      ) : null}
+
+      {phase === "signed-out" ? (
+        <div
+          data-testid="portfolio-signed-out"
+          className="mt-8 rounded-xl border border-border bg-card px-6 py-12 text-center"
+        >
+          <p className="text-base text-foreground">{t("portfolio.signedOut")}</p>
+          <Link
+            href="/login?redirect=/vendeur/articles"
+            data-testid="portfolio-sign-in"
+            className={`mt-6 inline-flex min-h-[44px] items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground ${focusRing}`}
+          >
+            {t("portfolio.signIn")}
+          </Link>
+        </div>
+      ) : null}
+
+      {phase === "ready" && items.length === 0 ? (
+        <div
+          data-testid="portfolio-empty"
+          className="mt-8 rounded-xl border border-border bg-card px-6 py-12 text-center"
+        >
+          <p className="text-base text-foreground">{t("portfolio.empty")}</p>
           <div className="mt-6 flex flex-col items-center justify-center gap-2 sm:flex-row">
             <UnavailableButton
               label={t("portfolio.add")}
@@ -341,7 +432,18 @@ export default function VendorArticlesPage() {
             <ImportLink label={t("portfolio.importMultiple")} testId="portfolio-empty-import" />
           </div>
         </div>
-      ) : (
+      ) : null}
+
+      {phase === "ready" && items.length > 0 && visible.length === 0 ? (
+        <div
+          data-testid="portfolio-no-results"
+          className="mt-8 rounded-xl border border-border bg-card px-6 py-12 text-center"
+        >
+          <p className="text-base text-foreground">{t("portfolio.noResults")}</p>
+        </div>
+      ) : null}
+
+      {phase === "ready" && visible.length > 0 ? (
         <div
           data-testid="portfolio-results"
           className={
@@ -354,13 +456,14 @@ export default function VendorArticlesPage() {
             <RealizationCard
               key={item.id}
               item={item}
+              category={labelFor(item)}
               layout={layout}
               selected={selectedIds.includes(item.id)}
               onToggle={toggleSelected}
             />
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
