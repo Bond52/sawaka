@@ -53,6 +53,18 @@ async function mockOwnProfile(
   }
 ) {
   const calls: { url: string; body: string | null }[] = [];
+  await page.route("**/api/contributors/*/realizations", async (route: Route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith("/me/realizations")) {
+      await route.fallback();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ realizations: [] }),
+    });
+  });
   await page.route("**/api/contributors/me**", async (route: Route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;

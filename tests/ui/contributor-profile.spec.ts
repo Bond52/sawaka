@@ -66,11 +66,27 @@ async function seedUser(page: Page) {
   }, USER);
 }
 
+async function mockPublicRealizations(page: Page) {
+  await page.route("**/api/contributors/*/realizations", async (route: Route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith("/me/realizations")) {
+      await route.fallback();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ realizations: [] }),
+    });
+  });
+}
+
 async function mockContributorMe(
   page: Page,
   body: unknown,
   status = 200
 ) {
+  await mockPublicRealizations(page);
   await page.route("**/api/contributors/me", async (route: Route) => {
     if (route.request().method() !== "GET") {
       await route.continue();
@@ -355,6 +371,19 @@ async function installProfileApi(
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({ profile: state.profile }),
+      });
+      return;
+    }
+
+    if (
+      method === "GET" &&
+      /\/realizations$/.test(path) &&
+      !path.endsWith("/me/realizations")
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ realizations: [] }),
       });
       return;
     }
