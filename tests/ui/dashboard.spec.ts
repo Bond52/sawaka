@@ -78,7 +78,9 @@ test.describe("Authenticated user dashboard (#362)", () => {
     await expect(page.getByTestId("user-dashboard")).toBeVisible();
     await expect(page.getByTestId("dashboard-summary-cards")).toBeVisible();
     await expect(page.getByTestId("dashboard-recent-activity")).toBeVisible();
-    await expect(page.getByTestId("dashboard-badges")).toBeVisible();
+    await expect(page.getByTestId("dashboard-badges")).toHaveCount(1);
+    await expect(page.getByTestId("dashboard-quick-actions-sidebar")).toHaveCount(0);
+    await expect(page.getByTestId("dashboard-quick-actions-mobile")).toHaveCount(0);
   });
 
   test("unauthenticated access redirects to login", async ({ page }) => {
@@ -186,7 +188,7 @@ test.describe("Authenticated user dashboard (#362)", () => {
     );
   });
 
-  test("unimplemented actions do not navigate or throw", async ({ page }) => {
+  test("removed quick actions leave no controls, and remaining actions stay inert", async ({ page }) => {
     const errors: string[] = [];
     page.on("pageerror", (err) => errors.push(err.message));
 
@@ -196,21 +198,17 @@ test.describe("Authenticated user dashboard (#362)", () => {
     });
     await page.goto("/dashboard");
 
-    const sidebarActions = page.getByTestId("dashboard-quick-actions-sidebar");
-    const addRealization = sidebarActions.getByTestId(
-      "dashboard-action-add-realization"
-    );
-    await expect(addRealization).toBeVisible();
-    await expect(addRealization).toBeDisabled();
+    await expect(page.getByTestId("dashboard-quick-actions-sidebar")).toHaveCount(0);
+    await expect(page.getByTestId("dashboard-quick-actions-mobile")).toHaveCount(0);
+    await expect(page.locator("[data-testid^='dashboard-action-']")).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Quick actions" })).toHaveCount(0);
     await expect(page).toHaveURL(/\/dashboard/);
 
     await expect(page.getByTestId("dashboard-activity-history")).toBeDisabled();
-    await expect(page.getByTestId("dashboard-badges-view-all")).toBeDisabled();
-
-    // Disabled CTAs must not be interactive links
-    await expect(
-      sidebarActions.locator('a[data-testid="dashboard-action-add-realization"]')
-    ).toHaveCount(0);
+    const viewAll = page.getByTestId("dashboard-badges-view-all");
+    await expect(viewAll).toBeDisabled();
+    await viewAll.focus();
+    await expect(viewAll).not.toBeFocused();
 
     expect(errors).toEqual([]);
   });
@@ -228,9 +226,13 @@ test.describe("Authenticated user dashboard (#362)", () => {
     await expect(page.getByTestId("dashboard-subtitle")).toHaveText(
       "Voici un aperçu de votre activité sur Sawaka."
     );
-    await expect(
-      page.getByTestId("dashboard-quick-actions-sidebar").getByRole("heading")
-    ).toHaveText("Actions rapides");
+    await expect(page.getByRole("heading", { name: "Actions rapides" })).toHaveCount(0);
+    await expect(page.getByTestId("dashboard-badges").getByRole("heading")).toHaveText(
+      "Mes badges"
+    );
+    await expect(page.getByTestId("dashboard-badges-empty")).toHaveText(
+      "Aucun badge pour le moment."
+    );
   });
 
   test("English dashboard rendering", async ({ page }) => {
@@ -246,32 +248,35 @@ test.describe("Authenticated user dashboard (#362)", () => {
     await expect(page.getByTestId("dashboard-subtitle")).toHaveText(
       "Here is an overview of your activity on Sawaka."
     );
-    await expect(
-      page.getByTestId("dashboard-quick-actions-sidebar").getByRole("heading")
-    ).toHaveText("Quick actions");
+    await expect(page.getByRole("heading", { name: "Quick actions" })).toHaveCount(0);
+    await expect(page.getByTestId("dashboard-badges").getByRole("heading")).toHaveText(
+      "My badges"
+    );
+    await expect(page.getByTestId("dashboard-badges-empty")).toHaveText("No badges yet.");
   });
 
-  test("responsive layout shows mobile quick actions without horizontal overflow", async ({
+  test("badges stay in one place across desktop, tablet, and mobile", async ({
     page,
   }) => {
     await seedLoggedInUser(page);
-    await page.setViewportSize({ width: 390, height: 844 });
     await page.addInitScript(() => {
       window.localStorage.setItem("sawaka-locale", "en");
     });
     await page.goto("/dashboard");
 
-    await expect(
-      page.getByTestId("dashboard-quick-actions-mobile")
-    ).toBeVisible();
-    await expect(
-      page.getByTestId("dashboard-quick-actions-sidebar")
-    ).toBeHidden();
-
-    const hasHorizontalOverflow = await page.evaluate(() => {
-      return document.documentElement.scrollWidth > window.innerWidth + 1;
-    });
-    expect(hasHorizontalOverflow).toBe(false);
+    for (const width of [1280, 768, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect(page.getByTestId("dashboard-badges")).toHaveCount(1);
+      await expect(page.getByTestId("dashboard-badges")).toBeVisible();
+      await expect(page.getByTestId("dashboard-quick-actions-sidebar")).toHaveCount(0);
+      await expect(page.getByTestId("dashboard-quick-actions-mobile")).toHaveCount(0);
+      await expect(page.getByTestId("dashboard-summary-cards")).toBeVisible();
+      await expect(page.getByTestId("dashboard-recent-activity")).toBeVisible();
+      const hasHorizontalOverflow = await page.evaluate(() => {
+        return document.documentElement.scrollWidth > window.innerWidth + 1;
+      });
+      expect(hasHorizontalOverflow).toBe(false);
+    }
   });
 
   test("logout prevents subsequent dashboard access", async ({ page }) => {
