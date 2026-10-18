@@ -387,6 +387,100 @@ describe("realization publication", () => {
     expect(pub.status).toBe(200);
     expect(pub.body.realizations).toHaveLength(1);
     expect(pub.body.realizations[0].description).toBe("Chaise publique");
+    expect(pub.body.realizations[0].title).toBeUndefined();
+    expect(pub.body.realizations[0].status).toBeUndefined();
     expect(JSON.stringify(pub.body)).not.toContain("Brouillon privé");
+  });
+
+  it("returns no public realizations when the contributor has only drafts", async () => {
+    const { user } = await account("draft-only-public");
+    const domain = await Domain.create({
+      slug: "draft-only-wood",
+      nameFR: "Bois",
+      nameEN: "Wood",
+      isActive: true,
+    });
+    const profile = await ContributorProfile.create({
+      userId: user._id,
+      displayName: "Amina",
+      country: "Cameroon",
+      domainId: domain._id,
+      status: PROFILE_STATUS.ACTIVE,
+      isVisible: true,
+    });
+    await Realization.create({
+      ownerId: user._id,
+      clientGroupId: "draft-only-1",
+      sequence: 1,
+      description: "Brouillon uniquement",
+      status: "draft",
+      images: [{ url: "https://images.example/draft-only.jpg", publicId: "draft-only" }],
+    });
+
+    const pub = await request(app).get(`/api/contributors/${profile._id}/realizations`);
+    expect(pub.status).toBe(200);
+    expect(pub.body.realizations).toEqual([]);
+    expect(JSON.stringify(pub.body)).not.toMatch(/Brouillon uniquement|draft-only|publicId|@example\.com/);
+  });
+
+  it("returns one published realization when that realization has several photos", async () => {
+    const { user } = await account("multi-photo-public");
+    const domain = await Domain.create({
+      slug: "multi-photo-wood",
+      nameFR: "Bois",
+      nameEN: "Wood",
+      isActive: true,
+    });
+    const profile = await ContributorProfile.create({
+      userId: user._id,
+      displayName: "Amina",
+      country: "Cameroon",
+      domainId: domain._id,
+      status: PROFILE_STATUS.ACTIVE,
+      isVisible: true,
+    });
+    await Realization.create({
+      ownerId: user._id,
+      clientGroupId: "draft-beside",
+      sequence: 1,
+      description: "Brouillon voisin",
+      status: "draft",
+      images: [{ url: "https://images.example/hidden.jpg", publicId: "hidden" }],
+    });
+    await Realization.create({
+      ownerId: user._id,
+      clientGroupId: "published-table",
+      sequence: 2,
+      description: "Table publiée",
+      domainId: domain._id,
+      completedOn: "2024-06-02",
+      status: "published",
+      images: [
+        { url: "https://images.example/a.jpg", publicId: "a" },
+        { url: "https://images.example/b.jpg", publicId: "b" },
+        { url: "https://images.example/c.jpg", publicId: "c" },
+        { url: "https://images.example/d.jpg", publicId: "d" },
+      ],
+    });
+
+    const pub = await request(app).get(`/api/contributors/${profile._id}/realizations`);
+    expect(pub.status).toBe(200);
+    expect(pub.body.realizations).toHaveLength(1);
+    expect(pub.body.realizations[0]).toEqual({
+      id: expect.any(String),
+      sequence: 2,
+      description: "Table publiée",
+      domainId: String(domain._id),
+      completedOn: "2024-06-02",
+      images: [
+        { url: "https://images.example/a.jpg" },
+        { url: "https://images.example/b.jpg" },
+        { url: "https://images.example/c.jpg" },
+        { url: "https://images.example/d.jpg" },
+      ],
+    });
+    expect(pub.body.realizations[0].title).toBeUndefined();
+    expect(pub.body.realizations[0].status).toBeUndefined();
+    expect(JSON.stringify(pub.body)).not.toMatch(/Brouillon voisin|publicId|@example\.com/);
   });
 });

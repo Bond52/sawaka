@@ -73,6 +73,14 @@ async function mockDirectory(page: Page) {
       });
       return;
     }
+    if (/\/contributors\/[^/]+\/realizations$/.test(path)) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ realizations: [] }),
+      });
+      return;
+    }
     if (path.endsWith("/contributors/hidden-profile")) {
       await route.fulfill({
         status: 404,

@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { MapPin } from "lucide-react";
 import ContributorAvatar from "./ContributorAvatar";
+import PublicRealizations from "./PublicRealizations";
 import { useTranslation } from "@/src/i18n/I18nProvider";
 import {
   taxonomyLabel,
@@ -210,25 +211,13 @@ export default function ContributorProfileConsultation({
         data-testid="contributor-profile-realizations"
         className="mb-10"
       >
-        <h2 className="mb-3 text-xl font-semibold text-foreground">
+        <h2
+          id="contributor-realizations-heading"
+          className="mb-3 text-xl font-semibold text-foreground"
+        >
           {t("contributorProfile.realizationsTitle")}
         </h2>
-        <p
-          className="text-sm text-muted-foreground"
-          data-testid="contributor-profile-realizations-empty"
-        >
-          {t("contributorProfile.realizationsEmpty")}
-        </p>
-        <button
-          type="button"
-          disabled
-          className="mt-4 cursor-not-allowed text-sm font-medium text-muted-foreground"
-          title={t("navigation.menuUnavailable")}
-          aria-disabled="true"
-          data-testid="contributor-profile-realizations-view-all"
-        >
-          {t("contributorProfile.viewAllRealizations")} →
-        </button>
+        <PublicRealizations profileId={profile.id} />
       </section>
 
       <section
