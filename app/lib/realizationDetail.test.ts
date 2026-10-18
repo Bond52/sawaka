@@ -32,6 +32,7 @@ test("parses a published realization and keeps image order", () => {
   const detail = parseRealizationDetail(payload());
   assert.ok(detail);
   assert.deepEqual(detail.imageUrls, ["https://cdn.example/1.jpg", "https://cdn.example/2.jpg"]);
+  assert.equal(detail.title, "");
   assert.equal(detail.mainMaterial, "Chêne blanc");
   assert.equal(detail.description, "Table en chêne");
   assert.equal(detail.domain?.nameFR, "Menuiserie");
@@ -39,6 +40,18 @@ test("parses a published realization and keeps image order", () => {
   assert.equal(detail.contributor.displayName, "Amina Diallo");
   assert.equal("email" in detail, false);
   assert.equal("email" in detail.contributor, false);
+});
+
+test("keeps a provided title and treats a missing title as empty", () => {
+  const named = parseRealizationDetail(payload({ title: "Table basse" }));
+  assert.ok(named);
+  assert.equal(named.title, "Table basse");
+  const body = payload();
+  delete (body.realization as { title?: string }).title;
+  const legacy = parseRealizationDetail(body);
+  assert.ok(legacy);
+  assert.equal(legacy.title, "");
+  assert.equal(parseRealizationDetail(payload({ title: 4 })), null);
 });
 
 test("treats a missing main material as empty text", () => {

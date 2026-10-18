@@ -2,6 +2,7 @@ const express = require("express");
 const { requireAuth, optionalAuth } = require("../middleware/auth");
 const { createRateLimiter } = require("../middleware/rateLimit");
 const contributorController = require("../controllers/contributor.controller");
+const realizationController = require("../controllers/realization.controller");
 const { profilePhotoUpload } = require("../middleware/profilePhotoUpload");
 const { importPhotoUpload } = require("../middleware/portfolioImportUpload");
 const { realizationBatchUpload } = require("../middleware/realizationBatchUpload");
@@ -64,6 +65,21 @@ router.post(
   contributorController.commitRealizations
 );
 router.get("/me/realizations", requireAuth, contributorController.listOwnRealizations);
+router.post(
+  "/me/realizations/:id/publish",
+  requireAuth,
+  realizationController.publishOwnRealization
+);
+router.post(
+  "/me/realizations/:id/draft",
+  requireAuth,
+  realizationController.moveOwnRealizationToDraft
+);
+router.delete(
+  "/me/realizations/:id",
+  requireAuth,
+  realizationController.deleteOwnRealization
+);
 router.post(
   "/me/photo",
   requireAuth,

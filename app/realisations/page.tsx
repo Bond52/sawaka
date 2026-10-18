@@ -43,6 +43,7 @@ function RealizationCard({
   category: string;
 }) {
   const { t, locale } = useTranslation();
+  const title = item.title.trim();
   const description = item.description.trim();
   const completed = item.completedOn ? formatCompletedOn(item.completedOn, locale) : "";
   const preview = item.imageUrls[0] ?? "";
@@ -56,7 +57,7 @@ function RealizationCard({
       <Link
         href={`/realisations/${item.id}`}
         data-testid="published-realization-link"
-        aria-label={t("realizationDetail.open")}
+        aria-label={title || t("realizationDetail.open")}
         className={`absolute inset-0 z-10 ${focusRing}`}
       />
       {preview ? (
@@ -95,6 +96,11 @@ function RealizationCard({
             data-testid="published-realization-domain"
           >
             {category}
+          </p>
+        ) : null}
+        {title ? (
+          <p className="break-words text-base font-semibold text-foreground" data-testid="published-realization-title">
+            {title}
           </p>
         ) : null}
         {description ? (

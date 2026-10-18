@@ -23,6 +23,12 @@ describe("realization readiness", () => {
       "MATERIAL_TOO_LONG"
     );
     expect(metadataIssue({ description: "", completedOn: null, mainMaterial: "Bois massif" })).toBeNull();
+    expect(metadataIssue({ description: "", completedOn: null, title: "" })).toBeNull();
+    expect(metadataIssue({ description: "", completedOn: null, title: "  Table basse  " })).toBeNull();
+    expect(metadataIssue({ description: "", completedOn: null, title: "x".repeat(121) })).toBe(
+      "TITLE_TOO_LONG"
+    );
+    expect(metadataIssue({ description: "", completedOn: null, title: 12 })).toBe("TITLE_INVALID");
   });
 
   it("does not call a partial batch a full success", () => {

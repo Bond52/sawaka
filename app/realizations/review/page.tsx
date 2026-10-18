@@ -274,6 +274,11 @@ function ReviewBatch({
                   <p className="font-medium text-foreground">
                     {t("portfolio.organize.groupLabel", { number: group.sequence })}
                   </p>
+                  {(group.title || "").trim() ? (
+                    <p className="mt-1 break-words text-sm font-medium text-foreground" data-testid="portfolio-review-title">
+                      {(group.title || "").trim()}
+                    </p>
+                  ) : null}
                   <p className="mt-1 text-sm text-foreground" data-testid="portfolio-review-missing">
                     {t("portfolio.review.incomplete")}
                     {" · "}
@@ -369,6 +374,11 @@ function RealizationCard({
         {t("portfolio.organize.groupLabel", { number: group.sequence })}
       </p>
       <p className="text-sm font-medium text-foreground">{t("portfolio.review.readyToPublish")}</p>
+      {(group.title || "").trim() ? (
+        <p className="mt-2 break-words font-medium text-foreground" data-testid="portfolio-review-title">
+          {(group.title || "").trim()}
+        </p>
+      ) : null}
       {group.description ? (
         <p className="mt-2 line-clamp-3 break-words text-sm text-muted-foreground">{group.description}</p>
       ) : null}
@@ -473,6 +483,7 @@ function Step({
 }
 
 function failureText(code: string | undefined, t: (key: string, params?: Record<string, string | number>) => string) {
+  if (code === "TITLE_TOO_LONG") return t("portfolio.complete.titleTooLong", { max: 120 });
   if (code === "DESCRIPTION_TOO_LONG") return t("portfolio.complete.descriptionTooLong", { max: 2000 });
   if (code === "DATE_INVALID") return t("portfolio.complete.dateInvalid");
   if (code === "DOMAIN_INVALID") return t("portfolio.review.categoryInvalid");

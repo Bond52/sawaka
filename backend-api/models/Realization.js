@@ -23,6 +23,8 @@ const realizationSchema = new mongoose.Schema(
     },
     clientGroupId: { type: String, required: true },
     sequence: { type: Number, required: true },
+    /** Optional name. Empty for realizations created before titles existed. */
+    title: { type: String, default: "", trim: true, maxlength: 120 },
     description: { type: String, default: "" },
     domainId: {
       type: mongoose.Schema.Types.ObjectId,

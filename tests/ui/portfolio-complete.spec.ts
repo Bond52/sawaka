@@ -83,7 +83,7 @@ test.describe("Complete realization metadata", () => {
     await expect(page.getByLabel("Métier ou catégorie")).toBeVisible();
     await expect(page.getByLabel("Date d'achèvement")).toBeVisible();
     await expect(page.getByLabel("Matériau principal")).toBeVisible();
-    await expect(page.getByLabel("Titre")).toHaveCount(0);
+    await expect(page.getByLabel("Titre de la réalisation")).toBeVisible();
     await expect(page.getByLabel("Projet")).toHaveCount(0);
     await expect(page.getByText("Sauvegarde automatique")).toHaveCount(0);
     await expect(page.locator("[aria-current='step']")).toContainText("Compléter");
@@ -100,6 +100,7 @@ test.describe("Complete realization metadata", () => {
     await description.focus();
     await expect(description).toBeFocused();
     await description.fill("Chaise sculptée");
+    await page.getByTestId("portfolio-complete-title").fill("Chaise basse");
     await page.getByTestId("portfolio-complete-category").selectOption("wood");
     await page.getByTestId("portfolio-complete-date").fill("2024-05-01");
     await page.getByTestId("portfolio-complete-material").fill("Bois massif");
@@ -107,6 +108,7 @@ test.describe("Complete realization metadata", () => {
 
     await page.getByTestId("portfolio-complete-next").click();
     await expect(page.getByTestId("portfolio-complete-description")).toHaveValue("");
+    await expect(page.getByTestId("portfolio-complete-title")).toHaveValue("");
     await expect(page.getByTestId("portfolio-complete-material")).toHaveValue("");
     await page.getByTestId("portfolio-complete-description").fill("Portail");
     await page.getByTestId("portfolio-complete-previous").click();
@@ -114,6 +116,7 @@ test.describe("Complete realization metadata", () => {
     await expect(page.getByTestId("portfolio-complete-category")).toHaveValue("wood");
     await expect(page.getByTestId("portfolio-complete-date")).toHaveValue("2024-05-01");
     await expect(page.getByTestId("portfolio-complete-material")).toHaveValue("Bois massif");
+    await expect(page.getByTestId("portfolio-complete-title")).toHaveValue("Chaise basse");
 
     await description.fill("");
     await page.getByTestId("portfolio-complete-category").selectOption("");
@@ -127,6 +130,7 @@ test.describe("Complete realization metadata", () => {
     await page.getByTestId("portfolio-complete-continue").click();
     await expect(page).toHaveURL(/\/realizations\/review/);
     await expect(page.getByRole("heading", { name: "Vérifier les réalisations" })).toBeVisible();
+    await expect(page.getByTestId("portfolio-review-title")).toHaveText("Chaise basse");
     await page.getByTestId("portfolio-review-back").click();
     await expect(page).toHaveURL(/\/realizations\/complete/);
 
@@ -149,6 +153,8 @@ test.describe("Complete realization metadata", () => {
     await expect(page.getByLabel("Craft or category")).toBeVisible();
     await expect(page.getByLabel("Completion date")).toBeVisible();
     await expect(page.getByLabel("Main material")).toBeVisible();
+    await expect(page.getByLabel("Realization title")).toBeVisible();
+    await expect(page.getByTestId("portfolio-complete-title")).toHaveValue("");
     await expect(page.getByTestId("portfolio-complete-status")).toHaveText("Ready");
     await expect(page.getByText("Auto-save")).toHaveCount(0);
     await expect(page.getByTestId("portfolio-complete-description")).toHaveValue("");

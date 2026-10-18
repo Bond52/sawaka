@@ -41,6 +41,7 @@ test("parsePublicRealizations keeps one item when a realization has several phot
   assert.deepEqual(items[0], {
     id: "pub-1",
     sequence: 2,
+    title: "Must not become a field",
     description: "Table en bois",
     domainId: "wood",
     completedOn: "2024-06-02",
@@ -51,7 +52,8 @@ test("parsePublicRealizations keeps one item when a realization has several phot
       "https://images.example/d.jpg",
     ],
   });
-  assert.equal("title" in items[0], false);
+  assert.equal(items[1].title, "");
+  assert.equal(JSON.stringify(items).includes("owner@example.com"), false);
   assert.equal(items[1].domainId, null);
   assert.equal(items[1].completedOn, null);
   assert.equal(items[1].description, "");

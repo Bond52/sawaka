@@ -25,6 +25,7 @@ export type RealizationContributor = {
 /** One published realization and the public contributor card. */
 export type RealizationDetail = {
   id: string;
+  title: string;
   description: string;
   domainId: string | null;
   domain: TaxonomyName | null;
@@ -66,6 +67,8 @@ export function parseRealizationDetail(data: unknown): RealizationDetail | null 
   const person = data.contributor;
   if (typeof row.id !== "string" || row.id.trim() === "") return null;
   if (typeof row.description !== "string") return null;
+  const title = readText(row.title);
+  if (title === undefined) return null;
   let domainId: string | null;
   if (typeof row.domainId === "string" && row.domainId.trim() !== "") domainId = row.domainId;
   else if (row.domainId === null || row.domainId === undefined) domainId = null;
@@ -101,6 +104,7 @@ export function parseRealizationDetail(data: unknown): RealizationDetail | null 
   }
   return {
     id: row.id,
+    title,
     description: row.description,
     domainId,
     domain,

@@ -16,6 +16,7 @@ import {
   readPublicationHandoff,
   rememberPublicationHandoff,
   reviewSummary,
+  titleIssue,
   readImportSelection,
   readReviewContract,
   removePhotoFromGroup,
@@ -134,6 +135,7 @@ test("a grouped realization is ready even when optional details are empty", () =
   const next = groupIntoOne(state(), ["a", "b"]);
   assert.equal(isRealizationReady(next.groups[0]), true);
   assert.equal(next.groups[0].description, "");
+  assert.equal(next.groups[0].title, "");
   assert.equal(next.groups[0].domainId, null);
   assert.equal(next.groups[0].completedOn, null);
   assert.equal(descriptionIssue(""), null);
@@ -152,16 +154,21 @@ test("editing one realization keeps the details of the others", () => {
     domainId: "wood",
     completedOn: "2024-05-01",
     mainMaterial: "Bois massif",
+    title: "  Chaise basse  ",
   });
   const second = updateGroupDetails(first, first.groups[1].id, { description: "Gate" });
   assert.equal(second.groups[0].description, "Chair");
   assert.equal(second.groups[0].domainId, "wood");
   assert.equal(second.groups[0].completedOn, "2024-05-01");
   assert.equal(second.groups[0].mainMaterial, "Bois massif");
+  assert.equal(second.groups[0].title, "  Chaise basse  ");
   assert.equal(second.groups[1].description, "Gate");
   assert.equal(second.groups[1].mainMaterial, "");
+  assert.equal(second.groups[1].title, "");
   assert.deepEqual(second.groups[0].photoIds, ["a"]);
   assert.equal(descriptionIssue("x".repeat(2001)), "DESCRIPTION_TOO_LONG");
+  assert.equal(titleIssue(""), null);
+  assert.equal(titleIssue("x".repeat(121)), "TITLE_TOO_LONG");
   assert.equal(completionDateIssue("2024-02-31"), "DATE_INVALID");
 });
 

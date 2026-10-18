@@ -105,6 +105,7 @@ describe("public realization detail", () => {
     expect(res.status).toBe(200);
     expect(res.body.realization).toEqual({
       id: String(published._id),
+      title: "",
       description: "Table en chêne",
       domainId: String(domain._id),
       domain: { id: String(domain._id), nameFR: "Menuiserie", nameEN: "Carpentry" },

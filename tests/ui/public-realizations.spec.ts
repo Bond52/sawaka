@@ -220,7 +220,7 @@ test.describe("Public contributor realizations", () => {
     const cards = page.getByTestId("contributor-profile-realization");
     await expect(cards).toHaveCount(2);
     await expect(page.getByText("Brouillon secret")).toHaveCount(0);
-    await expect(page.getByText("Invented title")).toHaveCount(0);
+    await expect(page.getByTestId("contributor-profile-realization-title")).toHaveText("Invented title");
     await expect(cards.nth(0).getByRole("heading")).toHaveCount(0);
     await expect(cards.nth(0).getByRole("link")).toHaveAttribute("href", "/realisations/real-table");
     await expect(cards.nth(0).getByTestId("contributor-profile-realization-image")).toHaveCount(1);

@@ -12,8 +12,10 @@ export type PhotoRef = { id: string; name: string };
 /** Same ceiling as a contributor biography. Empty text is valid. */
 export const REALIZATION_DESCRIPTION_MAX = 2000;
 export const REALIZATION_MATERIAL_MAX = 120;
+export const REALIZATION_TITLE_MAX = 120;
 
 export type RealizationDetails = {
+  title: string;
   description: string;
   domainId: string | null;
   completedOn: string | null;
@@ -145,6 +147,11 @@ export function isRealizationReady(group: { photoIds: string[] }): boolean {
   return group.photoIds.length > 0;
 }
 
+export function titleIssue(title: string): "TITLE_TOO_LONG" | null {
+  if (title.trim().length > REALIZATION_TITLE_MAX) return "TITLE_TOO_LONG";
+  return null;
+}
+
 export function descriptionIssue(description: string): "DESCRIPTION_TOO_LONG" | null {
   if (description.length > REALIZATION_DESCRIPTION_MAX) return "DESCRIPTION_TOO_LONG";
   return null;
@@ -176,6 +183,7 @@ export function updateGroupDetails(
       if (group.id !== groupId) return group;
       return {
         ...group,
+        title: patch.title !== undefined ? patch.title : group.title || "",
         description: patch.description !== undefined ? patch.description : group.description,
         domainId: patch.domainId !== undefined ? patch.domainId : group.domainId,
         completedOn: patch.completedOn !== undefined ? patch.completedOn : group.completedOn,
@@ -355,7 +363,7 @@ function nextSequence(groups: RealizationGroup[]): number {
 }
 
 function blankDetails(): RealizationDetails {
-  return { description: "", domainId: null, completedOn: null, mainMaterial: "" };
+  return { title: "", description: "", domainId: null, completedOn: null, mainMaterial: "" };
 }
 
 function createGroup(groups: RealizationGroup[], photoIds: string[]): RealizationGroup {

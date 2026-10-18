@@ -13,6 +13,7 @@ const {
 
 const DESCRIPTION_MAX = 2000;
 const MATERIAL_MAX = 120;
+const TITLE_MAX = 120;
 const CATALOG_LIMIT = 200;
 const SEARCH_MAX = 200;
 const MAX_GROUPS = 40;
@@ -20,6 +21,7 @@ const CLIENT_ID_PATTERN = /^[A-Za-z0-9_-]{8,80}$/;
 const OBJECT_ID_PATTERN = /^[a-f\d]{24}$/i;
 const GROUP_FIELDS = new Set([
   "clientId",
+  "title",
   "description",
   "domainId",
   "completedOn",
@@ -52,6 +54,10 @@ function metadataIssue(group) {
   if (group.mainMaterial !== undefined && group.mainMaterial !== null && group.mainMaterial !== "") {
     if (typeof group.mainMaterial !== "string") return "MATERIAL_INVALID";
     if (group.mainMaterial.trim().length > MATERIAL_MAX) return "MATERIAL_TOO_LONG";
+  }
+  if (group.title !== undefined && group.title !== null && group.title !== "") {
+    if (typeof group.title !== "string") return "TITLE_INVALID";
+    if (group.title.trim().length > TITLE_MAX) return "TITLE_TOO_LONG";
   }
   return null;
 }
@@ -119,6 +125,8 @@ function readGroup(raw) {
   }
   const description = raw.description === undefined ? "" : raw.description;
   if (typeof description !== "string") return { error: "DESCRIPTION_INVALID" };
+  const title = raw.title === undefined || raw.title === null ? "" : raw.title;
+  if (typeof title !== "string") return { error: "TITLE_INVALID" };
   let domainId = raw.domainId === undefined || raw.domainId === "" ? null : raw.domainId;
   if (domainId !== null && (typeof domainId !== "string" || !OBJECT_ID_PATTERN.test(domainId))) {
     return { error: "DOMAIN_INVALID" };
@@ -134,6 +142,7 @@ function readGroup(raw) {
     group: {
       clientId: raw.clientId,
       sequence: raw.sequence,
+      title: title.trim(),
       description,
       domainId,
       completedOn,
@@ -161,6 +170,7 @@ function shapeOwned(doc) {
     id: String(doc._id),
     clientGroupId: doc.clientGroupId,
     sequence: doc.sequence,
+    title: doc.title || "",
     description: doc.description || "",
     domainId: doc.domainId ? String(doc.domainId) : null,
     completedOn: doc.completedOn || null,
@@ -174,6 +184,7 @@ function shapePublic(doc) {
   return {
     id: String(doc._id),
     sequence: doc.sequence,
+    title: doc.title || "",
     description: doc.description || "",
     domainId: doc.domainId ? String(doc.domainId) : null,
     completedOn: doc.completedOn || null,
@@ -275,11 +286,13 @@ async function commitBatch({ ownerId, manifest: rawManifest, files }) {
     const status = publish ? REALIZATION_STATUS.PUBLISHED : REALIZATION_STATUS.DRAFT;
     const completedOn = group.completedOn || null;
     const mainMaterial = group.mainMaterial || "";
+    const title = group.title || "";
 
     try {
       if (existing) {
         const previous = existing.images || [];
         existing.sequence = group.sequence;
+        existing.title = title;
         existing.description = group.description;
         existing.domainId = group.domainId;
         existing.completedOn = completedOn;
@@ -294,6 +307,7 @@ async function commitBatch({ ownerId, manifest: rawManifest, files }) {
           ownerId,
           clientGroupId: group.clientId,
           sequence: group.sequence,
+          title,
           description: group.description,
           domainId: group.domainId,
           completedOn,
@@ -383,6 +397,7 @@ async function listPublished(query = {}) {
       ],
     }).select("_id");
     filter.$or = [
+      { title: { $regex: pattern, $options: "i" } },
       { description: { $regex: pattern, $options: "i" } },
       { domainId: { $in: domains.map((domain) => domain._id) } },
     ];
@@ -445,6 +460,7 @@ async function getPublishedById(rawId) {
   return {
     realization: {
       id: String(doc._id),
+      title: doc.title || "",
       description: doc.description || "",
       domainId: doc.domainId ? String(doc.domainId) : null,
       domain: publicDomain(realizationDomain),
@@ -464,9 +480,75 @@ async function getPublishedById(rawId) {
   };
 }
 
+async function ownedRealization(ownerId, rawId) {
+  if (!ownerId || !mongoose.isValidObjectId(ownerId)) {
+    throw new RealizationError("UNAUTHORIZED", 401);
+  }
+  const id = String(rawId || "");
+  if (!OBJECT_ID_PATTERN.test(id) || !mongoose.isValidObjectId(id)) {
+    throw new RealizationError("NOT_FOUND", 404);
+  }
+  const doc = await Realization.findById(id);
+  if (!doc || String(doc.ownerId) !== String(ownerId)) {
+    throw new RealizationError("NOT_FOUND", 404);
+  }
+  return doc;
+}
+
+async function publishOwned(ownerId, rawId) {
+  const doc = await ownedRealization(ownerId, rawId);
+  if (doc.status === REALIZATION_STATUS.PUBLISHED) {
+    throw new RealizationError("ALREADY_PUBLISHED", 409);
+  }
+  if (!isReadyToPublish(doc.images)) {
+    throw new RealizationError("NOT_READY", 422, { images: "REQUIRED" });
+  }
+  doc.status = REALIZATION_STATUS.PUBLISHED;
+  await doc.save();
+  return { realization: shapeOwned(doc) };
+}
+
+async function moveOwnedToDraft(ownerId, rawId) {
+  const doc = await ownedRealization(ownerId, rawId);
+  if (doc.status === REALIZATION_STATUS.DRAFT) {
+    throw new RealizationError("ALREADY_DRAFT", 409);
+  }
+  doc.status = REALIZATION_STATUS.DRAFT;
+  await doc.save();
+  return { realization: shapeOwned(doc) };
+}
+
+/**
+ * Deletes an owned realization only after every stored image is removed.
+ * A cleanup failure leaves the realization in place and is reported.
+ */
+async function deleteOwned(ownerId, rawId) {
+  const doc = await ownedRealization(ownerId, rawId);
+  const images = doc.images || [];
+  const failures = [];
+  for (const image of images) {
+    if (!image || !image.publicId) continue;
+    try {
+      await destroyStoredImage(image.publicId);
+    } catch (err) {
+      console.error("realizationService.deleteOwned:", {
+        name: err && err.name,
+        code: err && err.code,
+      });
+      failures.push(image.publicId);
+    }
+  }
+  if (failures.length > 0) {
+    throw new RealizationError("IMAGE_CLEANUP_FAILED", 502, { images: "CLEANUP_FAILED" });
+  }
+  await doc.deleteOne();
+  return { deleted: true };
+}
+
 module.exports = {
   DESCRIPTION_MAX,
   MATERIAL_MAX,
+  TITLE_MAX,
   REALIZATION_STATUS,
   RealizationError,
   isReadyToPublish,
@@ -477,4 +559,7 @@ module.exports = {
   listPublic,
   listPublished,
   getPublishedById,
+  publishOwned,
+  moveOwnedToDraft,
+  deleteOwned,
 };
