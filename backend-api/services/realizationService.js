@@ -3,6 +3,7 @@ const Domain = require("../models/Domain");
 const Realization = require("../models/Realization");
 const { REALIZATION_STATUS } = require("../models/Realization");
 const ContributorProfile = require("../models/ContributorProfile");
+const { PROFILE_STATUS } = ContributorProfile;
 const { profilePhotoIssue } = require("./profilePhoto");
 const { uploadRealizationImage, destroyStoredImage } = require("./imageStorage");
 const {
@@ -11,6 +12,8 @@ const {
 } = require("./ContributorProfileService");
 
 const DESCRIPTION_MAX = 2000;
+const CATALOG_LIMIT = 200;
+const SEARCH_MAX = 200;
 const MAX_GROUPS = 40;
 const CLIENT_ID_PATTERN = /^[A-Za-z0-9_-]{8,80}$/;
 const OBJECT_ID_PATTERN = /^[a-f\d]{24}$/i;
@@ -315,6 +318,67 @@ async function listOwned(ownerId) {
   return { realizations: docs.map(shapeOwned) };
 }
 
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function readCatalogSearch(value) {
+  if (value === undefined || value === null || value === "") return "";
+  if (typeof value !== "string") {
+    throw new RealizationError("VALIDATION_ERROR", 400, { q: "INVALID" });
+  }
+  const trimmed = value.trim();
+  if (trimmed.length > SEARCH_MAX) {
+    throw new RealizationError("VALIDATION_ERROR", 400, { q: "TOO_LONG" });
+  }
+  return trimmed;
+}
+
+function readCatalogDomainId(value) {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeof value !== "string" || !OBJECT_ID_PATTERN.test(value) || !mongoose.isValidObjectId(value)) {
+    throw new RealizationError("VALIDATION_ERROR", 400, { domainId: "INVALID" });
+  }
+  return value;
+}
+
+/**
+ * Published realizations across publicly visible contributors.
+ * The status filter is part of the query. Drafts are never loaded.
+ * Search matches description and the contributor domain name only.
+ */
+async function listPublished(query = {}) {
+  const q = readCatalogSearch(query.q);
+  const domainId = readCatalogDomainId(query.domainId);
+  const profiles = await ContributorProfile.find({
+    status: PROFILE_STATUS.ACTIVE,
+    isVisible: true,
+  }).select("userId");
+  const filter = {
+    ownerId: { $in: profiles.map((profile) => profile.userId) },
+    status: REALIZATION_STATUS.PUBLISHED,
+  };
+  if (domainId) filter.domainId = domainId;
+  if (q) {
+    const pattern = escapeRegex(q);
+    const domains = await Domain.find({
+      isActive: true,
+      $or: [
+        { nameFR: { $regex: pattern, $options: "i" } },
+        { nameEN: { $regex: pattern, $options: "i" } },
+      ],
+    }).select("_id");
+    filter.$or = [
+      { description: { $regex: pattern, $options: "i" } },
+      { domainId: { $in: domains.map((domain) => domain._id) } },
+    ];
+  }
+  const docs = await Realization.find(filter)
+    .sort({ createdAt: -1, sequence: 1 })
+    .limit(CATALOG_LIMIT);
+  return { realizations: docs.map(shapePublic) };
+}
+
 async function listPublic(profileId) {
   let profile;
   try {
@@ -344,4 +408,5 @@ module.exports = {
   commitBatch,
   listOwned,
   listPublic,
+  listPublished,
 };

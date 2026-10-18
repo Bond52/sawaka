@@ -618,6 +618,10 @@
       "inactive": "This contributor profile is inactive and is not publicly visible."
     }
   },
+  "publishedRealizations": {
+    "intro": "Published work from contributors.",
+    "searchPlaceholder": "Description or category"
+  },
   "portfolio": {
     "title": "My Realizations",
     "subtitle": "Show your craft through finished projects. Drafts stay private.",

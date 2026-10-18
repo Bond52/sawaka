@@ -25,7 +25,7 @@ test.describe("Public navigation", () => {
     ).toBeVisible();
     await expect(
       nav.getByRole("link", { name: "Réalisations", exact: true })
-    ).toHaveAttribute("href", "/produits");
+    ).toHaveAttribute("href", "/realisations");
     await expect(nav.getByRole("link", { name: "Fournisseurs", exact: true })).toBeVisible();
     await expect(nav.getByRole("link", { name: "Projets", exact: true })).toBeVisible();
     await expect(nav.getByRole("link", { name: "Réseau", exact: true })).toBeVisible();
@@ -60,7 +60,7 @@ test.describe("Public navigation", () => {
     ).toBeVisible();
     await expect(
       nav.getByRole("link", { name: "Realizations", exact: true })
-    ).toHaveAttribute("href", "/produits");
+    ).toHaveAttribute("href", "/realisations");
     await expect(nav.getByRole("link", { name: "Contest" })).toHaveCount(0);
     await expect(nav.getByRole("link", { name: "Market", exact: true })).toHaveCount(0);
     await expect(
@@ -92,7 +92,7 @@ test.describe("Public navigation", () => {
     ).toBeVisible();
     await expect(
       nav.getByRole("link", { name: "Réalisations", exact: true })
-    ).toHaveAttribute("href", "/produits");
+    ).toHaveAttribute("href", "/realisations");
     await expect(nav.getByRole("link", { name: "Concours" })).toHaveCount(0);
     await expect(
       page.getByRole("link", { name: "Créer un profil contributeur" })
@@ -118,6 +118,9 @@ test.describe("Public navigation", () => {
     await expect(
       nav.getByRole("link", { name: "Realizations", exact: true })
     ).toBeVisible();
+    await expect(
+      nav.getByRole("link", { name: "Realizations", exact: true })
+    ).toHaveAttribute("href", "/realisations");
     await expect(nav.getByRole("link", { name: "Contest" })).toHaveCount(0);
     await expect(
       page.getByRole("link", { name: "Create contributor profile" })
