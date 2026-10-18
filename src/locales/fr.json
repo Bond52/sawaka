@@ -618,6 +618,10 @@
       "inactive": "Ce profil contributeur est inactif et n’est plus visible publiquement."
     }
   },
+  "publishedRealizations": {
+    "intro": "Travaux publiés par les contributeurs.",
+    "searchPlaceholder": "Description ou catégorie"
+  },
   "portfolio": {
     "title": "Mes réalisations",
     "subtitle": "Présentez votre savoir-faire à travers vos projets terminés. Les brouillons restent privés.",

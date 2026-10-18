@@ -63,7 +63,7 @@ function readStoredUser(): UserData | null {
 
 const PUBLIC_NAV = [
   { href: "/", labelKey: "navigation.home" },
-  { href: "/produits", labelKey: "navigation.market" },
+  { href: "/realisations", labelKey: "navigation.market" },
   { href: "/fournisseurs", labelKey: "navigation.suppliers" },
   { href: "/projets", labelKey: "navigation.projects" },
   { href: "/reseau", labelKey: "navigation.network" },

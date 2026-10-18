@@ -128,6 +128,9 @@ app.use("/api/suppliers", require("./routes/supplier.routes"));
 // Contributor profiles (separate from User and from Supplier)
 app.use("/api/contributors", require("./routes/contributor.routes"));
 
+// Published realizations across contributors. Drafts stay on the owner route.
+app.use("/api/realizations", require("./routes/realization.routes"));
+
 // 📨 Feedback utilisateurs (avis, signalements)
 app.use("/api/feedback", require("./routes/feedback"));
 
