@@ -4,7 +4,6 @@ import { useTranslation } from "@/src/i18n/I18nProvider";
 import type { StoredUser } from "@/app/lib/authUser";
 import { getGreetingName } from "@/app/lib/authUser";
 import DashboardSummaryCards from "./DashboardSummaryCards";
-import DashboardQuickActions from "./DashboardQuickActions";
 import DashboardRecentActivity from "./DashboardRecentActivity";
 import DashboardBadges from "./DashboardBadges";
 
@@ -47,13 +46,11 @@ export default function UserDashboard({ user }: Props) {
         <DashboardSummaryCards />
 
         <div className="lg:grid lg:grid-cols-3 lg:gap-8">
-          <div className="space-y-6 lg:col-span-2">
+          <div className="lg:col-span-2">
             <DashboardRecentActivity />
-            <DashboardQuickActions variant="mobile" />
           </div>
 
-          <div className="mt-6 space-y-6 lg:mt-0">
-            <DashboardQuickActions variant="sidebar" />
+          <div className="mt-6 lg:mt-0">
             <DashboardBadges />
           </div>
         </div>

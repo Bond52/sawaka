@@ -667,7 +667,7 @@ test.describe("Contributor profile creation", () => {
     expect(overflow).toBe(false);
   });
 
-  test("dashboard and public navigation open the same creation route", async ({
+  test("public navigation and a direct visit open the creation route", async ({
     page,
   }) => {
     await useEnglish(page);
@@ -690,9 +690,9 @@ test.describe("Contributor profile creation", () => {
       );
     });
     await page.goto("/dashboard");
-    await page.getByTestId("dashboard-quick-actions-sidebar").getByTestId(
-      "dashboard-action-create-contributor"
-    ).click();
+    await expect(page.getByTestId("dashboard-action-create-contributor")).toHaveCount(0);
+    await page.goto("/contributor/create");
     await expect(page).toHaveURL(/\/contributor\/create/);
+    await expect(page.getByLabel("Username")).toBeVisible();
   });
 });

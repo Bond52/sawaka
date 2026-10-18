@@ -71,15 +71,6 @@
       "reputationSub": "évaluations",
       "reputationCta": "Voir mon profil public"
     },
-    "actions": {
-      "title": "Actions rapides",
-      "addRealization": "Ajouter une réalisation",
-      "createProject": "Créer un projet",
-      "findSupplier": "Trouver un fournisseur",
-      "exploreProjects": "Explorer les projets",
-      "editProfile": "Modifier mon profil",
-      "createContributor": "Créer un profil contributeur"
-    },
     "activity": {
       "title": "Mon activité récente",
       "empty": "Aucune activité récente pour le moment.",
