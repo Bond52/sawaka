@@ -693,6 +693,6 @@ test.describe("Contributor profile creation", () => {
     await expect(page.getByTestId("dashboard-action-create-contributor")).toHaveCount(0);
     await page.goto("/contributor/create");
     await expect(page).toHaveURL(/\/contributor\/create/);
-    await expect(page.getByLabel("Username")).toBeVisible();
+    await expect(page.getByTestId("contributor-create-form")).toBeVisible();
   });
 });
