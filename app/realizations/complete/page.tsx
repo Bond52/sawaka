@@ -14,6 +14,7 @@ import {
   isRealizationReady,
   prepareReviewHandoff,
   REALIZATION_DESCRIPTION_MAX,
+  REALIZATION_MATERIAL_MAX,
   subscribeWorkflow,
   updateWorkflowGroupDetails,
   type WorkflowView,
@@ -357,6 +358,23 @@ function CompleteWorkspace({
                 {t("portfolio.complete.categoriesUnavailable")}
               </p>
             ) : null}
+          </div>
+
+          <div className="mt-4">
+            <label htmlFor="realization-material" className="text-sm font-medium text-foreground">
+              {t("portfolio.complete.material")}
+            </label>
+            <input
+              id="realization-material"
+              data-testid="portfolio-complete-material"
+              type="text"
+              value={current.mainMaterial || ""}
+              maxLength={REALIZATION_MATERIAL_MAX}
+              className={`mt-1 min-h-[44px] w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground ${focusRing}`}
+              onChange={(event) =>
+                updateWorkflowGroupDetails(ownerKey, current.id, { mainMaterial: event.target.value })
+              }
+            />
           </div>
 
           <div className="mt-4">

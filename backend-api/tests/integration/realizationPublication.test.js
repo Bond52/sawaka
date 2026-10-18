@@ -472,6 +472,7 @@ describe("realization publication", () => {
       description: "Table publiée",
       domainId: String(domain._id),
       completedOn: "2024-06-02",
+      mainMaterial: "",
       images: [
         { url: "https://images.example/a.jpg" },
         { url: "https://images.example/b.jpg" },

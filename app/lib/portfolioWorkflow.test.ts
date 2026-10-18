@@ -151,12 +151,15 @@ test("editing one realization keeps the details of the others", () => {
     description: "Chair",
     domainId: "wood",
     completedOn: "2024-05-01",
+    mainMaterial: "Bois massif",
   });
   const second = updateGroupDetails(first, first.groups[1].id, { description: "Gate" });
   assert.equal(second.groups[0].description, "Chair");
   assert.equal(second.groups[0].domainId, "wood");
   assert.equal(second.groups[0].completedOn, "2024-05-01");
+  assert.equal(second.groups[0].mainMaterial, "Bois massif");
   assert.equal(second.groups[1].description, "Gate");
+  assert.equal(second.groups[1].mainMaterial, "");
   assert.deepEqual(second.groups[0].photoIds, ["a"]);
   assert.equal(descriptionIssue("x".repeat(2001)), "DESCRIPTION_TOO_LONG");
   assert.equal(completionDateIssue("2024-02-31"), "DATE_INVALID");

@@ -38,6 +38,7 @@ export async function commitWorkflowRealizations(
         description: group.description,
         domainId: group.domainId,
         completedOn: group.completedOn,
+        mainMaterial: group.mainMaterial || "",
         photoIds: group.photoIds,
       })),
     })

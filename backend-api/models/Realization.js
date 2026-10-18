@@ -30,6 +30,8 @@ const realizationSchema = new mongoose.Schema(
       default: null,
     },
     completedOn: { type: String, default: null },
+    /** Optional free text. Empty when the contributor did not name a material. */
+    mainMaterial: { type: String, default: "" },
     status: {
       type: String,
       enum: Object.values(REALIZATION_STATUS),

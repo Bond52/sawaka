@@ -180,8 +180,12 @@ test.describe("Published realizations catalog", () => {
     await expect(page.getByText("Invented title")).toHaveCount(0);
     await expect(page.getByText("owner@example.com")).toHaveCount(0);
     const card = page.getByTestId("published-realization");
-    await expect(card.locator("a")).toHaveCount(0);
+    await expect(card.locator("a")).toHaveCount(1);
     await expect(card.getByTestId("published-realization-image")).toHaveCount(1);
+    await expect(card.getByTestId("published-realization-link")).toHaveAttribute(
+      "href",
+      "/realisations/real-table"
+    );
     await expect(card.getByTestId("published-realization-image")).toHaveAttribute(
       "alt",
       "Photo of a published realization, 4 photos"
@@ -193,8 +197,8 @@ test.describe("Published realizations catalog", () => {
     );
     await expect(card.getByTestId("published-realization-date")).toContainText("2024");
     await expect(page.getByTestId("published-realizations-list")).toBeVisible();
-    await card.click();
-    await expect(page).toHaveURL(/\/realisations$/);
+    await card.getByTestId("published-realization-link").click();
+    await expect(page).toHaveURL(/\/realisations\/real-table$/);
     expect(calls.every((call) => call.url.includes("/api/realizations"))).toBe(true);
     expect(calls.every((call) => !call.url.includes("/me/realizations"))).toBe(true);
     expect(calls.every((call) => !call.authorization)).toBe(true);

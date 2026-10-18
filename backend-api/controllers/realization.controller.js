@@ -25,4 +25,19 @@ async function listPublishedRealizations(req, res) {
   }
 }
 
-module.exports = { listPublishedRealizations };
+module.exports = { listPublishedRealizations, getPublishedRealization };
+
+/** One published realization. Drafts and unknown ids are not found. */
+async function getPublishedRealization(req, res) {
+  try {
+    const result = await realizationService.getPublishedById(req.params.id);
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof RealizationError) return sendFunctionalError(res, err);
+    console.error("realization.controller.getPublishedRealization:", {
+      name: err && err.name,
+      code: err && err.code,
+    });
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
