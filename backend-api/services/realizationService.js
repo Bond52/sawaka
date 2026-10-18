@@ -12,6 +12,7 @@ const {
 } = require("./ContributorProfileService");
 
 const DESCRIPTION_MAX = 2000;
+const MATERIAL_MAX = 120;
 const CATALOG_LIMIT = 200;
 const SEARCH_MAX = 200;
 const MAX_GROUPS = 40;
@@ -22,6 +23,7 @@ const GROUP_FIELDS = new Set([
   "description",
   "domainId",
   "completedOn",
+  "mainMaterial",
   "photoIds",
   "sequence",
 ]);
@@ -46,6 +48,10 @@ function metadataIssue(group) {
   if (group.description.length > DESCRIPTION_MAX) return "DESCRIPTION_TOO_LONG";
   if (group.completedOn !== null && group.completedOn !== undefined && group.completedOn !== "") {
     if (!validDate(group.completedOn)) return "DATE_INVALID";
+  }
+  if (group.mainMaterial !== undefined && group.mainMaterial !== null && group.mainMaterial !== "") {
+    if (typeof group.mainMaterial !== "string") return "MATERIAL_INVALID";
+    if (group.mainMaterial.trim().length > MATERIAL_MAX) return "MATERIAL_TOO_LONG";
   }
   return null;
 }
@@ -119,6 +125,8 @@ function readGroup(raw) {
   }
   const completedOn =
     raw.completedOn === undefined || raw.completedOn === "" ? null : raw.completedOn;
+  const mainMaterial = raw.mainMaterial === undefined || raw.mainMaterial === null ? "" : raw.mainMaterial;
+  if (typeof mainMaterial !== "string") return { error: "MATERIAL_INVALID" };
   if (!Array.isArray(raw.photoIds) || raw.photoIds.some((id) => typeof id !== "string" || !id)) {
     return { error: "PHOTO_IDS_INVALID" };
   }
@@ -129,6 +137,7 @@ function readGroup(raw) {
       description,
       domainId,
       completedOn,
+      mainMaterial: mainMaterial.trim(),
       photoIds: raw.photoIds,
     },
   };
@@ -155,6 +164,7 @@ function shapeOwned(doc) {
     description: doc.description || "",
     domainId: doc.domainId ? String(doc.domainId) : null,
     completedOn: doc.completedOn || null,
+    mainMaterial: doc.mainMaterial || "",
     status: doc.status,
     images: (doc.images || []).map(publicImage),
   };
@@ -167,6 +177,7 @@ function shapePublic(doc) {
     description: doc.description || "",
     domainId: doc.domainId ? String(doc.domainId) : null,
     completedOn: doc.completedOn || null,
+    mainMaterial: doc.mainMaterial || "",
     images: (doc.images || []).map(publicImage),
   };
 }
@@ -263,6 +274,7 @@ async function commitBatch({ ownerId, manifest: rawManifest, files }) {
       manifest.intent === "publish-ready" && isReadyToPublish(stored.images);
     const status = publish ? REALIZATION_STATUS.PUBLISHED : REALIZATION_STATUS.DRAFT;
     const completedOn = group.completedOn || null;
+    const mainMaterial = group.mainMaterial || "";
 
     try {
       if (existing) {
@@ -271,6 +283,7 @@ async function commitBatch({ ownerId, manifest: rawManifest, files }) {
         existing.description = group.description;
         existing.domainId = group.domainId;
         existing.completedOn = completedOn;
+        existing.mainMaterial = mainMaterial;
         existing.status = status;
         existing.images = stored.images;
         await existing.save();
@@ -284,6 +297,7 @@ async function commitBatch({ ownerId, manifest: rawManifest, files }) {
           description: group.description,
           domainId: group.domainId,
           completedOn,
+          mainMaterial,
           status,
           images: stored.images,
         });
@@ -398,8 +412,61 @@ async function listPublic(profileId) {
   return { realizations: docs.map(shapePublic) };
 }
 
+function publicDomain(domain) {
+  if (!domain) return null;
+  return {
+    id: String(domain._id),
+    nameFR: domain.nameFR,
+    nameEN: domain.nameEN,
+  };
+}
+
+/**
+ * One published realization for the public detail page.
+ * A draft, a hidden profile, and an unknown id share the same not-found result.
+ */
+async function getPublishedById(rawId) {
+  const id = String(rawId || "");
+  if (!OBJECT_ID_PATTERN.test(id) || !mongoose.isValidObjectId(id)) {
+    throw new RealizationError("NOT_FOUND", 404);
+  }
+  const doc = await Realization.findOne({ _id: id, status: REALIZATION_STATUS.PUBLISHED });
+  if (!doc) throw new RealizationError("NOT_FOUND", 404);
+  const profile = await ContributorProfile.findOne({
+    userId: doc.ownerId,
+    status: PROFILE_STATUS.ACTIVE,
+    isVisible: true,
+  });
+  if (!profile) throw new RealizationError("NOT_FOUND", 404);
+  const [realizationDomain, contributorDomain] = await Promise.all([
+    doc.domainId ? Domain.findById(doc.domainId).select("nameFR nameEN") : null,
+    profile.domainId ? Domain.findById(profile.domainId).select("nameFR nameEN") : null,
+  ]);
+  return {
+    realization: {
+      id: String(doc._id),
+      description: doc.description || "",
+      domainId: doc.domainId ? String(doc.domainId) : null,
+      domain: publicDomain(realizationDomain),
+      completedOn: doc.completedOn || null,
+      mainMaterial: doc.mainMaterial || "",
+      images: (doc.images || []).map(publicImage),
+    },
+    contributor: {
+      id: String(profile._id),
+      displayName: profile.displayName,
+      photoUrl: profile.photoUrl || null,
+      city: profile.city || "",
+      region: profile.region || "",
+      country: profile.country || "",
+      domain: publicDomain(contributorDomain),
+    },
+  };
+}
+
 module.exports = {
   DESCRIPTION_MAX,
+  MATERIAL_MAX,
   REALIZATION_STATUS,
   RealizationError,
   isReadyToPublish,
@@ -409,4 +476,5 @@ module.exports = {
   listOwned,
   listPublic,
   listPublished,
+  getPublishedById,
 };

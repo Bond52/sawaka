@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Search } from "lucide-react";
 import {
   listContributorDomains,
@@ -17,8 +18,7 @@ import { useTranslation } from "@/src/i18n/I18nProvider";
 
 /**
  * Public browsing of published realizations.
- * Drafts stay on /vendeur/articles. A detail page is a follow-up:
- * Task — View Realization Details. Cards are not links.
+ * Each card opens the public detail page. Drafts stay on /vendeur/articles.
  */
 type Phase = "loading" | "empty" | "no-results" | "error" | "ready";
 
@@ -50,9 +50,15 @@ function RealizationCard({
 
   return (
     <article
-      className="min-w-0 overflow-hidden rounded-xl border border-border bg-card"
+      className="relative min-w-0 overflow-hidden rounded-xl border border-border bg-card"
       data-testid="published-realization"
     >
+      <Link
+        href={`/realisations/${item.id}`}
+        data-testid="published-realization-link"
+        aria-label={t("realizationDetail.open")}
+        className={`absolute inset-0 z-10 ${focusRing}`}
+      />
       {preview ? (
         <div className="relative aspect-[4/3] overflow-hidden bg-secondary">
           {/* Contributor photo URLs are not covered by a next/image remote pattern. */}

@@ -137,6 +137,7 @@ async function mockRealizations(
 ) {
   const calls: string[] = [];
   let attempts = 0;
+  let holding = Boolean(options?.hold);
   await page.route("**/api/contributors/*/realizations", async (route: Route) => {
     const url = route.request().url();
     calls.push(url);
@@ -149,8 +150,10 @@ async function mockRealizations(
       return;
     }
     attempts += 1;
-    if (options?.hold && attempts === 1) await options.hold;
-    if (options?.failTimes && attempts <= options.failTimes) {
+    const blocked = holding;
+    if (holding && options?.hold) await options.hold;
+    holding = false;
+    if ((blocked && options?.failTimes) || (options?.failTimes && attempts <= options.failTimes && !options.hold)) {
       await route.fulfill({
         status: options.status ?? 500,
         contentType: "application/json",
@@ -219,7 +222,7 @@ test.describe("Public contributor realizations", () => {
     await expect(page.getByText("Brouillon secret")).toHaveCount(0);
     await expect(page.getByText("Invented title")).toHaveCount(0);
     await expect(cards.nth(0).getByRole("heading")).toHaveCount(0);
-    await expect(cards.nth(0).getByRole("link")).toHaveCount(0);
+    await expect(cards.nth(0).getByRole("link")).toHaveAttribute("href", "/realisations/real-table");
     await expect(cards.nth(0).getByTestId("contributor-profile-realization-image")).toHaveCount(1);
     await expect(cards.nth(0).getByTestId("contributor-profile-realization-image")).toHaveAttribute(
       "alt",

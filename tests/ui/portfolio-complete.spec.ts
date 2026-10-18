@@ -82,6 +82,7 @@ test.describe("Complete realization metadata", () => {
     await expect(page.getByLabel("Description")).toBeVisible();
     await expect(page.getByLabel("Métier ou catégorie")).toBeVisible();
     await expect(page.getByLabel("Date d'achèvement")).toBeVisible();
+    await expect(page.getByLabel("Matériau principal")).toBeVisible();
     await expect(page.getByLabel("Titre")).toHaveCount(0);
     await expect(page.getByLabel("Projet")).toHaveCount(0);
     await expect(page.getByText("Sauvegarde automatique")).toHaveCount(0);
@@ -101,15 +102,18 @@ test.describe("Complete realization metadata", () => {
     await description.fill("Chaise sculptée");
     await page.getByTestId("portfolio-complete-category").selectOption("wood");
     await page.getByTestId("portfolio-complete-date").fill("2024-05-01");
+    await page.getByTestId("portfolio-complete-material").fill("Bois massif");
     await expect(page.getByTestId("portfolio-complete-status")).toHaveText("Prête");
 
     await page.getByTestId("portfolio-complete-next").click();
     await expect(page.getByTestId("portfolio-complete-description")).toHaveValue("");
+    await expect(page.getByTestId("portfolio-complete-material")).toHaveValue("");
     await page.getByTestId("portfolio-complete-description").fill("Portail");
     await page.getByTestId("portfolio-complete-previous").click();
     await expect(page.getByTestId("portfolio-complete-description")).toHaveValue("Chaise sculptée");
     await expect(page.getByTestId("portfolio-complete-category")).toHaveValue("wood");
     await expect(page.getByTestId("portfolio-complete-date")).toHaveValue("2024-05-01");
+    await expect(page.getByTestId("portfolio-complete-material")).toHaveValue("Bois massif");
 
     await description.fill("");
     await page.getByTestId("portfolio-complete-category").selectOption("");
@@ -144,6 +148,7 @@ test.describe("Complete realization metadata", () => {
     await expect(page.getByLabel("Description")).toBeVisible();
     await expect(page.getByLabel("Craft or category")).toBeVisible();
     await expect(page.getByLabel("Completion date")).toBeVisible();
+    await expect(page.getByLabel("Main material")).toBeVisible();
     await expect(page.getByTestId("portfolio-complete-status")).toHaveText("Ready");
     await expect(page.getByText("Auto-save")).toHaveCount(0);
     await expect(page.getByTestId("portfolio-complete-description")).toHaveValue("");

@@ -19,6 +19,10 @@ describe("realization readiness", () => {
       "DESCRIPTION_TOO_LONG"
     );
     expect(metadataIssue({ description: "", completedOn: "2024-02-31" })).toBe("DATE_INVALID");
+    expect(metadataIssue({ description: "", completedOn: null, mainMaterial: "x".repeat(121) })).toBe(
+      "MATERIAL_TOO_LONG"
+    );
+    expect(metadataIssue({ description: "", completedOn: null, mainMaterial: "Bois massif" })).toBeNull();
   });
 
   it("does not call a partial batch a full success", () => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { listContributorDomains, taxonomyLabel, type TaxonomyItem } from "@/app/lib/apiContributors";
 import {
   formatCompletedOn,
@@ -39,9 +40,15 @@ function RealizationCard({
 
   return (
     <article
-      className="min-w-0 overflow-hidden rounded-xl border border-border bg-card"
+      className="relative min-w-0 overflow-hidden rounded-xl border border-border bg-card"
       data-testid="contributor-profile-realization"
     >
+      <Link
+        href={`/realisations/${item.id}`}
+        data-testid="contributor-profile-realization-link"
+        aria-label={t("realizationDetail.open")}
+        className={`absolute inset-0 z-10 ${focusRing}`}
+      />
       {preview ? (
         <div className="relative aspect-[4/3] overflow-hidden bg-secondary">
           {/* Contributor photo URLs are not covered by a next/image remote pattern. */}

@@ -11,11 +11,13 @@ export type PhotoRef = { id: string; name: string };
 
 /** Same ceiling as a contributor biography. Empty text is valid. */
 export const REALIZATION_DESCRIPTION_MAX = 2000;
+export const REALIZATION_MATERIAL_MAX = 120;
 
 export type RealizationDetails = {
   description: string;
   domainId: string | null;
   completedOn: string | null;
+  mainMaterial: string;
 };
 
 export type RealizationGroup = RealizationDetails & {
@@ -177,6 +179,7 @@ export function updateGroupDetails(
         description: patch.description !== undefined ? patch.description : group.description,
         domainId: patch.domainId !== undefined ? patch.domainId : group.domainId,
         completedOn: patch.completedOn !== undefined ? patch.completedOn : group.completedOn,
+        mainMaterial: patch.mainMaterial !== undefined ? patch.mainMaterial : group.mainMaterial || "",
       };
     }),
   };
@@ -352,7 +355,7 @@ function nextSequence(groups: RealizationGroup[]): number {
 }
 
 function blankDetails(): RealizationDetails {
-  return { description: "", domainId: null, completedOn: null };
+  return { description: "", domainId: null, completedOn: null, mainMaterial: "" };
 }
 
 function createGroup(groups: RealizationGroup[], photoIds: string[]): RealizationGroup {
