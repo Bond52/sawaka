@@ -15,6 +15,8 @@ import {
   prepareReviewHandoff,
   REALIZATION_DESCRIPTION_MAX,
   REALIZATION_MATERIAL_MAX,
+  REALIZATION_TITLE_MAX,
+  titleIssue,
   subscribeWorkflow,
   updateWorkflowGroupDetails,
   type WorkflowView,
@@ -222,6 +224,7 @@ function CompleteWorkspace({
     const photo = workflow.photos.find((item) => item.id === id);
     return photo ? [photo] : [];
   });
+  const titleError = titleIssue(current.title || "");
   const descriptionError = descriptionIssue(current.description);
   const dateError = completionDateIssue(current.completedOn);
   const ready = isRealizationReady(current);
@@ -306,6 +309,30 @@ function CompleteWorkspace({
           </ul>
 
           <div className="mt-5">
+            <label htmlFor="realization-title" className="text-sm font-medium text-foreground">
+              {t("portfolio.complete.titleLabel")}
+            </label>
+            <input
+              id="realization-title"
+              data-testid="portfolio-complete-title"
+              type="text"
+              value={current.title || ""}
+              maxLength={REALIZATION_TITLE_MAX}
+              aria-invalid={titleError ? "true" : "false"}
+              aria-describedby={titleError ? "realization-title-error" : undefined}
+              className={`mt-1 min-h-[44px] w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground ${focusRing}`}
+              onChange={(event) =>
+                updateWorkflowGroupDetails(ownerKey, current.id, { title: event.target.value })
+              }
+            />
+            {titleError ? (
+              <p id="realization-title-error" className="mt-1 text-sm text-destructive" role="alert">
+                {t("portfolio.complete.titleTooLong", { max: REALIZATION_TITLE_MAX })}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="mt-4">
             <label htmlFor="realization-description" className="text-sm font-medium text-foreground">
               {t("portfolio.complete.description")}
             </label>

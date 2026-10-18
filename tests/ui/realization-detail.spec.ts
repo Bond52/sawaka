@@ -210,6 +210,19 @@ test("uses the same not-found state for a draft and an unknown id", async ({ pag
   await expect(page.getByRole("heading", { name: "Détail de la réalisation" })).toHaveCount(0);
 });
 
+test("uses a stored title as the page heading and keeps the material", async ({ page }) => {
+  await setLocale(page, "en");
+  const body = detailBody({ images: [{ url: "https://cdn.example/photo-1.jpg" }] });
+  body.realization.title = "Low table";
+  await mockDetail(page, body);
+  await page.goto(`/realisations/${REALIZATION_ID}`);
+  await expect(page.getByTestId("realization-detail-heading")).toHaveText("Low table");
+  await expect(page.getByTestId("realization-detail-fact-material")).toHaveText("Chêne blanc");
+  await expect(page.getByTestId("realization-detail-hero")).toBeVisible();
+  await expect(page.getByTestId("realization-detail-contributor")).toBeVisible();
+  await expect(page.getByText("amina@example.com")).toHaveCount(0);
+});
+
 test("keeps a failed request distinct from an empty review state", async ({ page }) => {
   await setLocale(page, "en");
   let release = () => {};

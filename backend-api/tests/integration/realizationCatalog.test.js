@@ -9,7 +9,7 @@ const Realization = require("../../models/Realization");
 const { PROFILE_STATUS } = require("../../models/ContributorProfile");
 const { REALIZATION_STATUS } = require("../../models/Realization");
 
-const PUBLIC_FIELDS = ["completedOn", "description", "domainId", "id", "images", "mainMaterial", "sequence"];
+const PUBLIC_FIELDS = ["completedOn", "description", "domainId", "id", "images", "mainMaterial", "sequence", "title"];
 
 async function account(username) {
   const hash = await bcrypt.hash("Secret123!", 10);

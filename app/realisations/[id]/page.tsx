@@ -221,6 +221,7 @@ function Gallery({ urls }: { urls: string[] }) {
 function DetailView({ detail }: { detail: RealizationDetail }) {
   const { t, locale } = useTranslation();
   const unavailable = t("dashboard.actionUnavailable");
+  const title = detail.title.trim();
   const description = detail.description.trim();
   const material = detail.mainMaterial.trim();
   const domain = labelOf(detail.domain, locale);
@@ -256,7 +257,9 @@ function DetailView({ detail }: { detail: RealizationDetail }) {
       </div>
       <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0">
-          <h1 className="font-display text-4xl text-foreground">{t("realizationDetail.title")}</h1>
+          <h1 className="break-words font-display text-4xl text-foreground" data-testid="realization-detail-heading">
+            {title || t("realizationDetail.title")}
+          </h1>
           {completed ? (
             <p className="mt-3 text-sm text-muted-foreground" data-testid="realization-detail-date">
               {t("realizationDetail.completedIn", { date: completed })}
@@ -412,8 +415,8 @@ export default function RealizationDetailPage() {
         <span className="mx-2 text-muted-foreground" aria-hidden>
           /
         </span>
-        <span aria-current="page" className="text-muted-foreground">
-          {t("realizationDetail.title")}
+        <span aria-current="page" className="break-words text-muted-foreground">
+          {phase === "ready" && detail?.title.trim() ? detail.title.trim() : t("realizationDetail.title")}
         </span>
       </nav>
       {phase === "loading" ? (

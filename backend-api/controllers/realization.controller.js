@@ -25,7 +25,47 @@ async function listPublishedRealizations(req, res) {
   }
 }
 
-module.exports = { listPublishedRealizations, getPublishedRealization };
+async function publishOwnRealization(req, res) {
+  try {
+    const result = await realizationService.publishOwned(req.user.id, req.params.id);
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof RealizationError) return sendFunctionalError(res, err);
+    console.error("realization.controller.publishOwnRealization:", {
+      name: err && err.name,
+      code: err && err.code,
+    });
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function moveOwnRealizationToDraft(req, res) {
+  try {
+    const result = await realizationService.moveOwnedToDraft(req.user.id, req.params.id);
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof RealizationError) return sendFunctionalError(res, err);
+    console.error("realization.controller.moveOwnRealizationToDraft:", {
+      name: err && err.name,
+      code: err && err.code,
+    });
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function deleteOwnRealization(req, res) {
+  try {
+    const result = await realizationService.deleteOwned(req.user.id, req.params.id);
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof RealizationError) return sendFunctionalError(res, err);
+    console.error("realization.controller.deleteOwnRealization:", {
+      name: err && err.name,
+      code: err && err.code,
+    });
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
 
 /** One published realization. Drafts and unknown ids are not found. */
 async function getPublishedRealization(req, res) {
@@ -41,3 +81,11 @@ async function getPublishedRealization(req, res) {
     return res.status(500).json({ error: { code: "SERVER_ERROR" } });
   }
 }
+
+module.exports = {
+  listPublishedRealizations,
+  getPublishedRealization,
+  publishOwnRealization,
+  moveOwnRealizationToDraft,
+  deleteOwnRealization,
+};

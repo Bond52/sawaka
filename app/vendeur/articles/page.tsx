@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { LayoutGrid, List, Plus, Search, Upload } from "lucide-react";
 import { useTranslation } from "@/src/i18n/I18nProvider";
 import { listContributorDomains, taxonomyLabel, type TaxonomyItem } from "../../lib/apiContributors";
 import { readStoredUser } from "../../lib/authUser";
 import {
+  deleteOwnedRealization,
   filterPortfolioRealizations,
   loadOwnerPortfolio,
+  moveOwnedRealizationToDraft,
+  publishOwnedRealization,
   type PortfolioRealization,
   type RealizationStatus,
 } from "../../lib/portfolioRealizations";
@@ -87,19 +90,28 @@ function RealizationCard({
   item,
   category,
   selected,
+  busy,
   onToggle,
+  onPublish,
+  onMoveToDraft,
+  onDelete,
   layout,
 }: {
   item: PortfolioRealization;
   category: string;
   selected: boolean;
+  busy: boolean;
   onToggle: (id: string) => void;
+  onPublish: (id: string) => void;
+  onMoveToDraft: (id: string) => void;
+  onDelete: (id: string, trigger: HTMLButtonElement) => void;
   layout: "grid" | "list";
 }) {
   const { t, locale } = useTranslation();
   const unavailable = t("dashboard.actionUnavailable");
+  const title = item.title.trim();
   const description = item.description.trim();
-  const label = category || description || t("portfolio.itemLabel", { number: item.sequence });
+  const label = title || category || description || t("portfolio.itemLabel", { number: item.sequence });
   const completed = item.completedOn ? formatCompletedOn(item.completedOn, locale) : "";
   const showDescription = Boolean(category && description);
 
@@ -147,19 +159,60 @@ function RealizationCard({
             : t("portfolio.statusDraft")}
         </p>
         <h2 className="break-words text-lg font-semibold text-foreground">
-          {category || (description ? <span className="line-clamp-3">{description}</span> : label)}
+          {title
+            ? title
+            : category || (description ? <span className="line-clamp-3">{description}</span> : label)}
         </h2>
-        {showDescription || completed ? (
+        {title && (category || description || completed) ? (
+          <p className="break-words text-sm text-muted-foreground">
+            {category || null}
+            {category && (description || completed) ? " · " : null}
+            {description ? <span className="line-clamp-3">{description}</span> : null}
+            {description && completed ? " · " : null}
+            {completed}
+          </p>
+        ) : null}
+        {!title && (showDescription || completed) ? (
           <p className="break-words text-sm text-muted-foreground">
             {showDescription ? <span className="line-clamp-3">{description}</span> : null}
             {showDescription && completed ? " · " : null}
             {completed}
           </p>
         ) : null}
-        <div className="mt-auto flex gap-2">
+        <div className="mt-auto flex flex-wrap gap-2">
+          {item.status === "draft" ? (
+            <button
+              type="button"
+              data-testid="portfolio-publish"
+              disabled={busy}
+              className={`min-h-[44px] rounded-md px-2 py-1 text-sm font-medium text-foreground ${focusRing} disabled:cursor-not-allowed disabled:opacity-60`}
+              onClick={() => onPublish(item.id)}
+            >
+              {t("portfolio.publish")}
+            </button>
+          ) : (
+            <button
+              type="button"
+              data-testid="portfolio-move-draft"
+              disabled={busy}
+              className={`min-h-[44px] rounded-md px-2 py-1 text-sm font-medium text-foreground ${focusRing} disabled:cursor-not-allowed disabled:opacity-60`}
+              onClick={() => onMoveToDraft(item.id)}
+            >
+              {t("portfolio.moveToDraft")}
+            </button>
+          )}
           <button
             type="button"
-            className={`rounded-md px-2 py-1 text-sm text-foreground ${focusRing}`}
+            data-testid="portfolio-delete"
+            disabled={busy}
+            className={`min-h-[44px] rounded-md px-2 py-1 text-sm font-medium text-destructive ${focusRing} disabled:cursor-not-allowed disabled:opacity-60`}
+            onClick={(event) => onDelete(item.id, event.currentTarget)}
+          >
+            {t("portfolio.delete")}
+          </button>
+          <button
+            type="button"
+            className={`min-h-[44px] rounded-md px-2 py-1 text-sm text-foreground ${focusRing}`}
             aria-disabled="true"
             title={unavailable}
             onClick={(event) => event.preventDefault()}
@@ -168,7 +221,7 @@ function RealizationCard({
           </button>
           <button
             type="button"
-            className={`rounded-md px-2 py-1 text-sm text-foreground ${focusRing}`}
+            className={`min-h-[44px] rounded-md px-2 py-1 text-sm text-foreground ${focusRing}`}
             aria-disabled="true"
             title={unavailable}
             onClick={(event) => event.preventDefault()}
@@ -193,6 +246,15 @@ export default function VendorArticlesPage() {
   const [domainId, setDomainId] = useState("");
   const [layout, setLayout] = useState<"grid" | "list">("grid");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [dialogError, setDialogError] = useState("");
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const cancelRef = useRef<HTMLButtonElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const lockRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -235,6 +297,133 @@ export default function VendorArticlesPage() {
     [items, query, status, domainId, labelFor]
   );
   const selectedCount = selectedIds.length;
+  const selectedItems = items.filter((item) => selectedIds.includes(item.id));
+  const selectedDraftCount = selectedItems.filter((item) => item.status === "draft").length;
+  const selectedPublishedCount = selectedItems.filter((item) => item.status === "published").length;
+
+  function countText(count: number, oneKey: string, manyKey: string): string {
+    if (count <= 0) return "";
+    return t(count === 1 ? oneKey : manyKey, { count });
+  }
+
+  function transitionError(code: string): string {
+    if (code === "NOT_READY") return t("portfolio.notReady");
+    if (code === "ALREADY_PUBLISHED") return t("portfolio.alreadyPublished");
+    if (code === "ALREADY_DRAFT") return t("portfolio.alreadyDraft");
+    if (code === "NOT_FOUND") return t("portfolio.notFound");
+    return t("portfolio.transitionFailed");
+  }
+
+  function closeDeleteDialog() {
+    if (lockRef.current) return;
+    setPendingDeleteId(null);
+    setDialogError("");
+    triggerRef.current?.focus();
+  }
+
+  useEffect(() => {
+    if (!pendingDeleteId) return;
+    cancelRef.current?.focus();
+  }, [pendingDeleteId]);
+
+  useEffect(() => {
+    if (!pendingDeleteId) return;
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        if (lockRef.current) return;
+        event.preventDefault();
+        setPendingDeleteId(null);
+        setDialogError("");
+        triggerRef.current?.focus();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusables = dialogRef.current?.querySelectorAll<HTMLElement>("button:not([disabled])");
+      if (!focusables || focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+      if (event.shiftKey && (active === first || !dialogRef.current?.contains(active))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [pendingDeleteId]);
+
+  async function applyTransition(kind: "publish" | "draft", ids: string[]) {
+    if (busy || ids.length === 0) return;
+    setBusy(true);
+    setNotice("");
+    setActionError("");
+    const chosen = items.filter((item) => ids.includes(item.id));
+    const applicable = chosen.filter((item) =>
+      kind === "publish" ? item.status === "draft" : item.status === "published"
+    );
+    const skipped = chosen.length - applicable.length;
+    let changed = 0;
+    let failure = "";
+    for (const item of applicable) {
+      const result =
+        kind === "publish"
+          ? await publishOwnedRealization(item.id)
+          : await moveOwnedRealizationToDraft(item.id);
+      if ("code" in result) {
+        failure = transitionError(result.code);
+        if (result.code === "ALREADY_PUBLISHED" || result.code === "ALREADY_DRAFT" || result.code === "NOT_FOUND") {
+          setReloadToken((current) => current + 1);
+        }
+        break;
+      }
+      if ("item" in result) {
+        setItems((current) => current.map((row) => (row.id === result.item.id ? result.item : row)));
+        changed += 1;
+      }
+    }
+    const changedText = countText(
+      changed,
+      kind === "publish" ? "portfolio.publishedOne" : "portfolio.draftedOne",
+      kind === "publish" ? "portfolio.publishedMany" : "portfolio.draftedMany"
+    );
+    const skippedText = countText(skipped, "portfolio.skippedOne", "portfolio.skippedMany");
+    setNotice([changedText, skippedText].filter(Boolean).join(" "));
+    setActionError(failure);
+    setBusy(false);
+  }
+
+  async function confirmDelete() {
+    if (!pendingDeleteId || lockRef.current) return;
+    lockRef.current = true;
+    setBusy(true);
+    setDialogError("");
+    const id = pendingDeleteId;
+    const result = await deleteOwnedRealization(id);
+    lockRef.current = false;
+    setBusy(false);
+    if ("code" in result) {
+      if (result.code === "NOT_FOUND") {
+        setPendingDeleteId(null);
+        setReloadToken((current) => current + 1);
+        setActionError(t("portfolio.notFound"));
+        triggerRef.current?.focus();
+        return;
+      }
+      setDialogError(result.code === "IMAGE_CLEANUP_FAILED" ? t("portfolio.cleanupFailed") : t("portfolio.deleteFailed"));
+      return;
+    }
+    setItems((current) => current.filter((item) => item.id !== id));
+    setSelectedIds((current) => current.filter((value) => value !== id));
+    setPendingDeleteId(null);
+    setNotice(t("portfolio.deleted"));
+    setActionError("");
+    triggerRef.current?.focus();
+  }
 
   function toggleSelected(id: string) {
     setSelectedIds((current) =>
@@ -348,11 +537,29 @@ export default function VendorArticlesPage() {
               count: selectedCount,
             })}
           </span>
-          {(["publish", "archive", "changeCategory", "associateProject"] as const).map((action) => (
+          <button
+            type="button"
+            data-testid="portfolio-bulk-publish"
+            disabled={busy || selectedDraftCount === 0}
+            className={`min-h-[44px] rounded-md px-2 py-1 text-card ${focusRing} disabled:cursor-not-allowed disabled:opacity-50`}
+            onClick={() => applyTransition("publish", selectedIds)}
+          >
+            {t("portfolio.publish")}
+          </button>
+          <button
+            type="button"
+            data-testid="portfolio-bulk-draft"
+            disabled={busy || selectedPublishedCount === 0}
+            className={`min-h-[44px] rounded-md px-2 py-1 text-card ${focusRing} disabled:cursor-not-allowed disabled:opacity-50`}
+            onClick={() => applyTransition("draft", selectedIds)}
+          >
+            {t("portfolio.moveToDraft")}
+          </button>
+          {(["changeCategory", "associateProject"] as const).map((action) => (
             <button
               key={action}
               type="button"
-              className={`rounded-md px-2 py-1 text-card/80 ${focusRing}`}
+              className={`min-h-[44px] rounded-md px-2 py-1 text-card/80 ${focusRing}`}
               aria-disabled="true"
               title={unavailable}
               onClick={(event) => event.preventDefault()}
@@ -369,6 +576,17 @@ export default function VendorArticlesPage() {
             {t("portfolio.clearSelection")}
           </button>
         </div>
+      ) : null}
+
+      {notice ? (
+        <p role="status" data-testid="portfolio-lifecycle-status" className="mt-4 text-sm text-foreground">
+          {notice}
+        </p>
+      ) : null}
+      {actionError ? (
+        <p role="alert" data-testid="portfolio-lifecycle-error" className="mt-4 text-sm text-destructive">
+          {actionError}
+        </p>
       ) : null}
 
       {phase === "loading" ? (
@@ -458,10 +676,71 @@ export default function VendorArticlesPage() {
               item={item}
               category={labelFor(item)}
               layout={layout}
+              busy={busy}
               selected={selectedIds.includes(item.id)}
               onToggle={toggleSelected}
+              onPublish={(id) => applyTransition("publish", [id])}
+              onMoveToDraft={(id) => applyTransition("draft", [id])}
+              onDelete={(id, trigger) => {
+                triggerRef.current = trigger;
+                setDialogError("");
+                setPendingDeleteId(id);
+              }}
             />
           ))}
+        </div>
+      ) : null}
+
+      {pendingDeleteId ? (
+        <div
+          className="dialog-overlay"
+          role="presentation"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) closeDeleteDialog();
+          }}
+        >
+          <div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="portfolio-delete-title"
+            aria-describedby="portfolio-delete-warning"
+            data-testid="portfolio-delete-dialog"
+            className="dialog-panel max-h-[85vh] overflow-y-auto"
+          >
+            <h2 id="portfolio-delete-title" className="dialog-title">
+              {t("portfolio.deleteTitle")}
+            </h2>
+            <p id="portfolio-delete-warning" className="dialog-description">
+              {t("portfolio.deleteWarning")}
+            </p>
+            {dialogError ? (
+              <p role="alert" className="field-error mt-3" data-testid="portfolio-delete-error">
+                {dialogError}
+              </p>
+            ) : null}
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                ref={cancelRef}
+                type="button"
+                data-testid="portfolio-delete-cancel"
+                disabled={busy}
+                onClick={closeDeleteDialog}
+                className="btn btn-outline"
+              >
+                {t("portfolio.cancel")}
+              </button>
+              <button
+                type="button"
+                data-testid="portfolio-delete-confirm"
+                disabled={busy}
+                onClick={confirmDelete}
+                className="btn btn-destructive"
+              >
+                {busy ? t("portfolio.deleting") : t("portfolio.confirmDelete")}
+              </button>
+            </div>
+          </div>
         </div>
       ) : null}
     </div>

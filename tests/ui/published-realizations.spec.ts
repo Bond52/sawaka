@@ -177,7 +177,7 @@ test.describe("Published realizations catalog", () => {
 
     await expect(page.getByTestId("published-realization")).toHaveCount(1);
     await expect(page.getByText("Brouillon secret")).toHaveCount(0);
-    await expect(page.getByText("Invented title")).toHaveCount(0);
+    await expect(page.getByTestId("published-realization-title")).toHaveText("Invented title");
     await expect(page.getByText("owner@example.com")).toHaveCount(0);
     const card = page.getByTestId("published-realization");
     await expect(card.locator("a")).toHaveCount(1);

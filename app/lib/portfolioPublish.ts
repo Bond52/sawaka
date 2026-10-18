@@ -35,6 +35,7 @@ export async function commitWorkflowRealizations(
       groups: snapshot.groups.map((group) => ({
         clientId: group.id,
         sequence: group.sequence,
+        title: group.title || "",
         description: group.description,
         domainId: group.domainId,
         completedOn: group.completedOn,

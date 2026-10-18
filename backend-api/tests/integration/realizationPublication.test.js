@@ -387,7 +387,7 @@ describe("realization publication", () => {
     expect(pub.status).toBe(200);
     expect(pub.body.realizations).toHaveLength(1);
     expect(pub.body.realizations[0].description).toBe("Chaise publique");
-    expect(pub.body.realizations[0].title).toBeUndefined();
+    expect(pub.body.realizations[0].title).toBe("");
     expect(pub.body.realizations[0].status).toBeUndefined();
     expect(JSON.stringify(pub.body)).not.toContain("Brouillon privé");
   });
@@ -473,6 +473,7 @@ describe("realization publication", () => {
       domainId: String(domain._id),
       completedOn: "2024-06-02",
       mainMaterial: "",
+      title: "",
       images: [
         { url: "https://images.example/a.jpg" },
         { url: "https://images.example/b.jpg" },
@@ -480,7 +481,6 @@ describe("realization publication", () => {
         { url: "https://images.example/d.jpg" },
       ],
     });
-    expect(pub.body.realizations[0].title).toBeUndefined();
     expect(pub.body.realizations[0].status).toBeUndefined();
     expect(JSON.stringify(pub.body)).not.toMatch(/Brouillon voisin|publicId|@example\.com/);
   });

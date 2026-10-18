@@ -6,6 +6,7 @@
 export type PublicRealization = {
   id: string;
   sequence: number;
+  title: string;
   description: string;
   domainId: string | null;
   completedOn: string | null;
@@ -62,6 +63,10 @@ export function parsePublicRealizations(data: unknown): PublicRealization[] | nu
     if (typeof row.id !== "string" || row.id.trim() === "") return null;
     if (typeof row.sequence !== "number" || !Number.isFinite(row.sequence)) return null;
     if (typeof row.description !== "string") return null;
+    let title = "";
+    if (row.title === undefined || row.title === null) title = "";
+    else if (typeof row.title === "string") title = row.title;
+    else return null;
     let domainId: string | null;
     if (typeof row.domainId === "string" && row.domainId.trim() !== "") domainId = row.domainId;
     else if (row.domainId === null || row.domainId === undefined) domainId = null;
@@ -79,6 +84,7 @@ export function parsePublicRealizations(data: unknown): PublicRealization[] | nu
     items.push({
       id: row.id,
       sequence: row.sequence,
+      title,
       description: row.description,
       domainId,
       completedOn,
