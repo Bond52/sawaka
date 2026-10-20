@@ -25,6 +25,34 @@ async function listPublishedRealizations(req, res) {
   }
 }
 
+async function getOwnRealization(req, res) {
+  try {
+    const result = await realizationService.getOwned(req.user.id, req.params.id);
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof RealizationError) return sendFunctionalError(res, err);
+    console.error("realization.controller.getOwnRealization:", {
+      name: err && err.name,
+      code: err && err.code,
+    });
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function updateOwnRealization(req, res) {
+  try {
+    const result = await realizationService.updateOwned(req.user.id, req.params.id, req.body);
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof RealizationError) return sendFunctionalError(res, err);
+    console.error("realization.controller.updateOwnRealization:", {
+      name: err && err.name,
+      code: err && err.code,
+    });
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
 async function publishOwnRealization(req, res) {
   try {
     const result = await realizationService.publishOwned(req.user.id, req.params.id);
@@ -85,6 +113,8 @@ async function getPublishedRealization(req, res) {
 module.exports = {
   listPublishedRealizations,
   getPublishedRealization,
+  getOwnRealization,
+  updateOwnRealization,
   publishOwnRealization,
   moveOwnRealizationToDraft,
   deleteOwnRealization,

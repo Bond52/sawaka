@@ -11,7 +11,26 @@ export type PortfolioRealization = {
   mainMaterial: string;
   imageCount: number;
   imageUrl: string | null;
+  imageUrls: string[];
 };
+
+export type RealizationMetadata = {
+  title: string;
+  description: string;
+  domainId: string | null;
+  completedOn: string | null;
+  mainMaterial: string;
+};
+
+export type OwnerEditResult =
+  | { ok: true; item: PortfolioRealization }
+  | { ok: false; status: number; code: string; field?: string; fieldCode?: string };
+
+export function isOwnerEditFailure(
+  result: OwnerEditResult
+): result is Extract<OwnerEditResult, { ok: false }> {
+  return result.ok === false;
+}
 
 export type OwnerMutationResult =
   | { ok: true; item: PortfolioRealization }
@@ -87,6 +106,7 @@ export function parseOwnedRealizations(data: unknown): PortfolioRealization[] | 
       completedOn,
       imageCount: urls.length,
       imageUrl: urls[0] ?? null,
+      imageUrls: urls,
     });
   }
   return items;
@@ -143,10 +163,84 @@ export function filterPortfolioRealizations(
 }
 
 function readErrorCode(data: unknown): string {
+  return readApiError(data).code;
+}
+
+function readApiError(data: unknown): { code: string; field?: string; fieldCode?: string } {
   if (!isRecord(data) || !isRecord(data.error) || typeof data.error.code !== "string") {
-    return "SERVER_ERROR";
+    return { code: "SERVER_ERROR" };
   }
-  return data.error.code;
+  const fields = data.error.fields;
+  if (!isRecord(fields)) return { code: data.error.code };
+  const field = Object.keys(fields)[0];
+  const fieldCode = field ? fields[field] : undefined;
+  if (field && typeof fieldCode === "string") {
+    return { code: data.error.code, field, fieldCode };
+  }
+  return { code: data.error.code };
+}
+
+function readOwnedItem(data: unknown): PortfolioRealization | null {
+  const items = parseOwnedRealizations(isRecord(data) ? { realizations: [data.realization] } : null);
+  return items && items.length === 1 ? items[0] : null;
+}
+
+async function requestOwnedRealization(
+  id: string,
+  method: "GET" | "PATCH",
+  body?: RealizationMetadata
+): Promise<OwnerEditResult> {
+  const { readStoredUser } = await import("./authUser");
+  const { resolveApiBaseUrl } = await import("./apiBase");
+  const user = readStoredUser();
+  if (!user) return { ok: false, status: 401, code: "UNAUTHORIZED" };
+  try {
+    const res = await fetch(
+      `${resolveApiBaseUrl()}/api/contributors/me/realizations/${encodeURIComponent(id)}`,
+      {
+        method,
+        credentials: "include",
+        headers: {
+          Authorization: `Bearer ${user.token}`,
+          ...(method === "PATCH" ? { "Content-Type": "application/json" } : {}),
+        },
+        body:
+          method === "PATCH"
+            ? JSON.stringify({
+                title: body?.title ?? "",
+                description: body?.description ?? "",
+                domainId: body?.domainId ?? null,
+                completedOn: body?.completedOn ?? null,
+                mainMaterial: body?.mainMaterial ?? "",
+              })
+            : undefined,
+      }
+    );
+    const data = await res.json().catch(() => null);
+    if (!res.ok) return { ok: false, status: res.status, ...readApiError(data) };
+    const item = readOwnedItem(data);
+    if (!item) return { ok: false, status: 500, code: "INVALID_RESPONSE" };
+    return { ok: true, item };
+  } catch (err) {
+    console.error("[portfolioRealizations] requestOwnedRealization: network error", { err });
+    return { ok: false, status: 0, code: "NETWORK" };
+  }
+}
+
+/** Loads one realization owned by the signed-in contributor. */
+export function loadOwnedRealization(id: string): Promise<OwnerEditResult> {
+  return requestOwnedRealization(id, "GET");
+}
+
+/**
+ * Saves realization metadata for the signed-in owner.
+ * Status and images are not sent. The server keeps the current lifecycle.
+ */
+export function updateOwnedRealization(
+  id: string,
+  metadata: RealizationMetadata
+): Promise<OwnerEditResult> {
+  return requestOwnedRealization(id, "PATCH", metadata);
 }
 
 async function mutateOwnedRealization(
