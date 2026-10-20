@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { createPortal } from "react-dom";
 import { Camera, ChevronLeft, ChevronRight, MapPin, MessageCircle, UserRound, X } from "lucide-react";
 import { taxonomyLabel } from "@/app/lib/apiContributors";
 import {
@@ -39,6 +40,7 @@ function Gallery({ urls }: { urls: string[] }) {
   const [open, setOpen] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
   const openerRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const touchStart = useRef<number | null>(null);
   const count = urls.length;
   const safeIndex = Math.min(index, Math.max(count - 1, 0));
@@ -47,18 +49,63 @@ function Gallery({ urls }: { urls: string[] }) {
   useEffect(() => {
     if (!open) return;
     const opener = openerRef.current;
+    const dialog = dialogRef.current;
+    const inerted: HTMLElement[] = [];
+    for (const node of Array.from(document.body.children)) {
+      if (!(node instanceof HTMLElement)) continue;
+      if (dialog && (node === dialog || node.contains(dialog))) continue;
+      if (node.hasAttribute("inert")) continue;
+      node.setAttribute("inert", "");
+      inerted.push(node);
+    }
+    const body = document.body;
+    const previousOverflow = body.style.overflow;
+    const previousPadding = body.style.paddingRight;
+    const scrollbar = window.innerWidth - document.documentElement.clientWidth;
+    body.style.overflow = "hidden";
+    if (scrollbar > 0) body.style.paddingRight = `${scrollbar}px`;
     closeRef.current?.focus();
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    function focusableControls(): HTMLElement[] {
+      const root = dialogRef.current;
+      if (!root) return [];
+      return Array.from(root.querySelectorAll<HTMLElement>("button:not([disabled])"));
+    }
     function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
-      if (event.key === "ArrowRight") setIndex((value) => (value + 1) % count);
-      if (event.key === "ArrowLeft") setIndex((value) => (value - 1 + count) % count);
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setOpen(false);
+        return;
+      }
+      if (count > 1 && event.key === "ArrowRight") {
+        event.preventDefault();
+        setIndex((value) => (value + 1) % count);
+      }
+      if (count > 1 && event.key === "ArrowLeft") {
+        event.preventDefault();
+        setIndex((value) => (value - 1 + count) % count);
+      }
+      if (event.key !== "Tab") return;
+      const controls = focusableControls();
+      if (controls.length === 0) return;
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      const active = document.activeElement;
+      if (controls.length === 1 || event.shiftKey && (active === first || !dialogRef.current?.contains(active))) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+        return;
+      }
+      if (!event.shiftKey && (active === last || !dialogRef.current?.contains(active))) {
+        event.preventDefault();
+        first.focus();
+      }
     }
     window.addEventListener("keydown", onKey);
     return () => {
-      document.body.style.overflow = previous;
       window.removeEventListener("keydown", onKey);
+      body.style.overflow = previousOverflow;
+      body.style.paddingRight = previousPadding;
+      inerted.forEach((node) => node.removeAttribute("inert"));
       opener?.focus();
     };
   }, [open, count]);
@@ -88,34 +135,24 @@ function Gallery({ urls }: { urls: string[] }) {
     <div data-testid="realization-detail-gallery">
       <div className={`grid grid-cols-1 gap-3 ${count > 1 ? "md:grid-cols-[minmax(0,1.7fr)_minmax(220px,1fr)]" : ""}`}>
         <div className="relative min-h-[240px] overflow-hidden rounded-2xl bg-secondary md:min-h-[460px]">
-          {count > 1 ? (
-            <button
-              type="button"
-              ref={openerRef}
-              data-testid="realization-detail-open"
-              className={`absolute inset-0 ${focusRing}`}
-              onClick={() => setOpen(true)}
-              onTouchStart={onTouchStart}
-              onTouchEnd={onTouchEnd}
-            >
-              {/* Remote realization photos are not covered by a next/image pattern. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={current}
-                alt={t("realizationDetail.photoAlt", { index: safeIndex + 1, total: count })}
-                className="h-full w-full object-cover"
-                data-testid="realization-detail-hero"
-              />
-            </button>
-          ) : (
-            // eslint-disable-next-line @next/next/no-img-element
+          <button
+            type="button"
+            ref={openerRef}
+            data-testid="realization-detail-open"
+            className={`absolute inset-0 ${focusRing}`}
+            onClick={() => setOpen(true)}
+            onTouchStart={count > 1 ? onTouchStart : undefined}
+            onTouchEnd={count > 1 ? onTouchEnd : undefined}
+          >
+            {/* Remote realization photos are not covered by a next/image pattern. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={current}
-              alt={t("realizationDetail.photoAlt", { index: 1, total: 1 })}
-              className="absolute inset-0 h-full w-full object-cover"
+              alt={t("realizationDetail.photoAlt", { index: safeIndex + 1, total: count })}
+              className="h-full w-full object-cover"
               data-testid="realization-detail-hero"
             />
-          )}
+          </button>
         </div>
         {count > 1 ? (
           <div className="grid grid-cols-3 gap-3 md:grid-cols-2">
@@ -168,52 +205,68 @@ function Gallery({ urls }: { urls: string[] }) {
           </div>
         ) : null}
       </div>
-      {open ? (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={t("realizationDetail.gallery")}
-          data-testid="realization-detail-lightbox"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/80 p-4"
-          onTouchStart={onTouchStart}
-          onTouchEnd={onTouchEnd}
-        >
-          <button
-            type="button"
-            ref={closeRef}
-            data-testid="realization-detail-close"
-            className={`absolute right-4 top-4 inline-flex h-11 w-11 items-center justify-center rounded-full bg-card text-foreground ${focusRing}`}
-            onClick={() => setOpen(false)}
-          >
-            <X className="h-5 w-5" aria-hidden />
-            <span className="sr-only">{t("realizationDetail.close")}</span>
-          </button>
-          <button
-            type="button"
-            data-testid="realization-detail-previous"
-            className={`absolute bottom-4 left-3 inline-flex h-11 w-11 items-center justify-center rounded-full bg-card text-foreground ${focusRing}`}
-            onClick={() => move(-1)}
-          >
-            <ChevronLeft className="h-5 w-5" aria-hidden />
-            <span className="sr-only">{t("realizationDetail.previous")}</span>
-          </button>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={current}
-            alt={t("realizationDetail.photoAlt", { index: safeIndex + 1, total: count })}
-            className="max-h-[80vh] max-w-[90vw] rounded-xl object-contain"
-          />
-          <button
-            type="button"
-            data-testid="realization-detail-next"
-            className={`absolute bottom-4 right-3 inline-flex h-11 w-11 items-center justify-center rounded-full bg-card text-foreground ${focusRing}`}
-            onClick={() => move(1)}
-          >
-            <ChevronRight className="h-5 w-5" aria-hidden />
-            <span className="sr-only">{t("realizationDetail.next")}</span>
-          </button>
-        </div>
-      ) : null}
+      {open && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              ref={dialogRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label={t("realizationDetail.gallery")}
+              data-testid="realization-detail-lightbox"
+              className="fixed inset-0 z-[80] flex items-center justify-center bg-black/90 px-3 text-white sm:px-6"
+              onTouchStart={onTouchStart}
+              onTouchEnd={onTouchEnd}
+            >
+              <button
+                type="button"
+                ref={closeRef}
+                data-testid="realization-detail-close"
+                className="absolute right-4 top-4 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                onClick={() => setOpen(false)}
+              >
+                <X className="h-5 w-5" aria-hidden />
+                <span className="sr-only">{t("realizationDetail.close")}</span>
+              </button>
+              <div className="flex w-full max-w-6xl items-center justify-center gap-3 sm:gap-6">
+                {count > 1 ? (
+                  <button
+                    type="button"
+                    data-testid="realization-detail-previous"
+                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                    onClick={() => move(-1)}
+                  >
+                    <ChevronLeft className="h-5 w-5" aria-hidden />
+                    <span className="sr-only">{t("realizationDetail.previous")}</span>
+                  </button>
+                ) : null}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={current}
+                  alt={t("realizationDetail.photoAlt", { index: safeIndex + 1, total: count })}
+                  className="max-h-[calc(100vh-8rem)] max-w-[calc(100vw-8.5rem)] object-contain"
+                />
+                {count > 1 ? (
+                  <button
+                    type="button"
+                    data-testid="realization-detail-next"
+                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                    onClick={() => move(1)}
+                  >
+                    <ChevronRight className="h-5 w-5" aria-hidden />
+                    <span className="sr-only">{t("realizationDetail.next")}</span>
+                  </button>
+                ) : null}
+              </div>
+              <p
+                data-testid="realization-detail-position"
+                className="absolute bottom-5 left-1/2 -translate-x-1/2 text-sm font-medium text-white"
+              >
+                {t("realizationDetail.position", { index: safeIndex + 1, total: count })}
+              </p>
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   );
 }
