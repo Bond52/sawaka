@@ -238,3 +238,139 @@ test("keeps a failed request distinct from an empty review state", async ({ page
   await expect(page.getByTestId("realization-detail-not-found")).toHaveCount(0);
   await expect(page.getByTestId("realization-detail-retry")).toBeVisible();
 });
+
+const REALIZATION_A = "realization-a";
+const REALIZATION_B = "realization-b";
+const IMAGES_A = [
+  "https://cdn.example/a1.jpg",
+  "https://cdn.example/a2.jpg",
+  "https://cdn.example/a3.jpg",
+];
+const IMAGES_B = ["https://cdn.example/b1.jpg", "https://cdn.example/b2.jpg"];
+
+function catalogBody() {
+  return {
+    realizations: [
+      {
+        id: REALIZATION_A,
+        sequence: 1,
+        title: "Table A",
+        description: "Réalisation A",
+        domainId: DOMAIN.id,
+        completedOn: "2024-03-12",
+        status: "published",
+        images: IMAGES_A.map((url) => ({ url })),
+      },
+      {
+        id: REALIZATION_B,
+        sequence: 2,
+        title: "Bol B",
+        description: "Réalisation B",
+        domainId: DOMAIN.id,
+        completedOn: "2023-11-02",
+        status: "published",
+        images: IMAGES_B.map((url) => ({ url })),
+      },
+    ],
+  };
+}
+
+async function mockIsolatedDetail(page: Page) {
+  const detail = detailBody({ images: IMAGES_A.map((url) => ({ url })) });
+  detail.realization.id = REALIZATION_A;
+  detail.realization.title = "Table A";
+  await page.route("**/api/contributors/me/realizations", async (route) => {
+    await route.fulfill({
+      status: 500,
+      contentType: "application/json",
+      body: JSON.stringify({ error: { code: "OWNER_ENDPOINT" } }),
+    });
+  });
+  await page.route("**/api/realizations**", async (route) => {
+    const url = new URL(route.request().url());
+    const isCatalog = url.pathname.endsWith("/api/realizations");
+    await route.fulfill({
+      status: isCatalog || url.pathname.endsWith(`/api/realizations/${REALIZATION_A}`) ? 200 : 404,
+      contentType: "application/json",
+      body: JSON.stringify(
+        isCatalog
+          ? catalogBody()
+          : url.pathname.endsWith(`/api/realizations/${REALIZATION_A}`)
+            ? detail
+            : { error: { code: "NOT_FOUND" } }
+      ),
+    });
+  });
+}
+
+async function visibleSources(page: Page) {
+  return page.locator("img").evaluateAll((nodes) => nodes.map((node) => node.getAttribute("src")));
+}
+
+async function expectOnlyRealizationA(page: Page, current: string) {
+  const dialog = page.getByTestId("realization-detail-lightbox");
+  await expect(dialog.locator("img")).toHaveAttribute("src", current);
+  const sources = await visibleSources(page);
+  expect(sources.length).toBeGreaterThan(0);
+  expect(sources.every((src) => src !== null && IMAGES_A.includes(src))).toBe(true);
+  for (const foreign of IMAGES_B) expect(sources).not.toContain(foreign);
+}
+
+async function swipeLightbox(page: Page, direction: "next" | "previous") {
+  await page.getByTestId("realization-detail-lightbox").evaluate((element, dir) => {
+    const startX = dir === "next" ? 280 : 80;
+    const endX = dir === "next" ? 80 : 280;
+    const emit = (type: "touchstart" | "touchend", clientX: number) => {
+      const touch = new Touch({ identifier: 1, target: element, clientX, clientY: 240 });
+      element.dispatchEvent(
+        new TouchEvent(type, {
+          bubbles: true,
+          cancelable: true,
+          touches: type === "touchstart" ? [touch] : [],
+          changedTouches: [touch],
+        })
+      );
+    };
+    emit("touchstart", startX);
+    emit("touchend", endX);
+  }, direction);
+}
+
+test("gallery stays on the current realization while another one is in the catalog", async ({ page }) => {
+  await setLocale(page, "fr");
+  await mockIsolatedDetail(page);
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.goto(`/realisations/${REALIZATION_A}`);
+
+  await expect(page.getByTestId("realization-detail-hero")).toHaveAttribute("src", IMAGES_A[0]);
+  await page.getByTestId("realization-detail-thumb").nth(0).click();
+  await expect(page.getByTestId("realization-detail-hero")).toHaveAttribute("src", IMAGES_A[1]);
+  await page.getByTestId("realization-detail-open").click();
+
+  const steps: Array<{ action: () => Promise<void>; src: string }> = [
+    { action: async () => {}, src: IMAGES_A[1] },
+    { action: () => page.getByTestId("realization-detail-previous").click(), src: IMAGES_A[0] },
+    { action: () => page.getByTestId("realization-detail-previous").click(), src: IMAGES_A[2] },
+    { action: () => page.getByTestId("realization-detail-next").click(), src: IMAGES_A[0] },
+    { action: () => page.getByTestId("realization-detail-next").click(), src: IMAGES_A[1] },
+    { action: () => page.getByTestId("realization-detail-next").click(), src: IMAGES_A[2] },
+    { action: () => page.getByTestId("realization-detail-next").click(), src: IMAGES_A[0] },
+    { action: () => page.keyboard.press("ArrowLeft"), src: IMAGES_A[2] },
+    { action: () => page.keyboard.press("ArrowRight"), src: IMAGES_A[0] },
+    { action: () => swipeLightbox(page, "next"), src: IMAGES_A[1] },
+    { action: () => swipeLightbox(page, "previous"), src: IMAGES_A[0] },
+  ];
+
+  for (const step of steps) {
+    await step.action();
+    await expectOnlyRealizationA(page, step.src);
+  }
+
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("realization-detail-lightbox")).toHaveCount(0);
+  await expect(page).toHaveURL(new RegExp(`/realisations/${REALIZATION_A}$`));
+  await expect(page.getByTestId("realization-detail-hero")).toHaveAttribute("src", IMAGES_A[0]);
+  const sources = await visibleSources(page);
+  expect(sources.every((src) => src !== null && IMAGES_A.includes(src))).toBe(true);
+  for (const foreign of IMAGES_B) expect(sources).not.toContain(foreign);
+});
