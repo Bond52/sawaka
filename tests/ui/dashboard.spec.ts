@@ -61,6 +61,13 @@ type DashboardMetricMock = {
   onRequest?: (url: URL) => void;
 };
 
+function completionCriteria(incompleteKey = "") {
+  return ["displayName", "domain", "skills", "country", "biography", "photo"].map((key) => ({
+    key,
+    complete: key !== incompleteKey,
+  }));
+}
+
 function ownedRealization(id: string, status: "draft" | "published", sequence: number) {
   return {
     id,
@@ -536,7 +543,7 @@ test.describe("Dashboard profile and published realization metrics (#466)", () =
     const cta = page.getByTestId("dashboard-summary-profile-cta");
     await expect(page.getByTestId("dashboard-summary-profile-value")).toHaveText("100%");
     await expect(page.getByTestId("dashboard-summary-profile")).toContainText("completed");
-    await expect(cta).toHaveText("View my profile →");
+    await expect(cta).toHaveText("Edit my profile →");
     await expect(cta).toHaveAttribute("href", "/profile");
   });
 
@@ -573,7 +580,7 @@ test.describe("Dashboard profile and published realization metrics (#466)", () =
     await expect(page.getByTestId("dashboard-summary-profile")).toContainText("Profil");
     await expect(page.getByTestId("dashboard-summary-profile")).toContainText("complété");
     await expect(page.getByTestId("dashboard-summary-profile-cta")).toHaveText(
-      "Voir mon profil →"
+      "Modifier mon profil →"
     );
     await expect(page.getByTestId("dashboard-summary-realizations")).toContainText("publiées");
     await expect(page.getByTestId("dashboard-summary-realizations-value")).toHaveText("0");
@@ -703,6 +710,195 @@ test.describe("Dashboard profile and published realization metrics (#466)", () =
       await expect(page.getByTestId("dashboard-summary-cards")).toBeVisible();
       await expect(page.getByTestId("dashboard-summary-profile-cta")).toBeVisible();
       await expect(page.getByTestId("dashboard-summary-realizations-cta")).toBeVisible();
+      await expect(page.getByTestId("dashboard-recent-activity")).toBeVisible();
+      await expect(page.getByTestId("dashboard-badges")).toBeVisible();
+      const hasHorizontalOverflow = await page.evaluate(() => {
+        return document.documentElement.scrollWidth > window.innerWidth + 1;
+      });
+      expect(hasHorizontalOverflow).toBe(false);
+    }
+  });
+});
+
+test.describe("Profile completion guidance (#468)", () => {
+  test("shows 5 of 6 criteria from the owner payload", async ({ page }) => {
+    await seedLoggedInUser(page);
+    await page.addInitScript(() => {
+      window.localStorage.setItem("sawaka-locale", "en");
+    });
+    await mockDashboardMetrics(page, {
+      profileStatus: 200,
+      profileBody: {
+        profile: {
+          id: "profile-amina",
+          displayName: "Amina",
+          completionPercent: 83,
+          completionCriteria: completionCriteria("photo"),
+        },
+      },
+    });
+
+    await page.goto("/dashboard");
+
+    await expect(page.getByTestId("dashboard-summary-profile-value")).toHaveText("83%");
+    await expect(page.getByTestId("dashboard-summary-profile")).toContainText("5 / 6 completed");
+    await expect(page.getByTestId("dashboard-summary-profile-cta")).toHaveText(
+      "Complete my profile →"
+    );
+    await expect(page.getByTestId("dashboard-summary-profile-cta")).toHaveAttribute(
+      "href",
+      "/profile"
+    );
+
+    const toggle = page.getByTestId("dashboard-summary-profile-criteria-toggle");
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(page.getByTestId("dashboard-summary-profile-criteria")).toHaveCount(0);
+    await toggle.focus();
+    await expect(toggle).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+
+    const list = page.getByTestId("dashboard-summary-profile-criteria");
+    await expect(list).toBeVisible();
+    await expect(list.getByRole("listitem")).toHaveCount(6);
+    await expect(page.getByTestId("dashboard-summary-profile-criterion-displayName")).toHaveAttribute(
+      "data-complete",
+      "true"
+    );
+    await expect(page.getByTestId("dashboard-summary-profile-criterion-displayName")).toContainText(
+      "Display name"
+    );
+    await expect(page.getByTestId("dashboard-summary-profile-criterion-displayName")).toContainText(
+      "Complete"
+    );
+    const photo = page.getByTestId("dashboard-summary-profile-criterion-photo");
+    await expect(photo).toHaveAttribute("data-complete", "false");
+    await expect(photo).toContainText("Profile photo");
+    await expect(photo).toContainText("Incomplete");
+    await expect(page.getByTestId("dashboard-summary-reputation-value")).toHaveText("N/A");
+    await expect(page.getByTestId("dashboard-summary-reputation-cta")).toHaveAttribute(
+      "href",
+      "/contributors/profile-amina"
+    );
+  });
+
+  test("a complete profile lists 6 of 6 and edits at /profile", async ({ page }) => {
+    await seedLoggedInUser(page);
+    await page.addInitScript(() => {
+      window.localStorage.setItem("sawaka-locale", "en");
+    });
+    await mockDashboardMetrics(page, {
+      profileStatus: 200,
+      profileBody: {
+        profile: {
+          id: "profile-complete",
+          displayName: "Amina",
+          completionPercent: 100,
+          completionCriteria: completionCriteria(),
+        },
+      },
+    });
+
+    await page.goto("/dashboard");
+    await expect(page.getByTestId("dashboard-summary-profile")).toContainText("6 / 6 completed");
+    const cta = page.getByTestId("dashboard-summary-profile-cta");
+    await expect(cta).toHaveText("Edit my profile →");
+    await expect(cta).toHaveAttribute("href", "/profile");
+    await page.getByTestId("dashboard-summary-profile-criteria-toggle").click();
+    for (const key of ["displayName", "domain", "skills", "country", "biography", "photo"]) {
+      await expect(page.getByTestId(`dashboard-summary-profile-criterion-${key}`)).toHaveAttribute(
+        "data-complete",
+        "true"
+      );
+    }
+  });
+
+  test("a missing profile keeps the public profile action unavailable", async ({ page }) => {
+    await seedLoggedInUser(page);
+    await page.addInitScript(() => {
+      window.localStorage.setItem("sawaka-locale", "en");
+    });
+    await mockDashboardMetrics(page);
+
+    await page.goto("/dashboard");
+    await expect(page.getByTestId("dashboard-summary-profile-value")).toHaveText("0%");
+    await expect(page.getByTestId("dashboard-summary-profile")).toContainText("0 / 6 completed");
+    await expect(page.getByTestId("dashboard-summary-profile-cta")).toHaveAttribute("href", "/profile");
+    const publicCta = page.getByTestId("dashboard-summary-reputation-cta");
+    await expect(publicCta).toHaveAttribute("aria-disabled", "true");
+    await expect(publicCta).not.toHaveAttribute("href", /.+/);
+    await expect(page.locator("a[href*='/contributors/']")).toHaveCount(0);
+    await expect(page.getByTestId("dashboard-summary-reputation-value")).toHaveText("N/A");
+    await expect(page.getByTestId("dashboard-summary-projects-value")).toHaveText("0");
+  });
+
+  test("French checklist labels and the public profile route", async ({ page }) => {
+    await seedLoggedInUser(page);
+    await page.addInitScript(() => {
+      window.localStorage.setItem("sawaka-locale", "fr");
+    });
+    await mockDashboardMetrics(page, {
+      profileStatus: 200,
+      profileBody: {
+        profile: {
+          id: "64b000000000000000000010",
+          displayName: "Amina",
+          completionPercent: 83,
+          completionCriteria: completionCriteria("photo"),
+        },
+      },
+    });
+
+    await page.goto("/dashboard");
+    await expect(page.getByTestId("dashboard-summary-profile")).toContainText("5 / 6 complété");
+    await expect(page.getByTestId("dashboard-summary-profile-criteria-toggle")).toHaveText(
+      "Voir ce qu’il manque"
+    );
+    await page.getByTestId("dashboard-summary-profile-criteria-toggle").click();
+    await expect(page.getByTestId("dashboard-summary-profile-criteria-toggle")).toHaveText(
+      "Masquer le détail"
+    );
+    await expect(page.getByTestId("dashboard-summary-profile-criterion-photo")).toContainText(
+      "Photo de profil"
+    );
+    await expect(page.getByTestId("dashboard-summary-profile-criterion-skills")).toContainText(
+      "Compétences"
+    );
+    await expect(page.getByTestId("dashboard-summary-reputation-cta")).toHaveAttribute(
+      "href",
+      "/contributors/64b000000000000000000010"
+    );
+    await expect(page.getByTestId("dashboard-summary-profile-cta")).toHaveAttribute(
+      "href",
+      "/profile"
+    );
+  });
+
+  test("the checklist stays inside the viewport when expanded", async ({ page }) => {
+    await seedLoggedInUser(page);
+    await page.addInitScript(() => {
+      window.localStorage.setItem("sawaka-locale", "fr");
+    });
+    await mockDashboardMetrics(page, {
+      profileStatus: 200,
+      profileBody: {
+        profile: {
+          id: "profile-layout",
+          displayName: "Amina",
+          completionPercent: 83,
+          completionCriteria: completionCriteria("biography"),
+        },
+      },
+      realizations: [ownedRealization("published-1", "published", 1)],
+    });
+
+    await page.goto("/dashboard");
+    await page.getByTestId("dashboard-summary-profile-criteria-toggle").click();
+    await expect(page.getByTestId("dashboard-summary-profile-criteria")).toBeVisible();
+
+    for (const width of [1280, 768, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect(page.getByTestId("dashboard-summary-profile-criterion-biography")).toBeVisible();
       await expect(page.getByTestId("dashboard-recent-activity")).toBeVisible();
       await expect(page.getByTestId("dashboard-badges")).toBeVisible();
       const hasHorizontalOverflow = await page.evaluate(() => {

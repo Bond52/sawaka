@@ -3,6 +3,7 @@ const {
   initialLifecycle,
   collectProfileFieldErrors,
   profileCompletionPercent,
+  profileCompletionCriteria,
   shapeProfile,
   PROFILE_STATUS,
   DISPLAY_NAME_MAX,
@@ -194,6 +195,8 @@ describe("contributor profile rules", () => {
     expect(JSON.stringify(pub)).not.toMatch(/email|password|token/i);
     expect(owner.completionPercent).toBeUndefined();
     expect(pub.completionPercent).toBeUndefined();
+    expect(owner.completionCriteria).toBeUndefined();
+    expect(pub.completionCriteria).toBeUndefined();
   });
 });
 
@@ -277,5 +280,35 @@ describe("profile completion percent", () => {
         city: "Bafoussam",
       })
     ).toBe(100);
+  });
+
+  it("returns the same six flags the percentage uses, and ignores region and city", () => {
+    const minimal = {
+      displayName: "Amina Nguema",
+      domainId,
+      skills: [{ skillId: "64b000000000000000000002" }, { customLabel: "Raphia" }],
+      country: "Cameroun",
+      region: "Centre",
+      city: "Yaoundé",
+      biography: "Maçonne.",
+      photoUrl: "",
+    };
+    const criteria = profileCompletionCriteria(minimal);
+    expect(criteria).toEqual([
+      { key: "displayName", complete: true },
+      { key: "domain", complete: true },
+      { key: "skills", complete: true },
+      { key: "country", complete: true },
+      { key: "biography", complete: true },
+      { key: "photo", complete: false },
+    ]);
+    expect(profileCompletionPercent(minimal)).toBe(83);
+    expect(profileCompletionCriteria({ ...minimal, region: "", city: "" })).toEqual(criteria);
+    expect(profileCompletionCriteria(null).every((item) => item.complete === false)).toBe(true);
+    expect(
+      profileCompletionCriteria({ ...minimal, photoUrl: "https://cdn.example/a.jpg" }).every(
+        (item) => item.complete
+      )
+    ).toBe(true);
   });
 });

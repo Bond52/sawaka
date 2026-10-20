@@ -1031,12 +1031,21 @@ describe("Contributor profile photo", () => {
     const mine = await request(app).get("/api/contributors/me").set("Cookie", cookie);
     expect(mine.statusCode).toBe(200);
     expect(mine.body.profile.completionPercent).toBe(67);
+    expect(mine.body.profile.completionCriteria).toEqual([
+      { key: "displayName", complete: true },
+      { key: "domain", complete: true },
+      { key: "skills", complete: true },
+      { key: "country", complete: true },
+      { key: "biography", complete: false },
+      { key: "photo", complete: false },
+    ]);
     expect(mine.body.profile.region).toBe("Centre");
     expect(mine.body.profile.city).toBe("Yaoundé");
 
     const pub = await request(app).get(`/api/contributors/${mine.body.profile.id}`);
     expect(pub.statusCode).toBe(200);
     expect(pub.body.profile.completionPercent).toBeUndefined();
+    expect(pub.body.profile.completionCriteria).toBeUndefined();
 
     await ContributorProfile.updateOne(
       { _id: mine.body.profile.id },
@@ -1045,5 +1054,6 @@ describe("Contributor profile photo", () => {
     const complete = await request(app).get("/api/contributors/me").set("Cookie", cookie);
     expect(complete.statusCode).toBe(200);
     expect(complete.body.profile.completionPercent).toBe(100);
+    expect(complete.body.profile.completionCriteria.every((item) => item.complete)).toBe(true);
   });
 });
