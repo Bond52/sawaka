@@ -12,6 +12,7 @@ import {
   type RealizationDetail,
   type TaxonomyName,
 } from "@/app/lib/realizationDetail";
+import { loadPublishedRealizations } from "@/app/lib/publishedRealizations";
 import { useTranslation } from "@/src/i18n/I18nProvider";
 
 const focusRing = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -37,12 +38,43 @@ function Gallery({ urls }: { urls: string[] }) {
   const { t } = useTranslation();
   const [index, setIndex] = useState(0);
   const [open, setOpen] = useState(false);
+  const [catalogUrls, setCatalogUrls] = useState<string[]>([]);
   const closeRef = useRef<HTMLButtonElement>(null);
   const openerRef = useRef<HTMLButtonElement>(null);
   const touchStart = useRef<number | null>(null);
   const count = urls.length;
   const safeIndex = Math.min(index, Math.max(count - 1, 0));
   const current = urls[safeIndex] ?? "";
+  const ownKey = urls.join("\0");
+  const lightboxUrls = catalogUrls.length > 0 ? [...urls, ...catalogUrls] : urls;
+  const lightboxCount = lightboxUrls.length;
+  const lightboxIndex =
+    lightboxCount > 0 ? ((index % lightboxCount) + lightboxCount) % lightboxCount : 0;
+  const lightboxSrc = lightboxUrls[lightboxIndex] ?? current;
+
+  useEffect(() => {
+    if (!ownKey) {
+      setCatalogUrls([]);
+      return;
+    }
+    let cancelled = false;
+    const owned = new Set(ownKey.split("\0"));
+    setCatalogUrls([]);
+    loadPublishedRealizations().then((result) => {
+      if (cancelled || !result.ok) return;
+      const foreign: string[] = [];
+      for (const item of result.items) {
+        for (const url of item.imageUrls) {
+          if (owned.has(url) || foreign.includes(url)) continue;
+          foreign.push(url);
+        }
+      }
+      setCatalogUrls(foreign);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [ownKey]);
 
   useEffect(() => {
     if (!open) return;
@@ -51,9 +83,13 @@ function Gallery({ urls }: { urls: string[] }) {
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
-      if (event.key === "ArrowRight") setIndex((value) => (value + 1) % count);
-      if (event.key === "ArrowLeft") setIndex((value) => (value - 1 + count) % count);
+      if (event.key === "Escape") {
+        setIndex((value) => Math.min(value, Math.max(count - 1, 0)));
+        setOpen(false);
+      }
+      if (lightboxCount < 1) return;
+      if (event.key === "ArrowRight") setIndex((value) => (value + 1) % lightboxCount);
+      if (event.key === "ArrowLeft") setIndex((value) => (value - 1 + lightboxCount) % lightboxCount);
     }
     window.addEventListener("keydown", onKey);
     return () => {
@@ -61,10 +97,20 @@ function Gallery({ urls }: { urls: string[] }) {
       window.removeEventListener("keydown", onKey);
       opener?.focus();
     };
-  }, [open, count]);
+  }, [open, count, lightboxCount]);
 
   function move(delta: number) {
     setIndex((value) => (value + delta + count) % count);
+  }
+
+  function moveLightbox(delta: number) {
+    if (lightboxCount < 1) return;
+    setIndex((value) => (value + delta + lightboxCount) % lightboxCount);
+  }
+
+  function closeLightbox() {
+    setIndex((value) => Math.min(value, Math.max(count - 1, 0)));
+    setOpen(false);
   }
 
   function onTouchStart(event: React.TouchEvent) {
@@ -76,6 +122,14 @@ function Gallery({ urls }: { urls: string[] }) {
     const end = event.changedTouches[0]?.clientX ?? touchStart.current;
     const delta = end - touchStart.current;
     if (Math.abs(delta) > 40) move(delta < 0 ? 1 : -1);
+    touchStart.current = null;
+  }
+
+  function onLightboxTouchEnd(event: React.TouchEvent) {
+    if (touchStart.current === null || lightboxCount < 2) return;
+    const end = event.changedTouches[0]?.clientX ?? touchStart.current;
+    const delta = end - touchStart.current;
+    if (Math.abs(delta) > 40) moveLightbox(delta < 0 ? 1 : -1);
     touchStart.current = null;
   }
 
@@ -176,14 +230,14 @@ function Gallery({ urls }: { urls: string[] }) {
           data-testid="realization-detail-lightbox"
           className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/80 p-4"
           onTouchStart={onTouchStart}
-          onTouchEnd={onTouchEnd}
+          onTouchEnd={onLightboxTouchEnd}
         >
           <button
             type="button"
             ref={closeRef}
             data-testid="realization-detail-close"
             className={`absolute right-4 top-4 inline-flex h-11 w-11 items-center justify-center rounded-full bg-card text-foreground ${focusRing}`}
-            onClick={() => setOpen(false)}
+            onClick={closeLightbox}
           >
             <X className="h-5 w-5" aria-hidden />
             <span className="sr-only">{t("realizationDetail.close")}</span>
@@ -192,22 +246,22 @@ function Gallery({ urls }: { urls: string[] }) {
             type="button"
             data-testid="realization-detail-previous"
             className={`absolute bottom-4 left-3 inline-flex h-11 w-11 items-center justify-center rounded-full bg-card text-foreground ${focusRing}`}
-            onClick={() => move(-1)}
+            onClick={() => moveLightbox(-1)}
           >
             <ChevronLeft className="h-5 w-5" aria-hidden />
             <span className="sr-only">{t("realizationDetail.previous")}</span>
           </button>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={current}
-            alt={t("realizationDetail.photoAlt", { index: safeIndex + 1, total: count })}
+            src={lightboxSrc}
+            alt={t("realizationDetail.photoAlt", { index: lightboxIndex + 1, total: lightboxCount })}
             className="max-h-[80vh] max-w-[90vw] rounded-xl object-contain"
           />
           <button
             type="button"
             data-testid="realization-detail-next"
             className={`absolute bottom-4 right-3 inline-flex h-11 w-11 items-center justify-center rounded-full bg-card text-foreground ${focusRing}`}
-            onClick={() => move(1)}
+            onClick={() => moveLightbox(1)}
           >
             <ChevronRight className="h-5 w-5" aria-hidden />
             <span className="sr-only">{t("realizationDetail.next")}</span>
