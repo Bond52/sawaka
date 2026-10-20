@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  countPublishedRealizations,
   filterPortfolioRealizations,
   parseOwnedRealizations,
   type PortfolioRealization,
@@ -73,6 +74,31 @@ test("parseOwnedRealizations rejects product inventory and a public-only shape",
       realizations: [{ id: "1", title: "Chaise", status: "published" }],
     }),
     null
+  );
+});
+
+test("countPublishedRealizations counts only published items", () => {
+  assert.equal(countPublishedRealizations([]), 0);
+  assert.equal(countPublishedRealizations([draft]), 0);
+  assert.equal(countPublishedRealizations([chair]), 1);
+  assert.equal(
+    countPublishedRealizations([
+      chair,
+      draft,
+      { ...chair, id: "3" },
+      { ...draft, id: "4" },
+      { ...chair, id: "5", status: "published" },
+    ]),
+    3
+  );
+  assert.equal(
+    countPublishedRealizations([
+      { status: "published" },
+      { status: "draft" },
+      { status: "deleted" },
+      { status: null },
+    ]),
+    1
   );
 });
 

@@ -998,4 +998,52 @@ describe("Contributor profile photo", () => {
     const stored = await ContributorProfile.findById(profileId);
     expect(stored.photoUrl).toBe("");
   });
+
+  it("returns completionPercent on the owner profile and keeps missing and anonymous reads unchanged", async () => {
+    const user = await createAccount({
+      email: "completion@example.com",
+      username: "completionuser",
+      emailVerified: true,
+    });
+    const cookie = await login(user.email);
+
+    const missing = await request(app).get("/api/contributors/me").set("Cookie", cookie);
+    expect(missing.statusCode).toBe(404);
+    expect(missing.body.error.code).toBe("CONTRIBUTOR_PROFILE_NOT_FOUND");
+
+    const anonymous = await request(app).get("/api/contributors/me");
+    expect(anonymous.statusCode).toBe(401);
+
+    const { domainA, skillsA } = await loadTaxonomy();
+    const created = await request(app)
+      .post("/api/contributors")
+      .set("Cookie", cookie)
+      .send({
+        displayName: "Amina Nguema",
+        domainId: String(domainA._id),
+        skillIds: [String(skillsA[0]._id)],
+        country: "Cameroun",
+        region: "Centre",
+        city: "Yaoundé",
+      });
+    expect(created.statusCode).toBe(201);
+
+    const mine = await request(app).get("/api/contributors/me").set("Cookie", cookie);
+    expect(mine.statusCode).toBe(200);
+    expect(mine.body.profile.completionPercent).toBe(67);
+    expect(mine.body.profile.region).toBe("Centre");
+    expect(mine.body.profile.city).toBe("Yaoundé");
+
+    const pub = await request(app).get(`/api/contributors/${mine.body.profile.id}`);
+    expect(pub.statusCode).toBe(200);
+    expect(pub.body.profile.completionPercent).toBeUndefined();
+
+    await ContributorProfile.updateOne(
+      { _id: mine.body.profile.id },
+      { biography: "Maçonne et formatrice.", photoUrl: "https://cdn.example/amina.jpg" }
+    );
+    const complete = await request(app).get("/api/contributors/me").set("Cookie", cookie);
+    expect(complete.statusCode).toBe(200);
+    expect(complete.body.profile.completionPercent).toBe(100);
+  });
 });

@@ -52,7 +52,72 @@ async function seedLoggedInUser(page: Page, user = STANDARD_USER) {
   }, user);
 }
 
+type DashboardMetricMock = {
+  profileStatus?: number;
+  profileBody?: unknown;
+  realizationsStatus?: number;
+  realizations?: Array<Record<string, unknown>>;
+  delayMs?: number;
+  onRequest?: (url: URL) => void;
+};
+
+function ownedRealization(id: string, status: "draft" | "published", sequence: number) {
+  return {
+    id,
+    sequence,
+    status,
+    title: `Piece ${sequence}`,
+    description: "Chaise en noyer",
+    domainId: null,
+    completedOn: null,
+    mainMaterial: "",
+    images: [{ url: "https://images.example/chair.jpg" }],
+  };
+}
+
+async function mockDashboardMetrics(page: Page, options: DashboardMetricMock = {}) {
+  const profileStatus = options.profileStatus ?? 404;
+  const profileBody =
+    options.profileBody ??
+    { error: { code: "CONTRIBUTOR_PROFILE_NOT_FOUND" } };
+  const realizationsStatus = options.realizationsStatus ?? 200;
+  const realizations = options.realizations ?? [];
+
+  await page.route("**/api/contributors/me**", async (route: Route) => {
+    const url = new URL(route.request().url());
+    options.onRequest?.(url);
+    if (options.delayMs) {
+      await new Promise((resolve) => setTimeout(resolve, options.delayMs));
+    }
+    if (url.pathname.endsWith("/api/contributors/me/realizations")) {
+      await route.fulfill({
+        status: realizationsStatus,
+        contentType: "application/json",
+        body: JSON.stringify(
+          realizationsStatus === 200
+            ? { realizations }
+            : { error: { code: "SERVER_ERROR" } }
+        ),
+      });
+      return;
+    }
+    if (url.pathname.endsWith("/api/contributors/me")) {
+      await route.fulfill({
+        status: profileStatus,
+        contentType: "application/json",
+        body: JSON.stringify(profileBody),
+      });
+      return;
+    }
+    await route.fallback();
+  });
+}
+
 test.describe("Authenticated user dashboard (#362)", () => {
+  test.beforeEach(async ({ page }) => {
+    await mockDashboardMetrics(page);
+  });
+
   test("successful login redirects to /dashboard", async ({ page }) => {
     await mockAuthApis(page);
     await page.addInitScript(() => {
@@ -297,5 +362,353 @@ test.describe("Authenticated user dashboard (#362)", () => {
     await expect(page.getByTestId("header-login")).toBeVisible();
     await page.goto("/dashboard");
     await expect(page).toHaveURL(/\/login\?redirect=.*dashboard/);
+  });
+});
+
+test.describe("Dashboard profile and published realization metrics (#466)", () => {
+  test("profile card uses completionPercent and realizations card counts published items", async ({
+    page,
+  }) => {
+    const requests: string[] = [];
+    await seedLoggedInUser(page);
+    await page.addInitScript(() => {
+      window.localStorage.setItem("sawaka-locale", "en");
+    });
+    await mockDashboardMetrics(page, {
+      profileStatus: 200,
+      profileBody: {
+        profile: {
+          id: "profile-1",
+          displayName: "Amina",
+          completionPercent: 67,
+        },
+      },
+      realizations: [
+        ownedRealization("published-1", "published", 1),
+        ownedRealization("draft-1", "draft", 2),
+        ownedRealization("published-2", "published", 3),
+        ownedRealization("published-3", "published", 4),
+      ],
+      onRequest: (url) => {
+        requests.push(`${url.pathname}${url.search}`);
+      },
+    });
+
+    await page.goto("/dashboard");
+
+    await expect(page.getByTestId("dashboard-summary-profile-value")).toHaveText("67%");
+    await expect(page.getByTestId("dashboard-summary-realizations-value")).toHaveText("3");
+    await expect(page.getByTestId("dashboard-summary-profile-cta")).toHaveText(
+      "Complete my profile →"
+    );
+    await expect(page.getByTestId("dashboard-summary-profile-cta")).toHaveAttribute(
+      "href",
+      "/profile"
+    );
+    await expect(page.getByTestId("dashboard-summary-projects-value")).toHaveText("0");
+    await expect(page.getByTestId("dashboard-summary-reputation-value")).toHaveText("N/A");
+    await expect(page.getByTestId("dashboard-recent-activity")).toBeVisible();
+    await expect(page.getByTestId("dashboard-badges")).toBeVisible();
+    expect(requests.some((url) => url.includes("ownerId"))).toBe(false);
+  });
+
+  test("does not show a numeric zero while metrics are still loading", async ({ page }) => {
+    await seedLoggedInUser(page);
+    await page.addInitScript(() => {
+      window.localStorage.setItem("sawaka-locale", "en");
+    });
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route("**/api/contributors/me**", async (route: Route) => {
+      await gate;
+      const url = new URL(route.request().url());
+      if (url.pathname.endsWith("/realizations")) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ realizations: [] }),
+        });
+        return;
+      }
+      await route.fulfill({
+        status: 404,
+        contentType: "application/json",
+        body: JSON.stringify({ error: { code: "CONTRIBUTOR_PROFILE_NOT_FOUND" } }),
+      });
+    });
+
+    await page.goto("/dashboard");
+
+    const profileValue = page.getByTestId("dashboard-summary-profile-value");
+    const realizationValue = page.getByTestId("dashboard-summary-realizations-value");
+    await expect(profileValue).toHaveAttribute("aria-busy", "true");
+    await expect(realizationValue).toHaveAttribute("aria-busy", "true");
+    await expect(profileValue).not.toContainText("0");
+    await expect(realizationValue).not.toContainText("0");
+    await expect(page.getByTestId("dashboard-summary-projects-value")).toHaveText("0");
+
+    release();
+    await expect(profileValue).toHaveText("0%");
+    await expect(realizationValue).toHaveText("0");
+  });
+
+  test("a missing profile is 0% and is not an error", async ({ page }) => {
+    await seedLoggedInUser(page);
+    await page.addInitScript(() => {
+      window.localStorage.setItem("sawaka-locale", "fr");
+    });
+    await mockDashboardMetrics(page, {
+      profileStatus: 404,
+      realizations: [ownedRealization("published-1", "published", 1)],
+    });
+
+    await page.goto("/dashboard");
+
+    await expect(page.getByTestId("dashboard-summary-profile-value")).toHaveText("0%");
+    await expect(page.getByTestId("dashboard-summary-profile")).toContainText("complété");
+    await expect(page.getByTestId("dashboard-summary-profile-cta")).toHaveText(
+      "Compléter mon profil →"
+    );
+    await expect(page.getByTestId("dashboard-summary-realizations-value")).toHaveText("1");
+    await expect(page.getByTestId("dashboard-summary-realizations")).toContainText("publiée");
+  });
+
+  test("a profile failure leaves the realizations card intact", async ({ page }) => {
+    await seedLoggedInUser(page);
+    await page.addInitScript(() => {
+      window.localStorage.setItem("sawaka-locale", "en");
+    });
+    await mockDashboardMetrics(page, {
+      profileStatus: 500,
+      profileBody: { error: { code: "SERVER_ERROR" } },
+      realizations: [
+        ownedRealization("published-1", "published", 1),
+        ownedRealization("published-2", "published", 2),
+      ],
+    });
+
+    await page.goto("/dashboard");
+
+    await expect(page.getByTestId("dashboard-summary-profile-value")).toHaveText("N/A");
+    await expect(page.getByTestId("dashboard-summary-realizations-value")).toHaveText("2");
+    await expect(page.getByTestId("user-dashboard")).toBeVisible();
+    await expect(page.getByTestId("dashboard-badges")).toBeVisible();
+    await expect(page.getByTestId("dashboard-recent-activity")).toBeVisible();
+  });
+
+  test("a realizations failure leaves the profile card intact", async ({ page }) => {
+    await seedLoggedInUser(page);
+    await page.addInitScript(() => {
+      window.localStorage.setItem("sawaka-locale", "en");
+    });
+    await mockDashboardMetrics(page, {
+      profileStatus: 200,
+      profileBody: {
+        profile: { id: "profile-1", displayName: "Amina", completionPercent: 83 },
+      },
+      realizationsStatus: 500,
+    });
+
+    await page.goto("/dashboard");
+
+    await expect(page.getByTestId("dashboard-summary-profile-value")).toHaveText("83%");
+    await expect(page.getByTestId("dashboard-summary-realizations-value")).toHaveText("N/A");
+    await expect(page.getByTestId("dashboard-summary-projects-value")).toHaveText("0");
+    await expect(page.getByTestId("user-dashboard")).toBeVisible();
+  });
+
+  test("a complete profile uses the view label and still opens /profile", async ({ page }) => {
+    await seedLoggedInUser(page);
+    await page.addInitScript(() => {
+      window.localStorage.setItem("sawaka-locale", "en");
+    });
+    await mockDashboardMetrics(page, {
+      profileStatus: 200,
+      profileBody: {
+        profile: { id: "profile-1", displayName: "Amina", completionPercent: 100 },
+      },
+    });
+
+    await page.goto("/dashboard");
+
+    const cta = page.getByTestId("dashboard-summary-profile-cta");
+    await expect(page.getByTestId("dashboard-summary-profile-value")).toHaveText("100%");
+    await expect(page.getByTestId("dashboard-summary-profile")).toContainText("completed");
+    await expect(cta).toHaveText("View my profile →");
+    await expect(cta).toHaveAttribute("href", "/profile");
+  });
+
+  test("French plural subtitles and the 100% view label", async ({ page }) => {
+    await seedLoggedInUser(page);
+    await page.addInitScript(() => {
+      window.localStorage.setItem("sawaka-locale", "fr");
+    });
+    let published = 0;
+    await page.route("**/api/contributors/me**", async (route: Route) => {
+      const url = new URL(route.request().url());
+      if (url.pathname.endsWith("/realizations")) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            realizations: Array.from({ length: published }, (_, index) =>
+              ownedRealization(`published-${index + 1}`, "published", index + 1)
+            ),
+          }),
+        });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          profile: { id: "profile-1", displayName: "Amina", completionPercent: 100 },
+        }),
+      });
+    });
+
+    await page.goto("/dashboard");
+    await expect(page.getByTestId("dashboard-summary-profile")).toContainText("Profil");
+    await expect(page.getByTestId("dashboard-summary-profile")).toContainText("complété");
+    await expect(page.getByTestId("dashboard-summary-profile-cta")).toHaveText(
+      "Voir mon profil →"
+    );
+    await expect(page.getByTestId("dashboard-summary-realizations")).toContainText("publiées");
+    await expect(page.getByTestId("dashboard-summary-realizations-value")).toHaveText("0");
+
+    published = 1;
+    await page.reload();
+    await expect(page.getByTestId("dashboard-summary-realizations-value")).toHaveText("1");
+    await expect(page.getByTestId("dashboard-summary-realizations")).toContainText("publiée");
+    await expect(page.getByTestId("dashboard-summary-realizations")).not.toContainText(
+      "publiées"
+    );
+
+    published = 2;
+    await page.reload();
+    await expect(page.getByTestId("dashboard-summary-realizations-value")).toHaveText("2");
+    await expect(page.getByTestId("dashboard-summary-realizations")).toContainText("publiées");
+  });
+
+  test("published count follows publish, draft, and delete after each dashboard load", async ({
+    page,
+  }) => {
+    await seedLoggedInUser(page);
+    await page.addInitScript(() => {
+      window.localStorage.setItem("sawaka-locale", "en");
+    });
+    const items = [
+      ownedRealization("live", "published", 1),
+      ownedRealization("draft", "draft", 2),
+    ];
+    await mockDashboardMetrics(page, {
+      profileStatus: 200,
+      profileBody: {
+        profile: { id: "profile-1", displayName: "Amina", completionPercent: 67 },
+      },
+      realizations: items,
+    });
+
+    const value = page.getByTestId("dashboard-summary-realizations-value");
+    await page.goto("/dashboard");
+    await expect(value).toHaveText("1");
+
+    items.splice(
+      0,
+      items.length,
+      ownedRealization("live", "published", 1),
+      ownedRealization("draft", "published", 2)
+    );
+    await page.reload();
+    await expect(value).toHaveText("2");
+
+    items.splice(
+      0,
+      items.length,
+      ownedRealization("live", "draft", 1),
+      ownedRealization("draft", "published", 2)
+    );
+    await page.reload();
+    await expect(value).toHaveText("1");
+
+    items.splice(0, items.length, ownedRealization("live", "draft", 1));
+    await page.reload();
+    await expect(value).toHaveText("0");
+
+    items.splice(
+      0,
+      items.length,
+      ownedRealization("kept", "published", 1),
+      ownedRealization("extra-draft", "draft", 2)
+    );
+    await page.reload();
+    await expect(value).toHaveText("1");
+
+    items.splice(0, items.length, ownedRealization("kept", "published", 1));
+    await page.reload();
+    await expect(value).toHaveText("1");
+  });
+
+  test("view my realizations opens the owner portfolio", async ({ page }) => {
+    await seedLoggedInUser(page);
+    await page.addInitScript(() => {
+      window.localStorage.setItem("sawaka-locale", "fr");
+    });
+    await mockDashboardMetrics(page, {
+      realizations: [ownedRealization("published-1", "published", 1)],
+    });
+    await page.route("**/api/contributors/domains**", async (route: Route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ domains: [] }),
+      });
+    });
+
+    await page.goto("/dashboard");
+    const cta = page.getByTestId("dashboard-summary-realizations-cta");
+    await expect(cta).toHaveText("Voir mes réalisations →");
+    await expect(cta).toHaveAttribute("href", "/vendeur/articles");
+    await cta.click();
+    await expect(page).toHaveURL(/\/vendeur\/articles/);
+    await expect(page.getByTestId("portfolio-management")).toBeVisible();
+  });
+
+  test("summary cards stay within the viewport at desktop, tablet, and mobile", async ({
+    page,
+  }) => {
+    await seedLoggedInUser(page);
+    await page.addInitScript(() => {
+      window.localStorage.setItem("sawaka-locale", "fr");
+    });
+    await mockDashboardMetrics(page, {
+      profileStatus: 200,
+      profileBody: {
+        profile: { id: "profile-1", displayName: "Amina", completionPercent: 100 },
+      },
+      realizations: [
+        ownedRealization("published-1", "published", 1),
+        ownedRealization("published-2", "published", 2),
+        ownedRealization("published-3", "published", 3),
+      ],
+    });
+
+    await page.goto("/dashboard");
+    await expect(page.getByTestId("dashboard-summary-profile-value")).toHaveText("100%");
+
+    for (const width of [1280, 768, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect(page.getByTestId("dashboard-summary-cards")).toBeVisible();
+      await expect(page.getByTestId("dashboard-summary-profile-cta")).toBeVisible();
+      await expect(page.getByTestId("dashboard-summary-realizations-cta")).toBeVisible();
+      await expect(page.getByTestId("dashboard-recent-activity")).toBeVisible();
+      await expect(page.getByTestId("dashboard-badges")).toBeVisible();
+      const hasHorizontalOverflow = await page.evaluate(() => {
+        return document.documentElement.scrollWidth > window.innerWidth + 1;
+      });
+      expect(hasHorizontalOverflow).toBe(false);
+    }
   });
 });

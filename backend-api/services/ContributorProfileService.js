@@ -146,6 +146,42 @@ function trimToString(value) {
   return typeof value === "string" ? value.trim() : null;
 }
 
+const COMPLETION_CHECK_COUNT = 6;
+
+function hasText(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function hasDomain(profile) {
+  if (hasText(profile.domainId)) return true;
+  if (profile.domainId && typeof profile.domainId !== "string") {
+    const id = String(profile.domainId).trim();
+    if (id && id !== "undefined" && id !== "null") return true;
+  }
+  const domain = profile.domain;
+  return Boolean(domain && typeof domain === "object" && hasText(domain.id));
+}
+
+/**
+ * Deterministic 0–100 completion of one persisted contributor profile.
+ * Six equal checks: display name, domain, at least one skill, country,
+ * biography, and photo. Region and city are not checks. A missing profile is 0.
+ */
+function profileCompletionPercent(profile) {
+  if (!profile || typeof profile !== "object") return 0;
+  let filled = 0;
+  if (hasText(profile.displayName)) filled += 1;
+  if (hasDomain(profile)) filled += 1;
+  if (Array.isArray(profile.skills) && profile.skills.length > 0) filled += 1;
+  if (hasText(profile.country)) filled += 1;
+  if (hasText(profile.biography)) filled += 1;
+  if (hasText(profile.photoUrl)) filled += 1;
+  const percent = Math.round((filled / COMPLETION_CHECK_COUNT) * 100);
+  if (percent < 0) return 0;
+  if (percent > 100) return 100;
+  return percent;
+}
+
 function collectProfileFieldErrors(body) {
   const fields = {};
   const displayName = trimToString(body.displayName);
@@ -605,7 +641,9 @@ async function getOwnProfile(authUserId) {
     throw new ContributorProfileError("CONTRIBUTOR_PROFILE_NOT_FOUND", 404);
   }
   const { domain, skillDocs } = await loadProfileContext(profile);
-  return shapeProfile(profile, domain, skillDocs, { includeLifecycle: true });
+  const shaped = shapeProfile(profile, domain, skillDocs, { includeLifecycle: true });
+  shaped.completionPercent = profileCompletionPercent(profile);
+  return shaped;
 }
 
 function rejectDeactivationTarget(body) {
@@ -888,6 +926,7 @@ module.exports = {
   isPubliclyAvailableProfile,
   initialLifecycle,
   collectProfileFieldErrors,
+  profileCompletionPercent,
   shapeProfile,
   createContributorProfile,
   updateOwnContributorProfile,

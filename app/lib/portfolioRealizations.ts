@@ -118,6 +118,16 @@ export async function loadOwnerPortfolio(): Promise<OwnerPortfolioResult> {
   }
 }
 
+/** Counts owner realizations whose persisted status is published. */
+export function countPublishedRealizations(
+  items: Array<{ status?: string | null }>
+): number {
+  return items.reduce(
+    (count, item) => count + (item.status === "published" ? 1 : 0),
+    0
+  );
+}
+
 export function filterPortfolioRealizations(
   items: PortfolioRealization[],
   criteria: PortfolioQuery,
