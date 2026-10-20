@@ -25,6 +25,8 @@ export type ContributorProfileDetail = {
   photoUrl?: string | null;
   /** Integer 0–100 from GET /api/contributors/me. Absent on public profiles. */
   completionPercent?: number;
+  /** Owner-only checklist. Labels are translated in the client. */
+  completionCriteria?: Array<{ key: string; complete: boolean }>;
 };
 
 export type ContributorProfilePayload = ContributorProfileDetail;

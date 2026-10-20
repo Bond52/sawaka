@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
+import { Check, Circle } from "lucide-react";
 import { useTranslation } from "@/src/i18n/I18nProvider";
 import {
   classifyOwnProfileResult,
@@ -14,9 +15,16 @@ import {
 
 type MetricPhase = "loading" | "ready" | "unavailable";
 
+type CompletionCriterion = {
+  key: string;
+  complete: boolean;
+};
+
 type ProfileMetric = {
   phase: MetricPhase;
   percent: number;
+  id: string | null;
+  criteria: CompletionCriterion[] | null;
 };
 
 type RealizationMetric = {
@@ -30,13 +38,45 @@ type SummaryCard = {
   value: string;
   phase: MetricPhase;
   subKey: string;
+  subText?: string;
   valueClassName: string;
   ctaKey: string;
   href?: string;
 };
 
+const CRITERION_KEYS = [
+  "displayName",
+  "domain",
+  "skills",
+  "country",
+  "biography",
+  "photo",
+] as const;
+
+const MISSING_PROFILE_CRITERIA: CompletionCriterion[] = CRITERION_KEYS.map((key) => ({
+  key,
+  complete: false,
+}));
+
 function isCompletionPercent(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 100;
+}
+
+function readCompletionCriteria(value: unknown): CompletionCriterion[] | null {
+  if (!Array.isArray(value) || value.length !== CRITERION_KEYS.length) return null;
+  const seen = new Set<string>();
+  const criteria: CompletionCriterion[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") return null;
+    const key = (item as { key?: unknown }).key;
+    const complete = (item as { complete?: unknown }).complete;
+    if (typeof key !== "string" || typeof complete !== "boolean") return null;
+    if (!CRITERION_KEYS.includes(key as (typeof CRITERION_KEYS)[number])) return null;
+    if (seen.has(key)) return null;
+    seen.add(key);
+    criteria.push({ key, complete });
+  }
+  return seen.size === CRITERION_KEYS.length ? criteria : null;
 }
 
 /**
@@ -47,9 +87,13 @@ function isCompletionPercent(value: unknown): value is number {
  */
 export default function DashboardSummaryCards() {
   const { t } = useTranslation();
+  const criteriaPanelId = useId();
+  const [criteriaOpen, setCriteriaOpen] = useState(false);
   const [profile, setProfile] = useState<ProfileMetric>({
     phase: "loading",
     percent: 0,
+    id: null,
+    criteria: null,
   });
   const [realizations, setRealizations] = useState<RealizationMetric>({
     phase: "loading",
@@ -63,17 +107,27 @@ export default function DashboardSummaryCards() {
       if (!active) return;
       const outcome = classifyOwnProfileResult(result);
       if (outcome.kind === "missing") {
-        setProfile({ phase: "ready", percent: 0 });
+        setProfile({
+          phase: "ready",
+          percent: 0,
+          id: null,
+          criteria: MISSING_PROFILE_CRITERIA,
+        });
         return;
       }
       if (
         outcome.kind === "success" &&
         isCompletionPercent(outcome.profile.completionPercent)
       ) {
-        setProfile({ phase: "ready", percent: outcome.profile.completionPercent });
+        setProfile({
+          phase: "ready",
+          percent: outcome.profile.completionPercent,
+          id: outcome.profile.id,
+          criteria: readCompletionCriteria(outcome.profile.completionCriteria),
+        });
         return;
       }
-      setProfile({ phase: "unavailable", percent: 0 });
+      setProfile({ phase: "unavailable", percent: 0, id: null, criteria: null });
     });
 
     loadOwnerPortfolio().then((result) => {
@@ -93,6 +147,17 @@ export default function DashboardSummaryCards() {
     };
   }, []);
 
+  const completedCount = profile.criteria
+    ? profile.criteria.filter((item) => item.complete).length
+    : 0;
+  const profileSubText =
+    profile.phase === "ready" && profile.criteria
+      ? t("dashboard.summary.completionCount", {
+          completed: completedCount,
+          total: profile.criteria.length,
+        })
+      : undefined;
+
   const cards: SummaryCard[] = [
     {
       id: "profile",
@@ -100,10 +165,11 @@ export default function DashboardSummaryCards() {
       value: profile.phase === "ready" ? `${profile.percent}%` : t("common.na"),
       phase: profile.phase,
       subKey: "dashboard.summary.profileSub",
+      subText: profileSubText,
       valueClassName: "text-primary",
       ctaKey:
         profile.phase === "ready" && profile.percent === 100
-          ? "dashboard.summary.profileCtaView"
+          ? "dashboard.summary.profileCtaEdit"
           : "dashboard.summary.profileCta",
       href: "/profile",
     },
@@ -138,6 +204,7 @@ export default function DashboardSummaryCards() {
       subKey: "dashboard.summary.reputationSub",
       valueClassName: "text-yellow-600",
       ctaKey: "dashboard.summary.reputationCta",
+      href: profile.id ? `/contributors/${profile.id}` : undefined,
     },
   ];
 
@@ -176,12 +243,60 @@ export default function DashboardSummaryCards() {
             </div>
           )}
           <div className="mb-3 text-sm text-muted-foreground">
-            {t(card.subKey)}
+            {card.subText ?? t(card.subKey)}
           </div>
+          {card.id === "profile" && profile.criteria ? (
+            <div className="mb-3">
+              <button
+                type="button"
+                className="text-sm text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-expanded={criteriaOpen}
+                aria-controls={criteriaPanelId}
+                data-testid="dashboard-summary-profile-criteria-toggle"
+                onClick={() => setCriteriaOpen((open) => !open)}
+              >
+                {criteriaOpen
+                  ? t("dashboard.summary.criteriaToggleHide")
+                  : t("dashboard.summary.criteriaToggle")}
+              </button>
+              {criteriaOpen ? (
+                <ul
+                  id={criteriaPanelId}
+                  className="mt-2 space-y-1 text-sm text-foreground"
+                  data-testid="dashboard-summary-profile-criteria"
+                >
+                  {profile.criteria.map((item) => {
+                    const label = t(`dashboard.summary.criteria.${item.key}`);
+                    const status = item.complete
+                      ? t("dashboard.summary.criterionComplete")
+                      : t("dashboard.summary.criterionIncomplete");
+                    return (
+                      <li
+                        key={item.key}
+                        className="flex items-start gap-2"
+                        data-testid={`dashboard-summary-profile-criterion-${item.key}`}
+                        data-complete={item.complete ? "true" : "false"}
+                      >
+                        {item.complete ? (
+                          <Check className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                        ) : (
+                          <Circle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                        )}
+                        <span>
+                          <span className="sr-only">{status}. </span>
+                          {label}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
           {card.href ? (
             <Link
               href={card.href}
-              className="text-sm text-primary hover:underline"
+              className="text-sm text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               data-testid={`dashboard-summary-${card.id}-cta`}
             >
               {t(card.ctaKey)} →
@@ -191,6 +306,7 @@ export default function DashboardSummaryCards() {
               className="cursor-not-allowed text-sm text-muted-foreground"
               aria-disabled="true"
               title={t("dashboard.actionUnavailable")}
+              data-testid={`dashboard-summary-${card.id}-cta`}
             >
               {t(card.ctaKey)} →
             </span>
