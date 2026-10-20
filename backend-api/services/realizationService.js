@@ -29,6 +29,17 @@ const GROUP_FIELDS = new Set([
   "photoIds",
   "sequence",
 ]);
+const EDIT_FIELDS = ["title", "description", "domainId", "completedOn", "mainMaterial"];
+const EDIT_FIELD_SET = new Set(EDIT_FIELDS);
+const ISSUE_FIELD = {
+  DESCRIPTION_INVALID: "description",
+  DESCRIPTION_TOO_LONG: "description",
+  DATE_INVALID: "completedOn",
+  MATERIAL_INVALID: "mainMaterial",
+  MATERIAL_TOO_LONG: "mainMaterial",
+  TITLE_INVALID: "title",
+  TITLE_TOO_LONG: "title",
+};
 
 class RealizationError extends Error {
   constructor(code, status, fields) {
@@ -495,6 +506,63 @@ async function ownedRealization(ownerId, rawId) {
   return doc;
 }
 
+function validationError(field, code) {
+  throw new RealizationError("VALIDATION_ERROR", 400, { [field]: code });
+}
+
+/**
+ * Loads one realization for its owner.
+ * Another contributor and an unknown id share the same not-found result.
+ */
+async function getOwned(ownerId, rawId) {
+  const doc = await ownedRealization(ownerId, rawId);
+  return { realization: shapeOwned(doc) };
+}
+
+/**
+ * Updates title, description, domain, completion date, and main material.
+ * Status and stored images are left unchanged.
+ */
+async function updateOwned(ownerId, rawId, body) {
+  const doc = await ownedRealization(ownerId, rawId);
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    validationError("body", "INVALID");
+  }
+  const unexpected = Object.keys(body).filter((key) => !EDIT_FIELD_SET.has(key));
+  if (unexpected.length > 0) validationError(unexpected[0], "FIELD_NOT_ALLOWED");
+  for (const key of EDIT_FIELDS) {
+    if (!Object.prototype.hasOwnProperty.call(body, key)) validationError(key, "REQUIRED");
+  }
+
+  if (typeof body.title !== "string") validationError("title", "TITLE_INVALID");
+  if (typeof body.description !== "string") validationError("description", "DESCRIPTION_INVALID");
+  if (typeof body.mainMaterial !== "string") validationError("mainMaterial", "MATERIAL_INVALID");
+
+  let domainId = body.domainId === "" ? null : body.domainId;
+  if (domainId !== null && (typeof domainId !== "string" || !OBJECT_ID_PATTERN.test(domainId))) {
+    validationError("domainId", "DOMAIN_INVALID");
+  }
+  const completedOn = body.completedOn === "" ? null : body.completedOn;
+  const group = {
+    title: body.title.trim(),
+    description: body.description,
+    domainId,
+    completedOn,
+    mainMaterial: body.mainMaterial.trim(),
+  };
+  const issue = metadataIssue(group);
+  if (issue) validationError(ISSUE_FIELD[issue] || "body", issue);
+  if (!(await domainExists(group.domainId))) validationError("domainId", "DOMAIN_INVALID");
+
+  doc.title = group.title;
+  doc.description = group.description;
+  doc.domainId = group.domainId;
+  doc.completedOn = group.completedOn || null;
+  doc.mainMaterial = group.mainMaterial;
+  await doc.save();
+  return { realization: shapeOwned(doc) };
+}
+
 async function publishOwned(ownerId, rawId) {
   const doc = await ownedRealization(ownerId, rawId);
   if (doc.status === REALIZATION_STATUS.PUBLISHED) {
@@ -559,6 +627,8 @@ module.exports = {
   listPublic,
   listPublished,
   getPublishedById,
+  getOwned,
+  updateOwned,
   publishOwned,
   moveOwnedToDraft,
   deleteOwned,

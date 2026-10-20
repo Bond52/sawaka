@@ -499,4 +499,236 @@ describe("realization lifecycle", () => {
     expect(publishedCount(foreignList.body)).toBe(1);
     expect(foreignList.body.realizations.map((item) => item.id)).toEqual([String(foreign._id)]);
   });
+
+  function metadata(domain, overrides = {}) {
+    return {
+      title: "Table basse",
+      description: "Chaise en noyer",
+      domainId: String(domain._id),
+      completedOn: "2024-05-01",
+      mainMaterial: "Noyer",
+      ...overrides,
+    };
+  }
+
+  it("loads and edits a draft without changing its status or photos", async () => {
+    const { owner, other, domain } = await world("edit-draft");
+    const metal = await Domain.create({
+      slug: "edit-draft-metal",
+      nameFR: "Ferronnerie",
+      nameEN: "Metalwork",
+      isActive: true,
+    });
+    const draft = await realization({
+      owner: owner.user,
+      domain,
+      status: "draft",
+      sequence: 1,
+      images: [
+        { url: "https://cdn.example/a.jpg", publicId: "photos/a" },
+        { url: "https://cdn.example/b.jpg", publicId: "photos/b" },
+      ],
+    });
+
+    const anonymous = await request(app).get(`/api/contributors/me/realizations/${draft._id}`);
+    expect(anonymous.status).toBe(401);
+
+    const foreign = await request(app)
+      .get(`/api/contributors/me/realizations/${draft._id}`)
+      .set("Cookie", other.cookie);
+    expect(foreign.status).toBe(404);
+    expect(foreign.body.realization).toBeUndefined();
+
+    const loaded = await request(app)
+      .get(`/api/contributors/me/realizations/${draft._id}`)
+      .set("Cookie", owner.cookie);
+    expect(loaded.status).toBe(200);
+    expect(loaded.body.realization).toMatchObject({
+      id: String(draft._id),
+      title: "Table basse",
+      description: "Chaise en noyer",
+      domainId: String(domain._id),
+      completedOn: "2024-05-01",
+      mainMaterial: "Noyer",
+      status: "draft",
+      images: [{ url: "https://cdn.example/a.jpg" }, { url: "https://cdn.example/b.jpg" }],
+    });
+    expect(JSON.stringify(loaded.body)).not.toMatch(/publicId|ownerId/);
+
+    const steps = [
+      { title: "Banc d'entrée" },
+      { description: "Assise en chêne" },
+      { domainId: String(metal._id) },
+      { completedOn: "2025-02-03" },
+      { mainMaterial: "Chêne" },
+    ];
+    let current = metadata(domain);
+    for (const step of steps) {
+      current = { ...current, ...step };
+      const saved = await request(app)
+        .patch(`/api/contributors/me/realizations/${draft._id}`)
+        .set("Cookie", owner.cookie)
+        .send(current);
+      expect(saved.status).toBe(200);
+      expect(saved.body.realization.status).toBe("draft");
+      expect(saved.body.realization).toMatchObject(step);
+    }
+
+    const stored = await Realization.findById(draft._id);
+    expect(stored.status).toBe("draft");
+    expect(stored.title).toBe("Banc d'entrée");
+    expect(stored.description).toBe("Assise en chêne");
+    expect(String(stored.domainId)).toBe(String(metal._id));
+    expect(stored.completedOn).toBe("2025-02-03");
+    expect(stored.mainMaterial).toBe("Chêne");
+    expect(stored.images.map((image) => image.publicId)).toEqual(["photos/a", "photos/b"]);
+    expect(imageStorage.destroyStoredImage).not.toHaveBeenCalled();
+    expect((await request(app).get("/api/realizations")).body.realizations).toEqual([]);
+    expect((await request(app).get(`/api/realizations/${draft._id}`)).status).toBe(404);
+  });
+
+  it("edits a published realization in place and keeps it public", async () => {
+    const { owner, domain, profile } = await world("edit-live");
+    const metal = await Domain.create({
+      slug: "edit-live-metal",
+      nameFR: "Ferronnerie",
+      nameEN: "Metalwork",
+      isActive: true,
+    });
+    const live = await realization({
+      owner: owner.user,
+      domain,
+      status: "published",
+      sequence: 1,
+      images: [{ url: "https://cdn.example/live.jpg", publicId: "photos/live" }],
+    });
+    const saved = await request(app)
+      .patch(`/api/contributors/me/realizations/${live._id}`)
+      .set("Cookie", owner.cookie)
+      .send(
+        metadata(metal, {
+          title: "  Console murale  ",
+          description: "Acier brossé",
+          completedOn: "2023-11-09",
+          mainMaterial: " Acier ",
+        })
+      );
+    expect(saved.status).toBe(200);
+    expect(saved.body.realization.status).toBe("published");
+    expect(saved.body.realization.title).toBe("Console murale");
+    expect(saved.body.realization.mainMaterial).toBe("Acier");
+    expect(saved.body.realization.images).toEqual([{ url: "https://cdn.example/live.jpg" }]);
+
+    const stored = await Realization.findById(live._id);
+    expect(stored.status).toBe("published");
+    expect(stored.images.map((image) => image.publicId)).toEqual(["photos/live"]);
+    expect(imageStorage.destroyStoredImage).not.toHaveBeenCalled();
+
+    const detail = await request(app).get(`/api/realizations/${live._id}`);
+    expect(detail.status).toBe(200);
+    expect(detail.body.realization).toMatchObject({
+      title: "Console murale",
+      description: "Acier brossé",
+      domainId: String(metal._id),
+      completedOn: "2023-11-09",
+      mainMaterial: "Acier",
+      images: [{ url: "https://cdn.example/live.jpg" }],
+    });
+    expect(detail.body.realization.status).toBeUndefined();
+    const catalog = await request(app).get("/api/realizations");
+    expect(catalog.body.realizations.map((item) => item.title)).toEqual(["Console murale"]);
+    const tab = await request(app).get(`/api/contributors/${profile._id}/realizations`);
+    expect(tab.body.realizations[0].title).toBe("Console murale");
+    expect(tab.body.realizations[0].mainMaterial).toBe("Acier");
+  });
+
+  it("rejects edits from another owner, a bad id, and fields outside metadata", async () => {
+    const { owner, other, domain } = await world("edit-guard");
+    const draft = await realization({
+      owner: owner.user,
+      domain,
+      status: "draft",
+      sequence: 1,
+    });
+    const before = await Realization.findById(draft._id).lean();
+
+    const foreign = await request(app)
+      .patch(`/api/contributors/me/realizations/${draft._id}`)
+      .set("Cookie", other.cookie)
+      .send(metadata(domain, { title: "Volé" }));
+    expect(foreign.status).toBe(404);
+    expect(foreign.body.error.code).toBe("NOT_FOUND");
+
+    const missing = await request(app)
+      .get(`/api/contributors/me/realizations/${new mongoose.Types.ObjectId()}`)
+      .set("Cookie", owner.cookie);
+    const invalid = await request(app)
+      .patch("/api/contributors/me/realizations/not-an-id")
+      .set("Cookie", owner.cookie)
+      .send(metadata(domain));
+    const absent = await request(app)
+      .patch(`/api/contributors/me/realizations/${new mongoose.Types.ObjectId()}`)
+      .set("Cookie", owner.cookie)
+      .send(metadata(domain));
+    expect(missing.status).toBe(404);
+    expect(invalid.status).toBe(404);
+    expect(absent.status).toBe(404);
+
+    const withStatus = await request(app)
+      .patch(`/api/contributors/me/realizations/${draft._id}`)
+      .set("Cookie", owner.cookie)
+      .send({ ...metadata(domain), status: "published" });
+    expect(withStatus.status).toBe(400);
+    expect(withStatus.body.error.fields.status).toBe("FIELD_NOT_ALLOWED");
+
+    const withImages = await request(app)
+      .patch(`/api/contributors/me/realizations/${draft._id}`)
+      .set("Cookie", owner.cookie)
+      .send({ ...metadata(domain), images: [] });
+    expect(withImages.status).toBe(400);
+    expect(withImages.body.error.fields.images).toBe("FIELD_NOT_ALLOWED");
+
+    const withOwner = await request(app)
+      .patch(`/api/contributors/me/realizations/${draft._id}`)
+      .set("Cookie", owner.cookie)
+      .send({ ...metadata(domain), ownerId: String(other.user._id) });
+    expect(withOwner.status).toBe(400);
+    expect(withOwner.body.error.fields.ownerId).toBe("FIELD_NOT_ALLOWED");
+
+    const tooLong = await request(app)
+      .patch(`/api/contributors/me/realizations/${draft._id}`)
+      .set("Cookie", owner.cookie)
+      .send(metadata(domain, { title: "x".repeat(121) }));
+    expect(tooLong.status).toBe(400);
+    expect(tooLong.body.error.fields.title).toBe("TITLE_TOO_LONG");
+
+    const inactive = await Domain.create({
+      slug: "edit-guard-inactive",
+      nameFR: "Inactif",
+      nameEN: "Inactive",
+      isActive: false,
+    });
+    const badDomain = await request(app)
+      .patch(`/api/contributors/me/realizations/${draft._id}`)
+      .set("Cookie", owner.cookie)
+      .send(metadata(domain, { domainId: String(inactive._id) }));
+    expect(badDomain.status).toBe(400);
+    expect(badDomain.body.error.fields.domainId).toBe("DOMAIN_INVALID");
+
+    const badDate = await request(app)
+      .patch(`/api/contributors/me/realizations/${draft._id}`)
+      .set("Cookie", owner.cookie)
+      .send(metadata(domain, { completedOn: "2024-02-31" }));
+    expect(badDate.status).toBe(400);
+    expect(badDate.body.error.fields.completedOn).toBe("DATE_INVALID");
+
+    const after = await Realization.findById(draft._id).lean();
+    expect(after.title).toBe(before.title);
+    expect(after.description).toBe(before.description);
+    expect(String(after.domainId)).toBe(String(before.domainId));
+    expect(after.completedOn).toBe(before.completedOn);
+    expect(after.mainMaterial).toBe(before.mainMaterial);
+    expect(after.status).toBe("draft");
+    expect(after.images).toEqual(before.images);
+  });
 });

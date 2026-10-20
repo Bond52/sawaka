@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { LayoutGrid, List, Plus, Search, Upload } from "lucide-react";
+import RealizationLightbox from "@/app/components/realizations/RealizationLightbox";
 import { useTranslation } from "@/src/i18n/I18nProvider";
 import { listContributorDomains, taxonomyLabel, type TaxonomyItem } from "../../lib/apiContributors";
 import { readStoredUser } from "../../lib/authUser";
@@ -95,6 +96,7 @@ function RealizationCard({
   onPublish,
   onMoveToDraft,
   onDelete,
+  onPreview,
   layout,
 }: {
   item: PortfolioRealization;
@@ -105,10 +107,10 @@ function RealizationCard({
   onPublish: (id: string) => void;
   onMoveToDraft: (id: string) => void;
   onDelete: (id: string, trigger: HTMLButtonElement) => void;
+  onPreview: (item: PortfolioRealization, trigger: HTMLButtonElement) => void;
   layout: "grid" | "list";
 }) {
   const { t, locale } = useTranslation();
-  const unavailable = t("dashboard.actionUnavailable");
   const title = item.title.trim();
   const description = item.description.trim();
   const label = title || category || description || t("portfolio.itemLabel", { number: item.sequence });
@@ -210,24 +212,35 @@ function RealizationCard({
           >
             {t("portfolio.delete")}
           </button>
-          <button
-            type="button"
-            className={`min-h-[44px] rounded-md px-2 py-1 text-sm text-foreground ${focusRing}`}
-            aria-disabled="true"
-            title={unavailable}
-            onClick={(event) => event.preventDefault()}
+          <Link
+            href={`/vendeur/articles/${item.id}`}
+            data-testid="portfolio-edit"
+            className={`inline-flex min-h-[44px] items-center rounded-md px-2 py-1 text-sm text-foreground ${focusRing}`}
           >
             {t("portfolio.edit")}
-          </button>
-          <button
-            type="button"
-            className={`min-h-[44px] rounded-md px-2 py-1 text-sm text-foreground ${focusRing}`}
-            aria-disabled="true"
-            title={unavailable}
-            onClick={(event) => event.preventDefault()}
-          >
-            {t("portfolio.preview")}
-          </button>
+          </Link>
+          {item.imageUrls.length > 0 ? (
+            <button
+              type="button"
+              data-testid="portfolio-preview"
+              disabled={busy}
+              className={`min-h-[44px] rounded-md px-2 py-1 text-sm text-foreground ${focusRing} disabled:cursor-not-allowed disabled:opacity-60`}
+              onClick={(event) => onPreview(item, event.currentTarget)}
+            >
+              {t("portfolio.preview")}
+            </button>
+          ) : (
+            <button
+              type="button"
+              data-testid="portfolio-preview"
+              className={`min-h-[44px] rounded-md px-2 py-1 text-sm text-foreground ${focusRing}`}
+              aria-disabled="true"
+              title={t("portfolio.previewUnavailable")}
+              onClick={(event) => event.preventDefault()}
+            >
+              {t("portfolio.preview")}
+            </button>
+          )}
         </div>
       </div>
     </article>
@@ -254,7 +267,9 @@ export default function VendorArticlesPage() {
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const cancelRef = useRef<HTMLButtonElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const previewTriggerRef = useRef<HTMLElement | null>(null);
   const lockRef = useRef(false);
+  const [preview, setPreview] = useState<{ urls: string[]; index: number } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -686,10 +701,27 @@ export default function VendorArticlesPage() {
                 setDialogError("");
                 setPendingDeleteId(id);
               }}
+              onPreview={(entry, trigger) => {
+                if (entry.imageUrls.length === 0) return;
+                previewTriggerRef.current = trigger;
+                setPreview({ urls: entry.imageUrls, index: 0 });
+              }}
             />
           ))}
         </div>
       ) : null}
+
+      <RealizationLightbox
+        urls={preview?.urls ?? []}
+        open={Boolean(preview)}
+        index={preview?.index ?? 0}
+        onIndexChange={(index) =>
+          setPreview((current) => (current ? { ...current, index } : current))
+        }
+        onClose={() => setPreview(null)}
+        restoreFocusRef={previewTriggerRef}
+        testIdPrefix="portfolio-preview"
+      />
 
       {pendingDeleteId ? (
         <div

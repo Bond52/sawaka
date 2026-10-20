@@ -18,6 +18,7 @@ const chair: PortfolioRealization = {
   mainMaterial: "Noyer",
   imageCount: 2,
   imageUrl: "https://images.example/chair.jpg",
+  imageUrls: ["https://images.example/chair.jpg", "https://images.example/detail.jpg"],
 };
 
 const draft: PortfolioRealization = {
@@ -31,9 +32,10 @@ const draft: PortfolioRealization = {
   mainMaterial: "",
   imageCount: 0,
   imageUrl: null,
+  imageUrls: [],
 };
 
-test("parseOwnedRealizations keeps drafts and the first stored image", () => {
+test("parseOwnedRealizations keeps drafts and every stored image", () => {
   const items = parseOwnedRealizations({
     realizations: [
       {

@@ -75,6 +75,16 @@ router.post(
   requireAuth,
   realizationController.moveOwnRealizationToDraft
 );
+router.get(
+  "/me/realizations/:id",
+  requireAuth,
+  realizationController.getOwnRealization
+);
+router.patch(
+  "/me/realizations/:id",
+  requireAuth,
+  realizationController.updateOwnRealization
+);
 router.delete(
   "/me/realizations/:id",
   requireAuth,
