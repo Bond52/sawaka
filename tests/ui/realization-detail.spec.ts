@@ -148,10 +148,14 @@ test("shows a published realization without private or sample data", async ({ pa
   const dialog = page.getByTestId("realization-detail-lightbox");
   await expect(dialog).toBeVisible();
   await expect(page.getByTestId("realization-detail-close")).toBeFocused();
+  await expect(page.getByRole("button", { name: "Fermer la galerie" })).toBeVisible();
+  await expect(page.getByTestId("realization-detail-position")).toHaveText("3 / 5");
   await page.keyboard.press("ArrowRight");
   await expect(dialog.locator("img")).toHaveAttribute("src", "https://cdn.example/photo-4.jpg");
+  await expect(page.getByTestId("realization-detail-position")).toHaveText("4 / 5");
   await page.getByTestId("realization-detail-previous").click();
   await expect(dialog.locator("img")).toHaveAttribute("src", "https://cdn.example/photo-3.jpg");
+  await expect(page.getByTestId("realization-detail-position")).toHaveText("3 / 5");
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
   await expect(page.getByTestId("realization-detail-open")).toBeFocused();
@@ -171,7 +175,7 @@ test("shows a published realization without private or sample data", async ({ pa
   }
 });
 
-test("does not offer gallery navigation for a single photo", async ({ page }) => {
+test("opens a single photo without previous or next controls", async ({ page }) => {
   await setLocale(page, "en");
   await mockDetail(page, detailBody({ images: [{ url: "https://cdn.example/photo-1.jpg" }] }));
   await page.goto(`/realisations/${REALIZATION_ID}`);
@@ -181,6 +185,21 @@ test("does not offer gallery navigation for a single photo", async ({ page }) =>
   await expect(page.getByTestId("realization-detail-thumb")).toHaveCount(0);
   await expect(page.getByTestId("realization-detail-lightbox")).toHaveCount(0);
   await expect(page.getByTestId("realization-detail-hero")).toHaveAttribute("alt", "Photo 1 of 1");
+  await page.getByTestId("realization-detail-open").click();
+  const dialog = page.getByTestId("realization-detail-lightbox");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.locator("img")).toHaveCount(1);
+  await expect(dialog.locator("img")).toHaveAttribute("src", "https://cdn.example/photo-1.jpg");
+  await expect(page.getByTestId("realization-detail-position")).toHaveText("1 / 1");
+  await expect(page.getByTestId("realization-detail-previous")).toHaveCount(0);
+  await expect(page.getByTestId("realization-detail-next")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Close gallery" })).toBeVisible();
+  await expect(page.getByTestId("realization-detail-close")).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.getByTestId("realization-detail-close")).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByTestId("realization-detail-open")).toBeFocused();
   await expect(page.getByTestId("realization-detail-project")).toContainText(
     "This realization is not associated with a public project."
   );
@@ -309,7 +328,11 @@ async function visibleSources(page: Page) {
 
 async function expectOnlyRealizationA(page: Page, current: string) {
   const dialog = page.getByTestId("realization-detail-lightbox");
+  await expect(dialog.locator("img")).toHaveCount(1);
   await expect(dialog.locator("img")).toHaveAttribute("src", current);
+  await expect(page.getByTestId("realization-detail-position")).toHaveText(
+    `${IMAGES_A.indexOf(current) + 1} / ${IMAGES_A.length}`
+  );
   const sources = await visibleSources(page);
   expect(sources.length).toBeGreaterThan(0);
   expect(sources.every((src) => src !== null && IMAGES_A.includes(src))).toBe(true);
@@ -370,7 +393,91 @@ test("gallery stays on the current realization while another one is in the catal
   await expect(page.getByTestId("realization-detail-lightbox")).toHaveCount(0);
   await expect(page).toHaveURL(new RegExp(`/realisations/${REALIZATION_A}$`));
   await expect(page.getByTestId("realization-detail-hero")).toHaveAttribute("src", IMAGES_A[0]);
+  expect(await page.evaluate(() => document.body.style.overflow)).toBe("");
   const sources = await visibleSources(page);
   expect(sources.every((src) => src !== null && IMAGES_A.includes(src))).toBe(true);
   for (const foreign of IMAGES_B) expect(sources).not.toContain(foreign);
+});
+
+test("presents a full-screen lightbox on desktop, tablet, and phone", async ({ page }) => {
+  await setLocale(page, "fr");
+  await mockDetail(page, detailBody());
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto(`/realisations/${REALIZATION_ID}`);
+  await page.getByTestId("realization-detail-open").click();
+
+  const dialog = page.getByTestId("realization-detail-lightbox");
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveAttribute("role", "dialog");
+  await expect(dialog).toHaveAttribute("aria-modal", "true");
+  await expect(dialog.locator("img")).toHaveCount(1);
+  await expect(dialog.locator("img")).toHaveAttribute("src", "https://cdn.example/photo-1.jpg");
+  await expect(page.getByTestId("realization-detail-position")).toHaveText("1 / 5");
+  await expect(page.getByRole("button", { name: "Image précédente" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Image suivante" })).toBeVisible();
+  const backdrop = await dialog.evaluate((element) => getComputedStyle(element).backgroundColor);
+  expect(backdrop).toBe("rgba(0, 0, 0, 0.9)");
+  expect(await page.evaluate(() => document.body.style.overflow)).toBe("hidden");
+  expect(
+    await page.evaluate(() => {
+      const contact = document.querySelector("[data-testid='realization-detail-contact']");
+      return Boolean(contact?.closest("[inert]"));
+    })
+  ).toBe(true);
+
+  const close = page.getByTestId("realization-detail-close");
+  const previous = page.getByTestId("realization-detail-previous");
+  const next = page.getByTestId("realization-detail-next");
+  await expect(close).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(next).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(close).toBeFocused();
+
+  const desktop = {
+    viewport: page.viewportSize(),
+    dialog: await dialog.boundingBox(),
+    image: await dialog.locator("img").boundingBox(),
+    previous: await previous.boundingBox(),
+    next: await next.boundingBox(),
+    close: await close.boundingBox(),
+  };
+  expect(desktop.viewport?.width).toBe(1280);
+  expect(desktop.dialog?.width).toBeGreaterThanOrEqual(1279);
+  expect(desktop.dialog?.height).toBeGreaterThanOrEqual(799);
+  expect(desktop.previous && desktop.image && desktop.previous.x + desktop.previous.width).toBeLessThanOrEqual(
+    desktop.image.x + 1
+  );
+  expect(desktop.next && desktop.image && desktop.next.x).toBeGreaterThanOrEqual(
+    desktop.image.x + desktop.image.width - 1
+  );
+  expect(desktop.close && desktop.close.x).toBeGreaterThan(1100);
+  expect(desktop.close && desktop.close.y).toBeLessThan(40);
+
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByTestId("realization-detail-position")).toHaveText("2 / 5");
+
+  for (const width of [768, 390]) {
+    await page.setViewportSize({ width, height: 800 });
+    await expect(dialog.locator("img")).toHaveCount(1);
+    await expect(previous).toBeVisible();
+    await expect(next).toBeVisible();
+    await expect(close).toBeVisible();
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1
+    );
+    expect(overflow).toBe(false);
+    const box = await dialog.boundingBox();
+    expect(box?.width).toBeGreaterThanOrEqual(width - 1);
+    expect(box?.height).toBeGreaterThanOrEqual(799);
+  }
+
+  await swipeLightbox(page, "next");
+  await expect(dialog.locator("img")).toHaveAttribute("src", "https://cdn.example/photo-3.jpg");
+  await expect(page.getByTestId("realization-detail-position")).toHaveText("3 / 5");
+  await page.getByTestId("realization-detail-close").click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByTestId("realization-detail-open")).toBeFocused();
+  expect(await page.evaluate(() => document.body.style.overflow)).toBe("");
+  await expect(page).toHaveURL(new RegExp(`/realisations/${REALIZATION_ID}$`));
 });
