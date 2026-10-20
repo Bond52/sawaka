@@ -2,6 +2,7 @@ const {
   isPubliclyAvailableProfile,
   initialLifecycle,
   collectProfileFieldErrors,
+  profileCompletionPercent,
   shapeProfile,
   PROFILE_STATUS,
   DISPLAY_NAME_MAX,
@@ -191,5 +192,90 @@ describe("contributor profile rules", () => {
     expect(pub.photoPublicId).toBeUndefined();
     expect(JSON.stringify(owner)).not.toContain("secret-id");
     expect(JSON.stringify(pub)).not.toMatch(/email|password|token/i);
+    expect(owner.completionPercent).toBeUndefined();
+    expect(pub.completionPercent).toBeUndefined();
+  });
+});
+
+describe("profile completion percent", () => {
+  const domainId = "64b000000000000000000001";
+
+  it("returns 0 for a missing profile", () => {
+    expect(profileCompletionPercent(null)).toBe(0);
+    expect(profileCompletionPercent(undefined)).toBe(0);
+  });
+
+  it("counts each persisted check once and ignores empty text", () => {
+    expect(profileCompletionPercent({ displayName: " Amina " })).toBe(17);
+    expect(profileCompletionPercent({ displayName: "   " })).toBe(0);
+    expect(profileCompletionPercent({ domainId })).toBe(17);
+    expect(profileCompletionPercent({ domain: { id: domainId } })).toBe(17);
+    expect(profileCompletionPercent({ domainId: "  " })).toBe(0);
+    expect(profileCompletionPercent({ skills: [{ customLabel: "Raphia" }] })).toBe(17);
+    expect(profileCompletionPercent({ skills: [{}, { customLabel: "Bois" }] })).toBe(17);
+    expect(profileCompletionPercent({ skills: [] })).toBe(0);
+    expect(profileCompletionPercent({ country: " Cameroun " })).toBe(17);
+    expect(profileCompletionPercent({ country: "" })).toBe(0);
+    expect(profileCompletionPercent({ biography: " Formatrices " })).toBe(17);
+    expect(profileCompletionPercent({ biography: "   " })).toBe(0);
+    expect(profileCompletionPercent({ photoUrl: " https://cdn.example/a.jpg " })).toBe(17);
+    expect(profileCompletionPercent({ photoUrl: "" })).toBe(0);
+    expect(profileCompletionPercent({ photoUrl: null })).toBe(0);
+  });
+
+  it("scores partial combinations, 67 for a minimal valid profile, and 100 when every check is filled", () => {
+    expect(
+      profileCompletionPercent({ displayName: "Amina", country: "Cameroun" })
+    ).toBe(33);
+    expect(
+      profileCompletionPercent({
+        displayName: "Amina",
+        domainId,
+        skills: [{ skillId: "64b000000000000000000002" }],
+      })
+    ).toBe(50);
+
+    const minimal = {
+      displayName: "Amina Nguema",
+      domainId,
+      skills: [{ skillId: "64b000000000000000000002" }],
+      country: "Cameroun",
+      region: "Centre",
+      city: "Yaoundé",
+      biography: "",
+      photoUrl: "",
+    };
+    expect(profileCompletionPercent(minimal)).toBe(67);
+    expect(profileCompletionPercent({ ...minimal, biography: "Maçonne." })).toBe(83);
+    expect(
+      profileCompletionPercent({
+        ...minimal,
+        biography: "Maçonne.",
+        photoUrl: "https://cdn.example/amina.jpg",
+      })
+    ).toBe(100);
+  });
+
+  it("is deterministic, stays inside 0–100, and does not change when region or city change", () => {
+    const profile = {
+      displayName: "Amina",
+      domainId,
+      skills: [{ isCustom: true, customLabel: "Raphia" }],
+      country: "Cameroun",
+    };
+    expect(profileCompletionPercent(profile)).toBe(profileCompletionPercent({ ...profile }));
+    expect(profileCompletionPercent(profile)).toBe(67);
+    expect(profileCompletionPercent({ ...profile, region: "Littoral", city: "Douala" })).toBe(67);
+    expect(profileCompletionPercent({ region: "Centre", city: "Yaoundé" })).toBe(0);
+    expect(profileCompletionPercent({ displayName: 12, skills: "none", photoUrl: 0 })).toBe(0);
+    expect(
+      profileCompletionPercent({
+        ...profile,
+        biography: "Bio",
+        photoUrl: "https://cdn.example/a.jpg",
+        region: "Ouest",
+        city: "Bafoussam",
+      })
+    ).toBe(100);
   });
 });

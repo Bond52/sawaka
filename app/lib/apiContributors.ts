@@ -23,6 +23,8 @@ export type ContributorProfileDetail = {
   status?: string;
   isVisible?: boolean;
   photoUrl?: string | null;
+  /** Integer 0–100 from GET /api/contributors/me. Absent on public profiles. */
+  completionPercent?: number;
 };
 
 export type ContributorProfilePayload = ContributorProfileDetail;

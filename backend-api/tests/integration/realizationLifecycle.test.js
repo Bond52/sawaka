@@ -415,4 +415,88 @@ describe("realization lifecycle", () => {
     expect(tooLong.body.items[0].code).toBe("TITLE_TOO_LONG");
     expect(await Realization.findOne({ clientGroupId: "group-long-03" })).toBeNull();
   });
+
+  it("counts only the owner published realizations across publish, draft, and delete", async () => {
+    const { owner, other, domain } = await world("published-count");
+    const draft = await realization({
+      owner: owner.user,
+      domain,
+      status: "draft",
+      sequence: 1,
+    });
+    const second = await realization({
+      owner: owner.user,
+      domain,
+      status: "draft",
+      sequence: 2,
+    });
+    const foreign = await realization({
+      owner: other.user,
+      domain,
+      status: "published",
+      sequence: 1,
+    });
+
+    const publishedCount = (body) =>
+      body.realizations.filter((item) => item.status === "published").length;
+    const ownList = () =>
+      request(app).get("/api/contributors/me/realizations").set("Cookie", owner.cookie);
+
+    const initial = await ownList();
+    expect(initial.status).toBe(200);
+    expect(publishedCount(initial.body)).toBe(0);
+    expect(initial.body.realizations.map((item) => item.id)).not.toContain(String(foreign._id));
+
+    const published = await request(app)
+      .post(`/api/contributors/me/realizations/${draft._id}/publish`)
+      .set("Cookie", owner.cookie);
+    expect(published.status).toBe(200);
+    expect(publishedCount((await ownList()).body)).toBe(1);
+
+    const secondPublished = await request(app)
+      .post(`/api/contributors/me/realizations/${second._id}/publish`)
+      .set("Cookie", owner.cookie);
+    expect(secondPublished.status).toBe(200);
+    expect(publishedCount((await ownList()).body)).toBe(2);
+
+    const backToDraft = await request(app)
+      .post(`/api/contributors/me/realizations/${draft._id}/draft`)
+      .set("Cookie", owner.cookie);
+    expect(backToDraft.status).toBe(200);
+    expect(publishedCount((await ownList()).body)).toBe(1);
+
+    const removedPublished = await request(app)
+      .delete(`/api/contributors/me/realizations/${second._id}`)
+      .set("Cookie", owner.cookie);
+    expect(removedPublished.status).toBe(200);
+    expect(publishedCount((await ownList()).body)).toBe(0);
+
+    const kept = await realization({
+      owner: owner.user,
+      domain,
+      status: "published",
+      sequence: 3,
+    });
+    const disposableDraft = await realization({
+      owner: owner.user,
+      domain,
+      status: "draft",
+      sequence: 4,
+    });
+    expect(publishedCount((await ownList()).body)).toBe(1);
+
+    const removedDraft = await request(app)
+      .delete(`/api/contributors/me/realizations/${disposableDraft._id}`)
+      .set("Cookie", owner.cookie);
+    expect(removedDraft.status).toBe(200);
+    const afterDraftDelete = await ownList();
+    expect(publishedCount(afterDraftDelete.body)).toBe(1);
+    expect(afterDraftDelete.body.realizations.map((item) => item.id)).toContain(String(kept._id));
+
+    const foreignList = await request(app)
+      .get("/api/contributors/me/realizations")
+      .set("Cookie", other.cookie);
+    expect(publishedCount(foreignList.body)).toBe(1);
+    expect(foreignList.body.realizations.map((item) => item.id)).toEqual([String(foreign._id)]);
+  });
 });
