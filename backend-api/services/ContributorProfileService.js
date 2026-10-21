@@ -16,6 +16,7 @@ const {
 const { uploadProfileImage, destroyStoredImage } = require("./imageStorage");
 const { profilePhotoIssue } = require("./profilePhoto");
 const { recordUserAuditEvent, USER_AUDIT_ACTIONS } = require("./AuditService");
+const { recordActivity } = require("./ContributorActivityService");
 
 const DISPLAY_NAME_MIN = 2;
 const DISPLAY_NAME_MAX = 80;
@@ -560,6 +561,13 @@ async function updateOwnContributorProfile({ authUserId, body }) {
   profile.skills = skillsFromValue(value);
   await profile.save();
 
+  await recordActivity({
+    userId: authUserId,
+    type: "profile.updated",
+    entityType: "contributor_profile",
+    entityTitleSnapshot: "",
+  });
+
   return shapeProfile(profile, domain, canonical, { includeLifecycle: true });
 }
 
@@ -583,6 +591,10 @@ async function shapedOwnedProfile(profile) {
   return shapeProfile(profile, domain, skillDocs, { includeLifecycle: true });
 }
 
+/**
+ * Photo upload is a follow-up of the same profile form save, which already
+ * recorded profile.updated. A second event here would duplicate that action.
+ */
 async function updateOwnContributorPhoto({ authUserId, file }) {
   const issue = profilePhotoIssue(file);
   if (issue) {

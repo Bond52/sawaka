@@ -51,6 +51,7 @@ router.post(
   contributorController.resendVerificationEmail
 );
 router.get("/me", requireAuth, contributorController.getOwnContributor);
+router.get("/me/activity", requireAuth, contributorController.listOwnActivity);
 router.patch("/me", requireAuth, contributorController.updateOwnContributor);
 router.post(
   "/me/import-photos/validate",

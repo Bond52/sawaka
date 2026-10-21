@@ -10,6 +10,7 @@ const {
   ContributorProfileError,
   getPublicProfile,
 } = require("./ContributorProfileService");
+const { recordActivity } = require("./ContributorActivityService");
 
 const DESCRIPTION_MAX = 2000;
 const MATERIAL_MAX = 120;
@@ -300,6 +301,7 @@ async function commitBatch({ ownerId, manifest: rawManifest, files }) {
     const title = group.title || "";
 
     try {
+      const previousStatus = existing ? existing.status : null;
       if (existing) {
         const previous = existing.images || [];
         existing.sequence = group.sequence;
@@ -312,6 +314,14 @@ async function commitBatch({ ownerId, manifest: rawManifest, files }) {
         existing.images = stored.images;
         await existing.save();
         await discard(previous);
+        if (previousStatus !== REALIZATION_STATUS.PUBLISHED && status === REALIZATION_STATUS.PUBLISHED) {
+          await recordActivity({
+            userId: ownerId,
+            type: "realization.published",
+            entityType: "realization",
+            entityTitleSnapshot: title,
+          });
+        }
         items.push({ clientId: group.clientId, status, id: String(existing._id) });
       } else {
         const created = await Realization.create({
@@ -325,6 +335,12 @@ async function commitBatch({ ownerId, manifest: rawManifest, files }) {
           mainMaterial,
           status,
           images: stored.images,
+        });
+        await recordActivity({
+          userId: ownerId,
+          type: status === REALIZATION_STATUS.PUBLISHED ? "realization.published" : "realization.created",
+          entityType: "realization",
+          entityTitleSnapshot: title,
         });
         items.push({ clientId: group.clientId, status, id: String(created._id) });
       }
@@ -560,6 +576,12 @@ async function updateOwned(ownerId, rawId, body) {
   doc.completedOn = group.completedOn || null;
   doc.mainMaterial = group.mainMaterial;
   await doc.save();
+  await recordActivity({
+    userId: ownerId,
+    type: "realization.edited",
+    entityType: "realization",
+    entityTitleSnapshot: doc.title,
+  });
   return { realization: shapeOwned(doc) };
 }
 
@@ -573,6 +595,12 @@ async function publishOwned(ownerId, rawId) {
   }
   doc.status = REALIZATION_STATUS.PUBLISHED;
   await doc.save();
+  await recordActivity({
+    userId: ownerId,
+    type: "realization.published",
+    entityType: "realization",
+    entityTitleSnapshot: doc.title,
+  });
   return { realization: shapeOwned(doc) };
 }
 
@@ -583,6 +611,12 @@ async function moveOwnedToDraft(ownerId, rawId) {
   }
   doc.status = REALIZATION_STATUS.DRAFT;
   await doc.save();
+  await recordActivity({
+    userId: ownerId,
+    type: "realization.moved_to_draft",
+    entityType: "realization",
+    entityTitleSnapshot: doc.title,
+  });
   return { realization: shapeOwned(doc) };
 }
 
@@ -609,7 +643,14 @@ async function deleteOwned(ownerId, rawId) {
   if (failures.length > 0) {
     throw new RealizationError("IMAGE_CLEANUP_FAILED", 502, { images: "CLEANUP_FAILED" });
   }
+  const entityTitleSnapshot = doc.title;
   await doc.deleteOne();
+  await recordActivity({
+    userId: ownerId,
+    type: "realization.deleted",
+    entityType: "realization",
+    entityTitleSnapshot,
+  });
   return { deleted: true };
 }
 

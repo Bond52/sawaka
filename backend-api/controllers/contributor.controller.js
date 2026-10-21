@@ -15,6 +15,8 @@ const {
   consumeVerificationToken,
   UserEmailVerificationError,
 } = require("../services/UserEmailVerificationService");
+const ContributorActivityService = require("../services/ContributorActivityService");
+const { ContributorActivityError } = ContributorActivityService;
 
 function sendFunctionalError(res, err) {
   const body = { error: { code: err.code } };
@@ -266,6 +268,17 @@ async function commitRealizations(req, res) {
   }
 }
 
+async function listOwnActivity(req, res) {
+  try {
+    const result = await ContributorActivityService.listOwnActivity(req.user.id);
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof ContributorActivityError) return sendFunctionalError(res, err);
+    logContributorError("listOwnActivity", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
 async function listOwnRealizations(req, res) {
   try {
     const result = await realizationService.listOwned(req.user.id);
@@ -303,6 +316,7 @@ module.exports = {
   verifyAccountEmail,
   validateImportPhotos,
   commitRealizations,
+  listOwnActivity,
   listOwnRealizations,
   listPublicRealizations,
 };
