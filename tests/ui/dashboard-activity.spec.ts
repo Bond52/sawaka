@@ -38,10 +38,26 @@ async function mockDashboard(page: Page, activities: unknown, options?: { status
     calls.push(`${url.pathname}${url.search}`);
     if (options?.hold && url.pathname.endsWith("/activity")) await options.hold;
     if (url.pathname.endsWith("/api/contributors/me/activity")) {
+      const list = Array.isArray(activities) ? activities : [];
+      const pageNum = Number(url.searchParams.get("page") || "1");
+      const limit = Number(url.searchParams.get("limit") || "10");
+      const start = Number.isInteger(pageNum) && pageNum > 0 ? (pageNum - 1) * limit : 0;
+      const slice = list.slice(start, start + (Number.isInteger(limit) && limit > 0 ? limit : 10));
+      const total = list.length;
       await route.fulfill({
         status: options?.status ?? 200,
         contentType: "application/json",
-        body: JSON.stringify(options?.status && options.status !== 200 ? { error: { code: "SERVER_ERROR" } } : { activities }),
+        body: JSON.stringify(
+          options?.status && options.status !== 200
+            ? { error: { code: "SERVER_ERROR" } }
+            : {
+                activities: slice,
+                page: pageNum,
+                limit,
+                total,
+                totalPages: total === 0 ? 0 : Math.ceil(total / (limit || 10)),
+              }
+        ),
       });
       return;
     }
@@ -72,6 +88,14 @@ test.describe("Contributor recent activity", () => {
       activity("gone", "realization.deleted", null, new Date(now - 3 * 24 * 60 * 60 * 1000).toISOString()),
       activity("profile", "profile.updated", null, new Date(now - 10 * 24 * 60 * 60 * 1000).toISOString()),
       activity("extra", "realization.created", "Extra", new Date(now - 20 * 24 * 60 * 60 * 1000).toISOString()),
+      ...Array.from({ length: 6 }, (_, index) =>
+        activity(
+          `older-${index}`,
+          "realization.created",
+          `Ancien ${index + 1}`,
+          new Date(now - (21 + index) * 24 * 60 * 60 * 1000).toISOString()
+        )
+      ),
     ];
     let release: () => void = () => {};
     const hold = new Promise<void>((resolve) => {
@@ -88,7 +112,7 @@ test.describe("Contributor recent activity", () => {
     release();
 
     const items = page.getByTestId("dashboard-activity-item");
-    await expect(items).toHaveCount(5);
+    await expect(items).toHaveCount(10);
     await expect(items.nth(0)).toContainText("Réalisation « Table basse » publiée");
     await expect(items.nth(0).locator("time")).toContainText(/il y a 5.+minutes/);
     await expect(items.nth(1)).toContainText("Réalisation « Table basse » modifiée");
@@ -97,8 +121,13 @@ test.describe("Contributor recent activity", () => {
     await expect(items.nth(3)).toContainText("Une réalisation a été supprimée");
     await expect(items.nth(4)).toContainText("Profil contributeur mis à jour");
     await expect(page.getByText("secret@example.com")).toHaveCount(0);
-    await expect(page.getByTestId("dashboard-activity-history")).toBeDisabled();
+    const history = page.getByTestId("dashboard-activity-history");
+    await expect(history).toHaveAttribute("href", "/dashboard/activity");
+    await history.focus();
+    await expect(history).toBeFocused();
+    expect(calls.some((url) => url.includes("/api/contributors/me/activity?page=1&limit=10"))).toBe(true);
     expect(calls.some((url) => url.includes("ownerId"))).toBe(false);
+    await expect(page.getByText("Ancien 6")).toHaveCount(0);
 
     await page.getByRole("button", { name: "EN", exact: true }).click();
     await expect(items.nth(0)).toContainText("Realization “Table basse” published");

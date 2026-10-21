@@ -1,8 +1,10 @@
 const mongoose = require("mongoose");
 const ContributorActivity = require("../models/ContributorActivity");
 
-const DASHBOARD_LIMIT = 5;
+const DEFAULT_LIMIT = 10;
+const MAX_LIMIT = 50;
 const TITLE_MAX = 120;
+const POSITIVE_INT = /^[1-9]\d*$/;
 
 class ContributorActivityError extends Error {
   constructor(code, status) {
@@ -51,21 +53,54 @@ function shapeActivity(doc) {
   };
 }
 
+function readPageQuery(query) {
+  const source = query && typeof query === "object" ? query : {};
+  return {
+    page: readPositiveInt(source.page, 1),
+    limit: readPositiveInt(source.limit, DEFAULT_LIMIT, MAX_LIMIT),
+  };
+}
+
+function readPositiveInt(value, fallback, max) {
+  if (value === undefined) return fallback;
+  if (Array.isArray(value) || typeof value !== "string" || !POSITIVE_INT.test(value)) {
+    throw new ContributorActivityError("VALIDATION_ERROR", 400);
+  }
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || (max !== undefined && parsed > max)) {
+    throw new ContributorActivityError("VALIDATION_ERROR", 400);
+  }
+  return parsed;
+}
+
 /**
- * Latest activity for the authenticated user. The caller must pass the session user id.
+ * One page of activity for the authenticated user.
+ * The caller must pass the session user id. query.ownerId is ignored.
  */
-async function listOwnActivity(userId) {
+async function listOwnActivity(userId, query) {
   if (!userId || !mongoose.isValidObjectId(userId)) {
     throw new ContributorActivityError("UNAUTHORIZED", 401);
   }
-  const docs = await ContributorActivity.find({ userId })
+  const { page, limit } = readPageQuery(query);
+  const filter = { userId };
+  const total = await ContributorActivity.countDocuments(filter);
+  const totalPages = total === 0 ? 0 : Math.ceil(total / limit);
+  const docs = await ContributorActivity.find(filter)
     .sort({ createdAt: -1, _id: -1 })
-    .limit(DASHBOARD_LIMIT);
-  return { activities: docs.map(shapeActivity) };
+    .skip((page - 1) * limit)
+    .limit(limit);
+  return {
+    activities: docs.map(shapeActivity),
+    page,
+    limit,
+    total,
+    totalPages,
+  };
 }
 
 module.exports = {
-  DASHBOARD_LIMIT,
+  DEFAULT_LIMIT,
+  MAX_LIMIT,
   ContributorActivityError,
   recordActivity,
   listOwnActivity,

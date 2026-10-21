@@ -284,7 +284,10 @@ test.describe("Authenticated user dashboard (#362)", () => {
     await expect(page.getByRole("heading", { name: "Quick actions" })).toHaveCount(0);
     await expect(page).toHaveURL(/\/dashboard/);
 
-    await expect(page.getByTestId("dashboard-activity-history")).toBeDisabled();
+    const history = page.getByTestId("dashboard-activity-history");
+    await expect(history).toHaveAttribute("href", "/dashboard/activity");
+    await history.focus();
+    await expect(history).toBeFocused();
     const viewAll = page.getByTestId("dashboard-badges-view-all");
     await expect(viewAll).toBeDisabled();
     await viewAll.focus();

@@ -1,4 +1,5 @@
-export const ACTIVITY_LIMIT = 5;
+export const ACTIVITY_LIMIT = 10;
+export const ACTIVITY_MAX_LIMIT = 50;
 
 export const ACTIVITY_TYPES = [
   "profile.updated",
@@ -19,8 +20,16 @@ export type ContributorActivityItem = {
   createdAt: string;
 };
 
+export type OwnActivityPage = {
+  activities: ContributorActivityItem[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+};
+
 export type OwnActivityResult =
-  | { ok: true; activities: ContributorActivityItem[] }
+  | ({ ok: true } & OwnActivityPage)
   | { ok: false; status: number };
 
 const TYPE_SET = new Set<string>(ACTIVITY_TYPES);
@@ -57,7 +66,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object";
 }
 
-export function parseOwnActivities(data: unknown): ContributorActivityItem[] | null {
+function readCount(value: unknown, fallback: number): number | null {
+  if (value === undefined) return fallback;
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0) return null;
+  return value;
+}
+
+export function parseOwnActivityPage(data: unknown, itemLimit = ACTIVITY_LIMIT): OwnActivityPage | null {
   if (!isRecord(data) || !Array.isArray(data.activities)) return null;
   const items: ContributorActivityItem[] = [];
   for (const row of data.activities) {
@@ -77,7 +92,26 @@ export function parseOwnActivities(data: unknown): ContributorActivityItem[] | n
       createdAt: row.createdAt,
     });
   }
-  return items.slice(0, ACTIVITY_LIMIT);
+  const page = readCount(data.page, 1);
+  const limit = readCount(data.limit, itemLimit);
+  const total = readCount(data.total, items.length);
+  if (page === null || page < 1 || limit === null || limit < 1 || limit > ACTIVITY_MAX_LIMIT || total === null) {
+    return null;
+  }
+  const totalPages = readCount(data.totalPages, total === 0 ? 0 : Math.ceil(total / limit));
+  if (totalPages === null) return null;
+  return {
+    activities: items.slice(0, itemLimit),
+    page,
+    limit,
+    total,
+    totalPages,
+  };
+}
+
+export function parseOwnActivities(data: unknown, itemLimit = ACTIVITY_LIMIT): ContributorActivityItem[] | null {
+  const page = parseOwnActivityPage(data, itemLimit);
+  return page ? page.activities : null;
 }
 
 export function activityMessage(
@@ -124,23 +158,29 @@ export function formatActivityTime(iso: string, locale: string, now = Date.now()
   });
 }
 
-/** Loads the signed-in contributor's latest activity. The client never sends an owner id. */
-export async function loadOwnActivity(): Promise<OwnActivityResult> {
+/** Loads one page of the signed-in contributor's activity. The client never sends an owner id. */
+export async function loadOwnActivity(options?: {
+  page?: number | string;
+  limit?: number;
+}): Promise<OwnActivityResult> {
   const { readStoredUser } = await import("./authUser");
   const { resolveApiBaseUrl } = await import("./apiBase");
   const user = readStoredUser();
   if (!user) return { ok: false, status: 401 };
+  const page = options?.page ?? 1;
+  const limit = options?.limit ?? ACTIVITY_LIMIT;
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) });
   try {
-    const res = await fetch(`${resolveApiBaseUrl()}/api/contributors/me/activity`, {
+    const res = await fetch(`${resolveApiBaseUrl()}/api/contributors/me/activity?${params}`, {
       method: "GET",
       credentials: "include",
       headers: { Authorization: `Bearer ${user.token}` },
     });
     const data = await res.json().catch(() => null);
     if (!res.ok) return { ok: false, status: res.status };
-    const activities = parseOwnActivities(data);
-    if (!activities) return { ok: false, status: 500 };
-    return { ok: true, activities };
+    const parsed = parseOwnActivityPage(data, typeof limit === "number" ? limit : ACTIVITY_LIMIT);
+    if (!parsed) return { ok: false, status: 500 };
+    return { ok: true, ...parsed };
   } catch (err) {
     console.error("[contributorActivity] loadOwnActivity: network error", { err });
     return { ok: false, status: 0 };
