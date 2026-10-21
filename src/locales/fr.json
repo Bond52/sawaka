@@ -90,7 +90,20 @@
     "activity": {
       "title": "Mon activité récente",
       "empty": "Aucune activité récente pour le moment.",
-      "viewHistory": "Voir tout mon historique"
+      "loading": "Chargement de l'activité récente…",
+      "unavailable": "L'activité récente est indisponible.",
+      "viewHistory": "Voir tout mon historique",
+      "profileUpdated": "Profil contributeur mis à jour",
+      "realizationCreated": "Réalisation « {title} » créée",
+      "realizationCreatedUntitled": "Une réalisation a été créée",
+      "realizationPublished": "Réalisation « {title} » publiée",
+      "realizationPublishedUntitled": "Une réalisation a été publiée",
+      "realizationDrafted": "Réalisation « {title} » remise en brouillon",
+      "realizationDraftedUntitled": "Une réalisation a été remise en brouillon",
+      "realizationEdited": "Réalisation « {title} » modifiée",
+      "realizationEditedUntitled": "Une réalisation a été modifiée",
+      "realizationDeleted": "Réalisation « {title} » supprimée",
+      "realizationDeletedUntitled": "Une réalisation a été supprimée"
     },
     "badges": {
       "title": "Mes badges",

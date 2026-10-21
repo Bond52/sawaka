@@ -90,7 +90,20 @@
     "activity": {
       "title": "My recent activity",
       "empty": "No recent activity yet.",
-      "viewHistory": "View my full history"
+      "loading": "Loading recent activity…",
+      "unavailable": "Recent activity is unavailable.",
+      "viewHistory": "View my full history",
+      "profileUpdated": "Contributor profile updated",
+      "realizationCreated": "Realization “{title}” created",
+      "realizationCreatedUntitled": "A realization was created",
+      "realizationPublished": "Realization “{title}” published",
+      "realizationPublishedUntitled": "A realization was published",
+      "realizationDrafted": "Realization “{title}” moved to Draft",
+      "realizationDraftedUntitled": "A realization was moved to Draft",
+      "realizationEdited": "Realization “{title}” edited",
+      "realizationEditedUntitled": "A realization was edited",
+      "realizationDeleted": "Realization “{title}” deleted",
+      "realizationDeletedUntitled": "A realization was deleted"
     },
     "badges": {
       "title": "My badges",

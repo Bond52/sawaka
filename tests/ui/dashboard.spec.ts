@@ -96,6 +96,14 @@ async function mockDashboardMetrics(page: Page, options: DashboardMetricMock = {
     if (options.delayMs) {
       await new Promise((resolve) => setTimeout(resolve, options.delayMs));
     }
+    if (url.pathname.endsWith("/api/contributors/me/activity")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ activities: [] }),
+      });
+      return;
+    }
     if (url.pathname.endsWith("/api/contributors/me/realizations")) {
       await route.fulfill({
         status: realizationsStatus,
@@ -431,6 +439,14 @@ test.describe("Dashboard profile and published realization metrics (#466)", () =
     await page.route("**/api/contributors/me**", async (route: Route) => {
       await gate;
       const url = new URL(route.request().url());
+      if (url.pathname.endsWith("/activity")) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ activities: [] }),
+        });
+        return;
+      }
       if (url.pathname.endsWith("/realizations")) {
         await route.fulfill({
           status: 200,
@@ -555,6 +571,14 @@ test.describe("Dashboard profile and published realization metrics (#466)", () =
     let published = 0;
     await page.route("**/api/contributors/me**", async (route: Route) => {
       const url = new URL(route.request().url());
+      if (url.pathname.endsWith("/activity")) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ activities: [] }),
+        });
+        return;
+      }
       if (url.pathname.endsWith("/realizations")) {
         await route.fulfill({
           status: 200,
