@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useTranslation } from "@/src/i18n/I18nProvider";
 import {
   activityMessage,
+  ACTIVITY_LIMIT,
   formatActivityTime,
   loadOwnActivity,
   type ContributorActivityItem,
@@ -13,7 +15,7 @@ type Phase = "loading" | "ready" | "error";
 
 /**
  * Owner recent activity. Rows are text; they do not link to realizations.
- * View full history stays unavailable until a history page exists.
+ * The history link opens the paginated owner history page.
  */
 export default function DashboardRecentActivity() {
   const { t, locale } = useTranslation();
@@ -22,7 +24,7 @@ export default function DashboardRecentActivity() {
 
   useEffect(() => {
     let cancelled = false;
-    loadOwnActivity().then((result) => {
+    loadOwnActivity({ page: 1, limit: ACTIVITY_LIMIT }).then((result) => {
       if (cancelled) return;
       if (result.ok) {
         setActivities(result.activities);
@@ -89,16 +91,13 @@ export default function DashboardRecentActivity() {
         </ul>
       ) : null}
 
-      <button
-        type="button"
-        disabled
-        className="mt-4 cursor-not-allowed text-sm text-muted-foreground"
+      <Link
+        href="/dashboard/activity"
+        className="mt-4 inline-block rounded-md text-sm text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         data-testid="dashboard-activity-history"
-        title={t("dashboard.actionUnavailable")}
-        aria-disabled="true"
       >
         {t("dashboard.activity.viewHistory")} →
-      </button>
+      </Link>
     </section>
   );
 }

@@ -270,7 +270,7 @@ async function commitRealizations(req, res) {
 
 async function listOwnActivity(req, res) {
   try {
-    const result = await ContributorActivityService.listOwnActivity(req.user.id);
+    const result = await ContributorActivityService.listOwnActivity(req.user.id, req.query);
     return res.json(result);
   } catch (err) {
     if (err instanceof ContributorActivityError) return sendFunctionalError(res, err);

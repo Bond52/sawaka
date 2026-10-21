@@ -329,10 +329,10 @@ describe("contributor recent activity", () => {
     expect(anonymous.status).toBe(401);
   });
 
-  it("returns the newest five activities for the session owner", async () => {
+  it("returns the newest ten activities and pages the session owner only", async () => {
     const owner = await account("activity-limit");
     const other = await account("activity-limit-b");
-    const stamps = [1, 2, 3, 4, 5, 6].map((day) => new Date(Date.UTC(2026, 0, day, 12, 0, 0)));
+    const stamps = Array.from({ length: 12 }, (_, index) => new Date(Date.UTC(2026, 0, index + 1, 12, 0, 0)));
     await ContributorActivity.create(
       stamps.map((createdAt, index) => ({
         userId: owner.user._id,
@@ -347,20 +347,92 @@ describe("contributor recent activity", () => {
       type: "profile.updated",
       entityType: "contributor_profile",
       entityTitleSnapshot: "",
-      createdAt: new Date(Date.UTC(2026, 0, 7)),
+      createdAt: new Date(Date.UTC(2026, 0, 20)),
     });
 
     const res = await request(app).get("/api/contributors/me/activity").set("Cookie", owner.cookie);
     expect(res.status).toBe(200);
-    expect(res.body.activities).toHaveLength(5);
+    expect(res.body).toMatchObject({ page: 1, limit: 10, total: 12, totalPages: 2 });
+    expect(res.body.activities).toHaveLength(10);
     expect(res.body.activities.map((item) => item.title)).toEqual([
+      "Item 12",
+      "Item 11",
+      "Item 10",
+      "Item 9",
+      "Item 8",
+      "Item 7",
       "Item 6",
       "Item 5",
       "Item 4",
       "Item 3",
-      "Item 2",
     ]);
     expect(res.body.activities.some((item) => item.type === "profile.updated")).toBe(false);
-    expect(new Date(res.body.activities[0].createdAt).toISOString()).toBe(stamps[5].toISOString());
+    expect(new Date(res.body.activities[0].createdAt).toISOString()).toBe(stamps[11].toISOString());
+
+    const first = await request(app)
+      .get("/api/contributors/me/activity?page=1&limit=10")
+      .set("Cookie", owner.cookie);
+    expect(first.body.activities.map((item) => item.title)).toEqual(res.body.activities.map((item) => item.title));
+
+    const second = await request(app)
+      .get("/api/contributors/me/activity?page=2&limit=10")
+      .set("Cookie", owner.cookie);
+    expect(second.status).toBe(200);
+    expect(second.body).toMatchObject({ page: 2, limit: 10, total: 12, totalPages: 2 });
+    expect(second.body.activities.map((item) => item.title)).toEqual(["Item 2", "Item 1"]);
+
+    const beyond = await request(app)
+      .get("/api/contributors/me/activity?page=3&limit=10")
+      .set("Cookie", owner.cookie);
+    expect(beyond.status).toBe(200);
+    expect(beyond.body.activities).toEqual([]);
+    expect(beyond.body).toMatchObject({ page: 3, total: 12, totalPages: 2 });
+
+    const wide = await request(app)
+      .get("/api/contributors/me/activity?limit=50")
+      .set("Cookie", owner.cookie);
+    expect(wide.status).toBe(200);
+    expect(wide.body.activities).toHaveLength(12);
+    expect(wide.body).toMatchObject({ page: 1, limit: 50, total: 12, totalPages: 1 });
+
+    for (const query of ["page=0", "page=-1", "page=1.5", "page=abc", "limit=0", "limit=51", "limit=10.5"]) {
+      const invalid = await request(app)
+        .get(`/api/contributors/me/activity?${query}`)
+        .set("Cookie", owner.cookie);
+      expect(invalid.status).toBe(400);
+    }
+
+    const foreign = await request(app)
+      .get(`/api/contributors/me/activity?page=1&limit=10&ownerId=${owner.user._id}`)
+      .set("Cookie", other.cookie);
+    expect(foreign.status).toBe(200);
+    expect(foreign.body.total).toBe(1);
+    expect(foreign.body.activities.map((item) => item.type)).toEqual(["profile.updated"]);
+    expect(foreign.body.activities.some((item) => item.title && String(item.title).startsWith("Item"))).toBe(false);
+  });
+
+  it("keeps page order stable when timestamps are equal", async () => {
+    const owner = await account("activity-tie");
+    const stamp = new Date(Date.UTC(2026, 2, 1, 12, 0, 0));
+    for (const title of ["First", "Second", "Third"]) {
+      await ContributorActivity.create({
+        userId: owner.user._id,
+        type: "realization.created",
+        entityType: "realization",
+        entityTitleSnapshot: title,
+        createdAt: stamp,
+      });
+    }
+    const titles = [];
+    for (const page of [1, 2, 3]) {
+      const res = await request(app)
+        .get(`/api/contributors/me/activity?page=${page}&limit=1`)
+        .set("Cookie", owner.cookie);
+      expect(res.status).toBe(200);
+      expect(res.body.activities).toHaveLength(1);
+      titles.push(res.body.activities[0].title);
+    }
+    expect(titles).toEqual(["Third", "Second", "First"]);
+    expect(new Set(titles).size).toBe(3);
   });
 });

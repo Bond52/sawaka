@@ -5,12 +5,13 @@ import {
   activityMessage,
   formatActivityTime,
   parseOwnActivities,
+  parseOwnActivityPage,
 } from "./contributorActivity.ts";
 
 const now = Date.parse("2026-10-21T12:00:00.000Z");
 
-test("parseOwnActivities keeps the latest five safe rows and drops private fields", () => {
-  const rows = Array.from({ length: 6 }, (_, index) => ({
+test("parseOwnActivities keeps the latest ten safe rows and drops private fields", () => {
+  const rows = Array.from({ length: 12 }, (_, index) => ({
     id: `id-${index}`,
     type: "realization.published",
     entityType: "realization",
@@ -22,6 +23,7 @@ test("parseOwnActivities keeps the latest five safe rows and drops private field
   }));
   const items = parseOwnActivities({ activities: rows });
   assert.equal(items?.length, ACTIVITY_LIMIT);
+  assert.equal(ACTIVITY_LIMIT, 10);
   assert.equal(items?.[0].title, null);
   assert.equal("userId" in (items?.[0] ?? {}), false);
   assert.equal(parseOwnActivities({ realizations: [] }), null);
@@ -31,6 +33,20 @@ test("parseOwnActivities keeps the latest five safe rows and drops private field
     }),
     null
   );
+  const page = parseOwnActivityPage({
+    activities: rows.slice(10),
+    page: 2,
+    limit: 10,
+    total: 12,
+    totalPages: 2,
+  });
+  assert.equal(page?.activities.length, 2);
+  assert.equal(page?.page, 2);
+  assert.equal(page?.totalPages, 2);
+  assert.equal(parseOwnActivityPage({ activities: [], page: 0, limit: 10, total: 0, totalPages: 0 }), null);
+  assert.equal(parseOwnActivityPage({ activities: [], page: 1, limit: 51, total: 0, totalPages: 0 }), null);
+  const empty = parseOwnActivityPage({ activities: [] });
+  assert.deepEqual(empty, { activities: [], page: 1, limit: 10, total: 0, totalPages: 0 });
 });
 
 test("activity messages use a title snapshot and a generic sentence without one", () => {
@@ -47,6 +63,21 @@ test("activity messages use a title snapshot and a generic sentence without one"
   assert.deepEqual(activityMessage("realization.created", null), {
     key: "dashboard.activity.realizationCreatedUntitled",
   });
+  for (const [type, key] of [
+    ["realization.created", "realizationCreated"],
+    ["realization.published", "realizationPublished"],
+    ["realization.moved_to_draft", "realizationDrafted"],
+    ["realization.edited", "realizationEdited"],
+    ["realization.deleted", "realizationDeleted"],
+  ] as const) {
+    assert.deepEqual(activityMessage(type, "Table basse"), {
+      key: `dashboard.activity.${key}`,
+      title: "Table basse",
+    });
+    assert.deepEqual(activityMessage(type, null), {
+      key: `dashboard.activity.${key}Untitled`,
+    });
+  }
 });
 
 test("formatActivityTime uses relative time for recent events and a calendar date later", () => {
