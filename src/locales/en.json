@@ -510,7 +510,6 @@
     "osmAttribution": "© OpenStreetMap contributors"
   },
   "contributorDirectory": {
-    "title": "Contributors",
     "searchLabel": "Search",
     "searchPlaceholder": "Search contributors...",
     "filters": "Filters",
@@ -1391,7 +1390,6 @@
     },
     "create": {
       "title": "Create a contributor profile",
-      "subtitle": "Your Sawaka account and your public contributor profile stay separate.",
       "loading": "Loading…",
       "taxonomyError": "The list of domains could not be loaded.",
       "sessionExpired": "Your session has expired. Sign in to continue.",

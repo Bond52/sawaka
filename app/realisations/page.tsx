@@ -15,6 +15,7 @@ import {
 } from "@/app/lib/publicRealizations";
 import { useDebouncedValue } from "@/app/lib/useDebouncedValue";
 import { useTranslation } from "@/src/i18n/I18nProvider";
+import PublicPageHeader from "@/app/components/PublicPageHeader";
 
 /**
  * Public browsing of published realizations.
@@ -172,18 +173,21 @@ export default function PublishedRealizationsPage() {
   }, [debouncedQuery, domainId, reloadToken]);
 
   return (
-    <div className="wrap py-8" data-testid="published-realizations">
-      <h1
-        id="published-realizations-heading"
-        className="font-display text-3xl text-foreground lg:text-4xl"
-      >
-        {t("navigation.market")}
-      </h1>
-      <p className="mt-3 max-w-3xl text-sm text-muted-foreground">
-        {t("publishedRealizations.intro")}
-      </p>
+    <div data-testid="published-realizations">
+      <PublicPageHeader>
+        <h1
+          id="published-realizations-heading"
+          className="font-display text-3xl text-foreground lg:text-4xl"
+        >
+          {t("navigation.market")}
+        </h1>
+        <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+          {t("publishedRealizations.intro")}
+        </p>
+      </PublicPageHeader>
 
-      <div className="mt-8 flex flex-col gap-3 md:flex-row md:items-end">
+      <div className="wrap py-8">
+      <div className="flex flex-col gap-3 md:flex-row md:items-end">
         <div className="min-w-0 flex-1">
           <label
             htmlFor="published-realizations-search"
@@ -293,6 +297,7 @@ export default function PublishedRealizationsPage() {
             ))}
           </ul>
         ) : null}
+      </div>
       </div>
     </div>
   );

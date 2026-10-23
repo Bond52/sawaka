@@ -20,6 +20,7 @@ import {
   ContributorProfileFields,
   useContributorProfileFields,
 } from "../ContributorProfileFields";
+import PublicPageHeader from "@/app/components/PublicPageHeader";
 
 const PENDING_STATUS = "Pending Email Verification";
 
@@ -392,18 +393,17 @@ export default function ContributorCreateExperience() {
   }
 
   return (
-    <main className="min-h-[70vh] bg-background py-10 md:py-14">
-      <div className="wrap max-w-3xl">
+    <main className="min-h-[70vh] bg-background">
+      <PublicPageHeader>
         <h1
-          className="mb-2 font-display text-2xl text-foreground md:text-3xl"
+          className="font-display text-2xl text-foreground md:text-3xl"
           data-testid="contributor-create-title"
         >
           {t("contributor.create.title")}
         </h1>
-        <p className="mb-8 text-sm text-muted-foreground md:text-base">
-          {t("contributor.create.subtitle")}
-        </p>
+      </PublicPageHeader>
 
+      <div className="wrap max-w-3xl py-8">
         <form
           className="card space-y-8 p-6 sm:p-8"
           onSubmit={onSubmit}

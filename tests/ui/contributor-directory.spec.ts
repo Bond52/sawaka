@@ -122,7 +122,8 @@ test.describe("Contributor directory (/reseau)", () => {
     await page.goto("/reseau");
     await page.getByRole("button", { name: "FR" }).click();
 
-    await expect(page.getByRole("heading", { name: "Artisans" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Artisans" })).toHaveCount(0);
+    await expect(page.getByTestId("public-page-header")).toHaveCount(0);
     await expect(page.getByRole("option", { name: "Fournisseurs" })).toHaveCount(0);
     await expect(page.getByTestId("contributor-directory-search")).toBeVisible();
     await expect(page.getByTestId("contributor-directory-card")).toBeVisible();
@@ -167,7 +168,7 @@ test.describe("Contributor directory (/reseau)", () => {
     await mockDirectory(page);
     await page.goto("/reseau");
 
-    await expect(page.getByRole("heading", { name: "Contributors" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Contributors" })).toHaveCount(0);
     await expect(page.getByTestId("contributor-directory-search")).toHaveAttribute(
       "placeholder",
       "Search contributors..."
