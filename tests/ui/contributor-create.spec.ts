@@ -183,6 +183,12 @@ test.describe("Contributor profile creation", () => {
     await page.goto("/contributor/create");
 
     await expect(page.getByTestId("contributor-create-title")).toBeVisible();
+    await expect(
+      page.getByText(
+        "Your Sawaka account and your public contributor profile stay separate."
+      )
+    ).toHaveCount(0);
+    await expect(page.getByText("Sawaka account", { exact: true })).toBeVisible();
     await fillAccount(page);
     await fillProfile(page, {
       domain: "Masonry",

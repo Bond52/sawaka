@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslation } from "@/src/i18n/I18nProvider";
+import PublicPageHeader from "@/app/components/PublicPageHeader";
 
 export default function ProjetsEnCoursPage() {
   const { t } = useTranslation();
@@ -46,16 +47,17 @@ export default function ProjetsEnCoursPage() {
   }
 
   return (
-    <div className="wrap py-12">
-      <div className="mb-12 text-center">
-        <h1 className="text-3xl font-bold text-sawaka-800 mb-2">
+    <div>
+      <PublicPageHeader>
+        <h1 className="text-3xl font-bold text-sawaka-800">
           {t("projects.explore")}
         </h1>
-        <p className="text-sawaka-600">
+        <p className="mt-2 text-sawaka-600">
           {t("projects.subtitle")}
         </p>
-      </div>
+      </PublicPageHeader>
 
+      <div className="wrap py-8">
       <div className="flex justify-center">
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-5xl w-full">
           {projets.map((p, index) => (
@@ -107,6 +109,7 @@ export default function ProjetsEnCoursPage() {
             </div>
           ))}
         </div>
+      </div>
       </div>
     </div>
   );

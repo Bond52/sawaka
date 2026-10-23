@@ -126,8 +126,6 @@ export default function ReseauPage() {
 
   return (
     <div className="wrap py-8" data-testid="contributor-directory">
-      <h1 className="mb-6 text-3xl font-semibold text-foreground">{t("contributorDirectory.title")}</h1>
-
       <form
         className="mb-8 space-y-4"
         role="search"

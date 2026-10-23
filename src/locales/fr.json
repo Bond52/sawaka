@@ -510,7 +510,6 @@
     "osmAttribution": "© OpenStreetMap contributors"
   },
   "contributorDirectory": {
-    "title": "Artisans",
     "searchLabel": "Recherche",
     "searchPlaceholder": "Rechercher un artisan...",
     "filters": "Filtres",
@@ -1391,7 +1390,6 @@
     },
     "create": {
       "title": "Créer un profil contributeur",
-      "subtitle": "Votre compte Sawaka et votre profil contributeur public restent distincts.",
       "loading": "Chargement…",
       "taxonomyError": "La liste des domaines n’a pas pu être chargée.",
       "sessionExpired": "Votre session a expiré. Connectez-vous pour continuer.",
