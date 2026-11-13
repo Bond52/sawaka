@@ -5,6 +5,8 @@ const {
   publicProjectView,
   ownerProjectView,
   missingPublicationFields,
+  pendingStageDocuments,
+  splitCreateRequest,
 } = require("../../services/projectService");
 
 describe("project draft rules", () => {
@@ -84,5 +86,51 @@ describe("project draft rules", () => {
       "country",
       "city",
     ]);
+  });
+
+  it("separates a direct publication request from project fields", () => {
+    expect(splitCreateRequest({ title: "Atelier", publish: true, stages: [] })).toEqual({
+      publish: true,
+      stages: [],
+      fields: { title: "Atelier" },
+    });
+    expect(() => splitCreateRequest({ publish: "yes" })).toThrow(ProjectError);
+  });
+
+  it("builds pending stages and needs without accepting extra fields", () => {
+    const stages = pendingStageDocuments([
+      {
+        title: " Préparer ",
+        description: "Réunir le matériel",
+        status: "in_progress",
+        needs: [
+          {
+            title: "Conseil",
+            description: "Organiser l’espace",
+            kind: "skill",
+            status: "open",
+          },
+        ],
+      },
+    ]);
+    expect(stages).toHaveLength(1);
+    expect(stages[0].position).toBe(0);
+    expect(stages[0].title).toBe("Préparer");
+    expect(stages[0].needs[0].kind).toBe("skill");
+    expect(stages[0].needs[0].title).toBe("Conseil");
+
+    expect(() =>
+      pendingStageDocuments([{ title: "Étape", ownerId: "507f1f77bcf86cd799439011" }])
+    ).toThrow(ProjectError);
+    try {
+      pendingStageDocuments([
+        {
+          title: "Étape",
+          needs: [{ title: "Aide", kind: "service", status: "blocked" }],
+        },
+      ]);
+    } catch (err) {
+      expect(err.code).toBe("BLOCKER_EXPLANATION_REQUIRED");
+    }
   });
 });

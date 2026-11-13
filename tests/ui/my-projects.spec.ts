@@ -138,7 +138,7 @@ test.describe("My Projects navigation", () => {
 
     await page.getByTestId("my-projects-create").click();
     await expect(page).toHaveURL(/\/mes-projets\/nouveau$/);
-    await page.getByLabel("Titre").fill("Poulailler");
+    await page.getByTestId("project-draft-form").getByLabel("Titre").fill("Poulailler");
     await page.getByTestId("project-save").click();
 
     await expect(page).toHaveURL(/\/mes-projets\/proj-1\/modifier$/);

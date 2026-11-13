@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useTranslation } from "@/src/i18n/I18nProvider";
 import {
+  createPendingId,
   createProjectNeed,
   removeProjectNeed,
   updateProjectNeed,
@@ -22,7 +23,8 @@ const STATUSES: NeedStatus[] = ["open", "blocked", "fulfilled", "cancelled"];
 type ProjectNeedsProps = {
   projectId: string;
   stage: ProjectStage;
-  onChange: (project: OwnedProject) => void;
+  onChange?: (project: OwnedProject) => void;
+  onPendingStage?: (stage: ProjectStage) => void;
 };
 
 function errorMessage(
@@ -33,7 +35,7 @@ function errorMessage(
   return message.startsWith("myProjects.errors.") ? t("myProjects.errors.SERVER_ERROR") : message;
 }
 
-export default function ProjectNeeds({ projectId, stage, onChange }: ProjectNeedsProps) {
+export default function ProjectNeeds({ projectId, stage, onChange, onPendingStage }: ProjectNeedsProps) {
   const { t } = useTranslation();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -49,7 +51,7 @@ export default function ProjectNeeds({ projectId, stage, onChange }: ProjectNeed
       return;
     }
     setError("");
-    onChange(result.project);
+    onChange?.(result.project);
   };
 
   const addNeed = async (event: FormEvent) => {
@@ -64,6 +66,29 @@ export default function ProjectNeeds({ projectId, stage, onChange }: ProjectNeed
     }
     if (status === "blocked" && blockerExplanation.trim().length === 0) {
       setError(t("myProjects.errors.BLOCKER_EXPLANATION_REQUIRED"));
+      return;
+    }
+    if (onPendingStage) {
+      onPendingStage({
+        ...stage,
+        needs: [
+          ...stage.needs,
+          {
+            id: createPendingId(),
+            title: title.trim(),
+            description: description.trim(),
+            kind,
+            status,
+            blockerExplanation: status === "blocked" ? blockerExplanation.trim() : "",
+          },
+        ],
+      });
+      setTitle("");
+      setDescription("");
+      setKind("");
+      setStatus("open");
+      setBlockerExplanation("");
+      setError("");
       return;
     }
     setPending(true);
@@ -87,8 +112,12 @@ export default function ProjectNeeds({ projectId, stage, onChange }: ProjectNeed
 
   return (
     <div className="mt-4 border-t border-border pt-4" data-testid={`project-needs-${stage.id}`}>
-      <h3 className="text-base font-medium text-foreground">{t("myProjects.needs.title")}</h3>
-      <p className="mt-1 text-sm text-muted-foreground">{t("myProjects.needs.hint")}</p>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h3 className="text-base font-medium text-foreground">{t("myProjects.needs.title")}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">{t("myProjects.needs.hint")}</p>
+        </div>
+      </div>
       {stage.needs.length === 0 ? (
         <p className="mt-3 text-sm text-muted-foreground" data-testid={`project-needs-empty-${stage.id}`}>
           {t("myProjects.needs.empty")}
@@ -104,6 +133,8 @@ export default function ProjectNeeds({ projectId, stage, onChange }: ProjectNeed
               pending={pending}
               setPending={setPending}
               onApply={apply}
+              onPendingStage={onPendingStage}
+              stage={stage}
             />
           ))}
         </ul>
@@ -198,9 +229,9 @@ export default function ProjectNeeds({ projectId, stage, onChange }: ProjectNeed
           type="submit"
           data-testid={`project-need-add-${stage.id}`}
           disabled={pending}
-          className={`inline-flex min-h-[44px] items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-70 ${focusRing}`}
+          className={`inline-flex min-h-[44px] items-center text-sm font-medium text-primary disabled:opacity-70 ${focusRing}`}
         >
-          {t("myProjects.needs.add")}
+          + {t("myProjects.needs.add")}
         </button>
       </form>
     </div>
@@ -210,17 +241,21 @@ export default function ProjectNeeds({ projectId, stage, onChange }: ProjectNeed
 function NeedRow({
   projectId,
   stageId,
+  stage,
   need,
   pending,
   setPending,
   onApply,
+  onPendingStage,
 }: {
   projectId: string;
   stageId: string;
+  stage: ProjectStage;
   need: ProjectNeed;
   pending: boolean;
   setPending: (value: boolean) => void;
   onApply: (result: Awaited<ReturnType<typeof updateProjectNeed>>) => void;
+  onPendingStage?: (stage: ProjectStage) => void;
 }) {
   const { t } = useTranslation();
   const [status, setStatus] = useState<NeedStatus>(need.status);
@@ -234,6 +269,25 @@ function NeedRow({
     if (nextStatus === "blocked" && nextBlocker.trim().length === 0) {
       setStatus("blocked");
       setRowError(t("myProjects.errors.BLOCKER_EXPLANATION_REQUIRED"));
+      return;
+    }
+    if (onPendingStage) {
+      onPendingStage({
+        ...stage,
+        needs: stage.needs.map((item) =>
+          item.id === need.id
+            ? {
+                ...item,
+                title: (patch.title ?? item.title).trim(),
+                description: patch.description ?? item.description,
+                kind: patch.kind ?? item.kind,
+                status: nextStatus,
+                blockerExplanation: nextStatus === "blocked" ? nextBlocker.trim() : "",
+              }
+            : item
+        ),
+      });
+      setRowError("");
       return;
     }
     setPending(true);
@@ -255,6 +309,10 @@ function NeedRow({
   };
 
   const remove = async () => {
+    if (onPendingStage) {
+      onPendingStage({ ...stage, needs: stage.needs.filter((item) => item.id !== need.id) });
+      return;
+    }
     setPending(true);
     const result = await removeProjectNeed(projectId, stageId, need.id);
     setPending(false);
@@ -262,7 +320,7 @@ function NeedRow({
   };
 
   return (
-    <li className="rounded-lg border border-border p-3" data-testid={`project-need-${need.id}`}>
+    <li className="rounded-xl border border-border border-l-4 border-l-primary bg-card p-4" data-testid={`project-need-${need.id}`}>
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="min-w-0 flex-1">
           <label className="mb-1 block text-sm font-medium" htmlFor={`need-title-${need.id}`}>

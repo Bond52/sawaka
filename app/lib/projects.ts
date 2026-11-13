@@ -71,6 +71,79 @@ export const PROJECT_FIELD_LIMITS = {
   city: 80,
 } as const;
 
+export const PUBLICATION_FIELDS = [
+  "title",
+  "description",
+  "objective",
+  "category",
+  "country",
+  "city",
+] as const;
+
+export type PendingStage = {
+  id: string;
+  title: string;
+  description: string;
+  status: StageStatus;
+  blockerExplanation: string;
+  needs: ProjectNeed[];
+};
+
+export function missingPublicationFields(input: ProjectDraftInput): Array<(typeof PUBLICATION_FIELDS)[number]> {
+  return PUBLICATION_FIELDS.filter((field) => input[field].trim().length === 0);
+}
+
+export function pendingStagesPayload(stages: PendingStage[]) {
+  return stages.map((stage) => ({
+    title: stage.title.trim(),
+    description: stage.description.trim(),
+    status: stage.status,
+    blockerExplanation: stage.blockerExplanation.trim(),
+    needs: stage.needs.map((need) => ({
+      title: need.title.trim(),
+      description: need.description.trim(),
+      kind: need.kind,
+      status: need.status,
+      blockerExplanation: need.status === "blocked" ? need.blockerExplanation.trim() : "",
+    })),
+  }));
+}
+
+export function pendingContentIssue(stages: PendingStage[]): string | null {
+  for (const stage of stages) {
+    if (stage.title.trim().length === 0) return "STAGE_TITLE_REQUIRED";
+    if (
+      stage.title.trim().length > 120 ||
+      stage.description.trim().length > 2000 ||
+      stage.blockerExplanation.trim().length > 1000
+    ) {
+      return "FIELD_TOO_LONG";
+    }
+    for (const need of stage.needs) {
+      if (need.title.trim().length === 0) return "NEED_TITLE_REQUIRED";
+      if (!need.kind) return "NEED_KIND_REQUIRED";
+      if (need.status === "blocked" && need.blockerExplanation.trim().length === 0) {
+        return "BLOCKER_EXPLANATION_REQUIRED";
+      }
+      if (
+        need.title.trim().length > 120 ||
+        need.description.trim().length > 2000 ||
+        need.blockerExplanation.trim().length > 1000
+      ) {
+        return "FIELD_TOO_LONG";
+      }
+    }
+  }
+  return null;
+}
+
+export function createPendingId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `pending-${Date.now()}`;
+}
+
 const EDITABLE_FIELDS = Object.keys(PROJECT_FIELD_LIMITS) as Array<keyof ProjectDraftInput>;
 
 export type ProjectFailure = {
@@ -304,7 +377,19 @@ export async function getOwnedProject(id: string): Promise<ProjectResult> {
 }
 
 export async function createProjectDraft(input: ProjectDraftInput): Promise<ProjectResult> {
-  const result = await sendProject("/api/projects", "POST", input);
+  return createOwnedProject(input);
+}
+
+export async function createOwnedProject(
+  input: ProjectDraftInput,
+  options?: { publish?: boolean; stages?: PendingStage[] }
+): Promise<ProjectResult> {
+  const body: Record<string, unknown> = { ...projectDraftPayload(input) };
+  if (options?.publish) body.publish = true;
+  if (options?.stages && options.stages.length > 0) {
+    body.stages = pendingStagesPayload(options.stages);
+  }
+  const result = await sendProject("/api/projects", "POST", body, true);
   if ("ok" in result) return result;
   const project = isRecord(result.data) ? parseOwnedProject(result.data.project) : null;
   if (!project) return { ok: false, status: result.status, code: "INVALID_RESPONSE" };
@@ -527,3 +612,4 @@ export function removeStageImage(
 }
 
 export const SAVED_PROJECT_STORAGE_KEY = "sawaka-project-saved";
+export const PROJECT_UPLOAD_ERROR_KEY = "sawaka-project-upload-error";
