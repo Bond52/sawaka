@@ -10,6 +10,30 @@ const PROJECT_VISIBILITY = Object.freeze({
   PUBLIC: "public",
 });
 
+const STAGE_STATUS = Object.freeze({
+  NOT_STARTED: "not_started",
+  IN_PROGRESS: "in_progress",
+  BLOCKED: "blocked",
+  COMPLETED: "completed",
+  CANCELLED: "cancelled",
+});
+
+const stageSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true, trim: true, maxlength: 120 },
+    description: { type: String, default: "", trim: true, maxlength: 2000 },
+    position: { type: Number, required: true, min: 0 },
+    status: {
+      type: String,
+      enum: Object.values(STAGE_STATUS),
+      required: true,
+      default: STAGE_STATUS.NOT_STARTED,
+    },
+    blockerExplanation: { type: String, default: "", trim: true, maxlength: 1000 },
+  },
+  { _id: true }
+);
+
 const projectSchema = new mongoose.Schema(
   {
     ownerId: {
@@ -39,6 +63,7 @@ const projectSchema = new mongoose.Schema(
       default: PROJECT_VISIBILITY.PRIVATE,
     },
     publishedAt: { type: Date, default: null },
+    stages: { type: [stageSchema], default: [] },
   },
   { timestamps: true }
 );
@@ -49,3 +74,4 @@ projectSchema.index({ status: 1, visibility: 1, updatedAt: -1 });
 module.exports = mongoose.model("Project", projectSchema);
 module.exports.PROJECT_STATUS = PROJECT_STATUS;
 module.exports.PROJECT_VISIBILITY = PROJECT_VISIBILITY;
+module.exports.STAGE_STATUS = STAGE_STATUS;

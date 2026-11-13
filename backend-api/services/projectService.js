@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const Project = require("../models/Project");
-const { PROJECT_STATUS, PROJECT_VISIBILITY } = require("../models/Project");
+const { PROJECT_STATUS, PROJECT_VISIBILITY, STAGE_STATUS } = require("../models/Project");
 const { recordUserAuditEvent, USER_AUDIT_ACTIONS } = require("./AuditService");
 
 const OBJECT_ID_PATTERN = /^[a-f\d]{24}$/i;
@@ -17,6 +17,29 @@ const FIELD_LIMITS = Object.freeze({
 
 const EDITABLE_FIELDS = Object.freeze(Object.keys(FIELD_LIMITS));
 const EDITABLE_FIELD_SET = new Set(EDITABLE_FIELDS);
+
+const STAGE_FIELDS = Object.freeze(["title", "description", "status", "blockerExplanation"]);
+const STAGE_FIELD_SET = new Set(STAGE_FIELDS);
+const STAGE_LIMITS = Object.freeze({
+  title: 120,
+  description: 2000,
+  blockerExplanation: 1000,
+});
+
+function stageView(stage) {
+  return {
+    id: String(stage._id),
+    title: stage.title || "",
+    description: stage.description || "",
+    position: stage.position,
+    status: stage.status,
+    blockerExplanation: stage.blockerExplanation || "",
+  };
+}
+
+function sortedStages(project) {
+  return [...(project.stages || [])].sort((a, b) => a.position - b.position);
+}
 
 const PUBLICATION_FIELDS = Object.freeze([
   "title",
@@ -100,6 +123,7 @@ function ownerProjectView(project) {
     visibility: project.visibility,
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
+    stages: sortedStages(project).map(stageView),
   };
 }
 
@@ -116,6 +140,7 @@ function publicProjectView(project) {
     city: project.city || "",
     status: project.status,
     publishedAt: project.publishedAt || null,
+    stages: sortedStages(project).map(stageView),
   };
 }
 
@@ -227,6 +252,104 @@ async function getPublic(id) {
   return { project: publicProjectView(project) };
 }
 
+function stageChanges(body, requireTitle) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    throw new ProjectError("INVALID_BODY", 400);
+  }
+  const rejected = Object.keys(body).filter((key) => !STAGE_FIELD_SET.has(key));
+  if (rejected.length > 0) {
+    throw new ProjectError("FIELD_NOT_ALLOWED", 400, rejected);
+  }
+
+  const updates = {};
+  for (const field of STAGE_FIELDS) {
+    if (!Object.prototype.hasOwnProperty.call(body, field)) continue;
+    const value = body[field];
+    if (typeof value !== "string") {
+      throw new ProjectError("INVALID_FIELD", 400, [field]);
+    }
+    const trimmed = value.trim();
+    if (field === "status") {
+      if (!Object.values(STAGE_STATUS).includes(trimmed)) {
+        throw new ProjectError("INVALID_STAGE_STATUS", 400, ["status"]);
+      }
+      updates.status = trimmed;
+      continue;
+    }
+    if (trimmed.length > STAGE_LIMITS[field]) {
+      throw new ProjectError("FIELD_TOO_LONG", 400, [field]);
+    }
+    updates[field] = trimmed;
+  }
+  if (requireTitle && !updates.title) {
+    throw new ProjectError("STAGE_TITLE_REQUIRED", 400, ["title"]);
+  }
+  return updates;
+}
+
+async function recordStageChange(ownerId, projectId, operation, stageId) {
+  await recordUserAuditEvent({
+    action: USER_AUDIT_ACTIONS.PROJECT_STAGES_CHANGED,
+    userId: ownerId,
+    metadata: {
+      projectId: String(projectId),
+      operation,
+      ...(stageId ? { stageId: String(stageId) } : {}),
+    },
+  });
+}
+
+async function createStage(ownerId, projectId, body) {
+  const updates = stageChanges(body, true);
+  const project = await findOwnedProject(ownerId, projectId);
+  project.stages.push({
+    title: updates.title,
+    description: updates.description || "",
+    position: project.stages.length,
+    status: updates.status || STAGE_STATUS.NOT_STARTED,
+    blockerExplanation: updates.blockerExplanation || "",
+  });
+  await project.save();
+  const created = project.stages[project.stages.length - 1];
+  await recordStageChange(ownerId, project._id, "created", created._id);
+  return { project: ownerProjectView(project) };
+}
+
+async function updateStage(ownerId, projectId, stageId, body) {
+  const updates = stageChanges(body, false);
+  const project = await findOwnedProject(ownerId, projectId);
+  const stage = project.stages.id(stageId);
+  if (!stage) throw new ProjectError("STAGE_NOT_FOUND", 404);
+  if (Object.prototype.hasOwnProperty.call(updates, "title") && updates.title.length === 0) {
+    throw new ProjectError("STAGE_TITLE_REQUIRED", 400, ["title"]);
+  }
+  Object.assign(stage, updates);
+  await project.save();
+  await recordStageChange(ownerId, project._id, "updated", stage._id);
+  return { project: ownerProjectView(project) };
+}
+
+async function reorderStages(ownerId, projectId, body) {
+  if (!body || !Array.isArray(body.orderedIds)) {
+    throw new ProjectError("INVALID_BODY", 400);
+  }
+  const project = await findOwnedProject(ownerId, projectId);
+  const current = sortedStages(project).map((stage) => String(stage._id));
+  const orderedIds = body.orderedIds.map((id) => String(id));
+  const sameSet =
+    orderedIds.length === current.length &&
+    new Set(orderedIds).size === orderedIds.length &&
+    orderedIds.every((id) => current.includes(id));
+  if (!sameSet) throw new ProjectError("INVALID_STAGE_ORDER", 400);
+
+  orderedIds.forEach((id, index) => {
+    project.stages.id(id).position = index;
+  });
+  await project.save();
+  await recordStageChange(ownerId, project._id, "reordered");
+  return { project: ownerProjectView(project) };
+}
+
 module.exports = {
   ProjectError,
   FIELD_LIMITS,
@@ -242,6 +365,9 @@ module.exports = {
   getOwned,
   updateOwned,
   publishOwned,
+  createStage,
+  updateStage,
+  reorderStages,
   listPublic,
   getPublic,
 };

@@ -69,6 +69,44 @@ async function publishOwned(req, res) {
   }
 }
 
+async function createStage(req, res) {
+  try {
+    const result = await projectService.createStage(req.user.id, req.params.id, req.body);
+    return res.status(201).json(result);
+  } catch (err) {
+    if (err instanceof ProjectError) return sendFunctionalError(res, err);
+    logTechnical("project.controller.createStage:", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function updateStage(req, res) {
+  try {
+    const result = await projectService.updateStage(
+      req.user.id,
+      req.params.id,
+      req.params.stageId,
+      req.body
+    );
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof ProjectError) return sendFunctionalError(res, err);
+    logTechnical("project.controller.updateStage:", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function reorderStages(req, res) {
+  try {
+    const result = await projectService.reorderStages(req.user.id, req.params.id, req.body);
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof ProjectError) return sendFunctionalError(res, err);
+    logTechnical("project.controller.reorderStages:", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
 async function listPublic(req, res) {
   try {
     const result = await projectService.listPublic();
@@ -97,6 +135,9 @@ module.exports = {
   getOwned,
   updateOwned,
   publishOwned,
+  createStage,
+  updateStage,
+  reorderStages,
   listPublic,
   getPublic,
 };

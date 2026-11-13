@@ -1492,6 +1492,25 @@
     "publish": "Publish",
     "published": "Project published.",
     "fieldRequired": "This field is required to publish.",
+    "stages": {
+      "title": "Stages",
+      "hint": "Stages describe broad progress. They are not assigned tasks.",
+      "empty": "There are no stages yet.",
+      "add": "Add a stage",
+      "stageTitle": "Stage title",
+      "stageDescription": "Stage description",
+      "status": "Status",
+      "blocker": "Blocker explanation",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "statuses": {
+        "not_started": "Not started",
+        "in_progress": "In progress",
+        "blocked": "Blocked",
+        "completed": "Completed",
+        "cancelled": "Cancelled"
+      }
+    },
     "draftHint": "A draft can stay incomplete. Only you can see it.",
     "empty": "You do not have a project yet.",
     "untitled": "Untitled project",
@@ -1518,7 +1537,11 @@
       "NETWORK": "The server could not be reached. Try again.",
       "SERVER_ERROR": "The draft could not be saved. Try again.",
       "PUBLICATION_INCOMPLETE": "Complete the required fields before publishing.",
-      "ALREADY_PUBLISHED": "This project is already published."
+      "ALREADY_PUBLISHED": "This project is already published.",
+      "STAGE_TITLE_REQUIRED": "Enter a title for the stage.",
+      "INVALID_STAGE_STATUS": "Choose a valid stage status.",
+      "STAGE_NOT_FOUND": "This stage could not be found.",
+      "INVALID_STAGE_ORDER": "The stage order is not valid."
     }
   }
 }

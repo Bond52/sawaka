@@ -89,14 +89,14 @@ test("publishing reports missing fields, then confirms a complete project", asyn
   await expect(page.getByTestId("project-form-error")).toHaveText(
     "Complete the required fields before publishing."
   );
-  await expect(page.getByLabel("Description")).toHaveValue("");
-  await expect(page.getByLabel("Title")).toHaveValue("Poulailler");
+  await expect(page.getByTestId("project-field-description")).toHaveValue("");
+  await expect(page.getByTestId("project-field-title")).toHaveValue("Poulailler");
 
-  await page.getByLabel("Description").fill("A shared poultry yard.");
-  await page.getByLabel("Objective").fill("Feed the neighborhood.");
-  await page.getByLabel("Category").fill("Agriculture");
-  await page.getByLabel("Country").fill("Cameroon");
-  await page.getByLabel("City").fill("Douala");
+  await page.getByTestId("project-field-description").fill("A shared poultry yard.");
+  await page.getByTestId("project-field-objective").fill("Feed the neighborhood.");
+  await page.getByTestId("project-field-category").fill("Agriculture");
+  await page.getByTestId("project-field-country").fill("Cameroon");
+  await page.getByTestId("project-field-city").fill("Douala");
   await page.getByTestId("project-publish").click();
   await expect(page.getByTestId("project-publish-status")).toHaveText("Project published.");
   await expect(page.getByTestId("project-publish")).toHaveCount(0);

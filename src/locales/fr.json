@@ -1492,6 +1492,25 @@
     "publish": "Publier",
     "published": "Projet publié.",
     "fieldRequired": "Ce champ est requis pour publier.",
+    "stages": {
+      "title": "Étapes",
+      "hint": "Les étapes décrivent l’avancement général. Elles ne sont pas des tâches assignées.",
+      "empty": "Aucune étape pour le moment.",
+      "add": "Ajouter une étape",
+      "stageTitle": "Titre de l’étape",
+      "stageDescription": "Description de l’étape",
+      "status": "Statut",
+      "blocker": "Explication du blocage",
+      "moveUp": "Monter",
+      "moveDown": "Descendre",
+      "statuses": {
+        "not_started": "Pas commencée",
+        "in_progress": "En cours",
+        "blocked": "Bloquée",
+        "completed": "Terminée",
+        "cancelled": "Annulée"
+      }
+    },
     "draftHint": "Un brouillon peut rester incomplet. Seul vous pouvez le consulter.",
     "empty": "Vous n’avez pas encore de projet.",
     "untitled": "Projet sans titre",
@@ -1518,7 +1537,11 @@
       "NETWORK": "Impossible de joindre le serveur. Réessayez.",
       "SERVER_ERROR": "L’enregistrement a échoué. Réessayez.",
       "PUBLICATION_INCOMPLETE": "Complétez les champs requis avant de publier.",
-      "ALREADY_PUBLISHED": "Ce projet est déjà publié."
+      "ALREADY_PUBLISHED": "Ce projet est déjà publié.",
+      "STAGE_TITLE_REQUIRED": "Donnez un titre à l’étape.",
+      "INVALID_STAGE_STATUS": "Choisissez un statut d’étape valide.",
+      "STAGE_NOT_FOUND": "Cette étape est introuvable.",
+      "INVALID_STAGE_ORDER": "L’ordre des étapes n’est pas valide."
     }
   }
 }
