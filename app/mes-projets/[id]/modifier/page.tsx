@@ -14,6 +14,7 @@ import {
   type ProjectDraftInput,
 } from "@/app/lib/projects";
 import ProjectDraftForm, { draftFromProject } from "../../ProjectDraftForm";
+import ProjectMedia from "../../ProjectMedia";
 import ProjectStages from "../../ProjectStages";
 import { useRequireMember } from "../../useRequireMember";
 
@@ -114,6 +115,7 @@ export default function EditProjectPage() {
             : t("myProjects.progressUnavailable");
         })()}
       </p>
+      <ProjectMedia project={project} onChange={setProject} />
       <ProjectStages project={project} onChange={setProject} />
     </div>
   );

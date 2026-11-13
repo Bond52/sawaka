@@ -16,7 +16,19 @@ const draft = {
 };
 
 test("parseOwnedProject keeps an incomplete private draft", () => {
-  assert.deepEqual(parseOwnedProject(draft), { ...draft, stages: [] });
+  assert.deepEqual(parseOwnedProject(draft), {
+    ...draft,
+    stages: [],
+    coverImage: null,
+    images: [],
+  });
+  assert.equal(
+    parseOwnedProject({
+      ...draft,
+      coverImage: { id: "img", url: "https://res.cloudinary.com/demo/a.jpg", publicId: "secret" },
+    }),
+    null
+  );
 });
 
 test("parseOwnedProject rejects public payloads that include an owner id", () => {

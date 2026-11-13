@@ -1540,6 +1540,16 @@
         "cancelled": "Annulé"
       }
     },
+    "media": {
+      "title": "Images",
+      "hint": "Ajoutez une couverture et des images facultatives. Les images d’un brouillon restent privées.",
+      "cover": "Image de couverture",
+      "coverAlt": "Image de couverture du projet",
+      "removeCover": "Retirer l’image de couverture",
+      "projectImages": "Images du projet",
+      "stageImages": "Images de l’étape",
+      "removeImage": "Retirer l’image"
+    },
     "draftHint": "Un brouillon peut rester incomplet. Seul vous pouvez le consulter.",
     "empty": "Vous n’avez pas encore de projet.",
     "untitled": "Projet sans titre",
@@ -1576,7 +1586,14 @@
       "INVALID_NEED_KIND": "Choisissez un type de besoin valide.",
       "INVALID_NEED_STATUS": "Choisissez un statut de besoin valide.",
       "BLOCKER_EXPLANATION_REQUIRED": "Indiquez ce qui bloque ce besoin.",
-      "NEED_NOT_FOUND": "Ce besoin est introuvable."
+      "NEED_NOT_FOUND": "Ce besoin est introuvable.",
+      "IMAGE_REQUIRED": "Choisissez une image.",
+      "IMAGE_TOO_LARGE": "Utilisez une image de 2 Mo au maximum.",
+      "UNSUPPORTED_IMAGE_TYPE": "Utilisez une image JPEG, PNG ou WebP.",
+      "INVALID_IMAGE": "Ce fichier ne peut pas servir d’image.",
+      "UPLOAD_FAILED": "L’image n’a pas pu être enregistrée. Réessayez.",
+      "IMAGE_LIMIT": "Vous ne pouvez pas ajouter d’autres images.",
+      "IMAGE_NOT_FOUND": "Cette image est introuvable."
     }
   }
 }

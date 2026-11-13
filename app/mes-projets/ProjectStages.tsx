@@ -11,6 +11,7 @@ import {
   type StageStatus,
 } from "@/app/lib/projects";
 import ProjectNeeds from "./ProjectNeeds";
+import { StageImages } from "./ProjectMedia";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -180,6 +181,12 @@ export default function ProjectStages({ project, onChange }: ProjectStagesProps)
                 </div>
               ) : null}
               <ProjectNeeds projectId={project.id} stage={stage} onChange={onChange} />
+              <StageImages
+                projectId={project.id}
+                stageId={stage.id}
+                images={stage.images}
+                onChange={onChange}
+              />
               <div className="mt-3 flex gap-2">
                 <button
                   type="button"

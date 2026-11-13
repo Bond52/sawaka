@@ -32,6 +32,14 @@ const NEED_STATUS = Object.freeze({
   CANCELLED: "cancelled",
 });
 
+const imageSchema = new mongoose.Schema(
+  {
+    url: { type: String, required: true },
+    publicId: { type: String, required: true },
+  },
+  { _id: true }
+);
+
 const needSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true, maxlength: 120 },
@@ -61,6 +69,7 @@ const stageSchema = new mongoose.Schema(
     },
     blockerExplanation: { type: String, default: "", trim: true, maxlength: 1000 },
     needs: { type: [needSchema], default: [] },
+    images: { type: [imageSchema], default: [] },
   },
   { _id: true }
 );
@@ -94,6 +103,8 @@ const projectSchema = new mongoose.Schema(
       default: PROJECT_VISIBILITY.PRIVATE,
     },
     publishedAt: { type: Date, default: null },
+    coverImage: { type: imageSchema, default: null },
+    images: { type: [imageSchema], default: [] },
     stages: { type: [stageSchema], default: [] },
   },
   { timestamps: true }

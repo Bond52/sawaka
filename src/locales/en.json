@@ -1540,6 +1540,16 @@
         "cancelled": "Cancelled"
       }
     },
+    "media": {
+      "title": "Images",
+      "hint": "Add a cover and optional images. Draft images stay private.",
+      "cover": "Cover image",
+      "coverAlt": "Project cover image",
+      "removeCover": "Remove cover image",
+      "projectImages": "Project images",
+      "stageImages": "Stage images",
+      "removeImage": "Remove image"
+    },
     "draftHint": "A draft can stay incomplete. Only you can see it.",
     "empty": "You do not have a project yet.",
     "untitled": "Untitled project",
@@ -1576,7 +1586,14 @@
       "INVALID_NEED_KIND": "Choose a valid need type.",
       "INVALID_NEED_STATUS": "Choose a valid need status.",
       "BLOCKER_EXPLANATION_REQUIRED": "Explain what is blocking this need.",
-      "NEED_NOT_FOUND": "This need could not be found."
+      "NEED_NOT_FOUND": "This need could not be found.",
+      "IMAGE_REQUIRED": "Choose an image.",
+      "IMAGE_TOO_LARGE": "Use an image of 2 MB or less.",
+      "UNSUPPORTED_IMAGE_TYPE": "Use a JPEG, PNG, or WebP image.",
+      "INVALID_IMAGE": "This file could not be used as an image.",
+      "UPLOAD_FAILED": "The image could not be stored. Try again.",
+      "IMAGE_LIMIT": "You cannot add more images.",
+      "IMAGE_NOT_FOUND": "This image could not be found."
     }
   }
 }
