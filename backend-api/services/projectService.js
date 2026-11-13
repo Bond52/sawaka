@@ -383,6 +383,26 @@ async function updateStage(ownerId, projectId, stageId, body) {
   return { project: ownerProjectView(project) };
 }
 
+function assertStageRemovable(stage) {
+  const needs = stage && stage.needs ? stage.needs : [];
+  if (needs.length > 0) throw new ProjectError("STAGE_HAS_NEEDS", 409);
+}
+
+async function removeStage(ownerId, projectId, stageId) {
+  const project = await findOwnedProject(ownerId, projectId);
+  const stage = requireParentStage(project.stages, stageId);
+  assertStageRemovable(stage);
+  const storedImages = [...(stage.images || [])].map((image) => image.publicId);
+  project.stages.pull(stage._id);
+  sortedStages(project).forEach((item, index) => {
+    item.position = index;
+  });
+  await project.save();
+  await Promise.all(storedImages.map((publicId) => discardStoredImage(publicId)));
+  await recordStageChange(ownerId, project._id, "removed", stage._id);
+  return { project: ownerProjectView(project) };
+}
+
 async function reorderStages(ownerId, projectId, body) {
   if (!body || !Array.isArray(body.orderedIds)) {
     throw new ProjectError("INVALID_BODY", 400);
@@ -686,6 +706,8 @@ module.exports = {
   createStage,
   updateStage,
   reorderStages,
+  assertStageRemovable,
+  removeStage,
   needChanges,
   finalizeNeed,
   requireParentStage,

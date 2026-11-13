@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { useTranslation } from "@/src/i18n/I18nProvider";
 import {
   createProjectStage,
+  removeProjectStage,
   reorderProjectStages,
   updateProjectStage,
   type OwnedProject,
@@ -35,6 +36,7 @@ export default function ProjectStages({ project, onChange }: ProjectStagesProps)
   const [description, setDescription] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   const stages = [...project.stages].sort((a, b) => a.position - b.position);
 
@@ -78,6 +80,14 @@ export default function ProjectStages({ project, onChange }: ProjectStagesProps)
       blockerExplanation: patch.blockerExplanation ?? stage.blockerExplanation,
     });
     setPending(false);
+    apply(result);
+  };
+
+  const remove = async (stage: ProjectStage) => {
+    setPending(true);
+    const result = await removeProjectStage(project.id, stage.id);
+    setPending(false);
+    setConfirmingId(null);
     apply(result);
   };
 
@@ -206,6 +216,46 @@ export default function ProjectStages({ project, onChange }: ProjectStagesProps)
                 >
                   {t("myProjects.stages.moveDown")}
                 </button>
+                {confirmingId === stage.id ? (
+                  <div
+                    role="alertdialog"
+                    aria-labelledby={`stage-remove-heading-${stage.id}`}
+                    className="flex flex-col gap-2"
+                  >
+                    <p id={`stage-remove-heading-${stage.id}`} className="text-sm text-foreground">
+                      {t("myProjects.stages.confirmRemove")}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        data-testid={`stage-remove-confirm-${stage.id}`}
+                        disabled={pending}
+                        className={`inline-flex min-h-[44px] items-center rounded-lg bg-destructive px-3 text-sm font-medium text-destructive-foreground ${focusRing}`}
+                        onClick={() => void remove(stage)}
+                      >
+                        {t("myProjects.stages.confirmAction")}
+                      </button>
+                      <button
+                        type="button"
+                        data-testid={`stage-remove-cancel-${stage.id}`}
+                        className={`inline-flex min-h-[44px] items-center rounded-lg border border-border px-3 text-sm ${focusRing}`}
+                        onClick={() => setConfirmingId(null)}
+                      >
+                        {t("myProjects.stages.cancelRemove")}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    data-testid={`stage-remove-${stage.id}`}
+                    disabled={pending}
+                    className={`inline-flex min-h-[44px] items-center rounded-lg border border-border px-3 text-sm ${focusRing}`}
+                    onClick={() => setConfirmingId(stage.id)}
+                  >
+                    {t("myProjects.stages.remove")}
+                  </button>
+                )}
               </div>
             </li>
           ))}
