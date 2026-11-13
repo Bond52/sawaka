@@ -7,6 +7,18 @@ export type StageStatus =
   | "completed"
   | "cancelled";
 
+export type NeedKind = "skill" | "service" | "resource" | "assistance";
+export type NeedStatus = "open" | "blocked" | "fulfilled" | "cancelled";
+
+export type ProjectNeed = {
+  id: string;
+  title: string;
+  description: string;
+  kind: NeedKind;
+  status: NeedStatus;
+  blockerExplanation: string;
+};
+
 export type ProjectStage = {
   id: string;
   title: string;
@@ -14,6 +26,7 @@ export type ProjectStage = {
   position: number;
   status: StageStatus;
   blockerExplanation: string;
+  needs: ProjectNeed[];
 };
 
 export type OwnedProject = {
@@ -83,11 +96,33 @@ const STAGE_STATUSES: StageStatus[] = [
   "cancelled",
 ];
 
+const NEED_KINDS: NeedKind[] = ["skill", "service", "resource", "assistance"];
+const NEED_STATUSES: NeedStatus[] = ["open", "blocked", "fulfilled", "cancelled"];
+
+function parseNeed(value: unknown): ProjectNeed | null {
+  if (!isRecord(value) || typeof value.id !== "string") return null;
+  if (typeof value.title !== "string" || typeof value.description !== "string") return null;
+  if (typeof value.blockerExplanation !== "string") return null;
+  if (!NEED_KINDS.includes(value.kind as NeedKind)) return null;
+  if (!NEED_STATUSES.includes(value.status as NeedStatus)) return null;
+  return {
+    id: value.id,
+    title: value.title,
+    description: value.description,
+    kind: value.kind as NeedKind,
+    status: value.status as NeedStatus,
+    blockerExplanation: value.blockerExplanation,
+  };
+}
+
 function parseStage(value: unknown): ProjectStage | null {
   if (!isRecord(value) || typeof value.id !== "string") return null;
   if (typeof value.title !== "string" || typeof value.description !== "string") return null;
   if (typeof value.blockerExplanation !== "string" || typeof value.position !== "number") return null;
   if (!STAGE_STATUSES.includes(value.status as StageStatus)) return null;
+  if (value.needs !== undefined && !Array.isArray(value.needs)) return null;
+  const needs = Array.isArray(value.needs) ? value.needs.map(parseNeed) : [];
+  if (needs.some((need) => need === null)) return null;
   return {
     id: value.id,
     title: value.title,
@@ -95,6 +130,7 @@ function parseStage(value: unknown): ProjectStage | null {
     position: value.position,
     status: value.status as StageStatus,
     blockerExplanation: value.blockerExplanation,
+    needs: needs as ProjectNeed[],
   };
 }
 
@@ -187,7 +223,7 @@ function failure(status: number, data: unknown): ProjectFailure {
 
 async function sendProject(
   path: string,
-  method: "GET" | "POST" | "PATCH" | "PUT",
+  method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE",
   body?: ProjectDraftInput | Record<string, unknown>,
   rawBody = false
 ): Promise<{ status: number; data: unknown } | ProjectFailure> {
@@ -312,6 +348,64 @@ export async function reorderProjectStages(
     "PUT",
     { orderedIds },
     true
+  );
+  if ("ok" in result) return result;
+  const project = isRecord(result.data) ? parseOwnedProject(result.data.project) : null;
+  if (!project) return { ok: false, status: result.status, code: "INVALID_RESPONSE" };
+  return { ok: true, project };
+}
+
+export type NeedInput = {
+  title: string;
+  description: string;
+  kind: NeedKind;
+  status: NeedStatus;
+  blockerExplanation: string;
+};
+
+export async function createProjectNeed(
+  projectId: string,
+  stageId: string,
+  input: NeedInput
+): Promise<ProjectResult> {
+  const result = await sendProject(
+    `/api/projects/mine/${encodeURIComponent(projectId)}/stages/${encodeURIComponent(stageId)}/needs`,
+    "POST",
+    input,
+    true
+  );
+  if ("ok" in result) return result;
+  const project = isRecord(result.data) ? parseOwnedProject(result.data.project) : null;
+  if (!project) return { ok: false, status: result.status, code: "INVALID_RESPONSE" };
+  return { ok: true, project };
+}
+
+export async function updateProjectNeed(
+  projectId: string,
+  stageId: string,
+  needId: string,
+  input: NeedInput
+): Promise<ProjectResult> {
+  const result = await sendProject(
+    `/api/projects/mine/${encodeURIComponent(projectId)}/stages/${encodeURIComponent(stageId)}/needs/${encodeURIComponent(needId)}`,
+    "PATCH",
+    input,
+    true
+  );
+  if ("ok" in result) return result;
+  const project = isRecord(result.data) ? parseOwnedProject(result.data.project) : null;
+  if (!project) return { ok: false, status: result.status, code: "INVALID_RESPONSE" };
+  return { ok: true, project };
+}
+
+export async function removeProjectNeed(
+  projectId: string,
+  stageId: string,
+  needId: string
+): Promise<ProjectResult> {
+  const result = await sendProject(
+    `/api/projects/mine/${encodeURIComponent(projectId)}/stages/${encodeURIComponent(stageId)}/needs/${encodeURIComponent(needId)}`,
+    "DELETE"
   );
   if ("ok" in result) return result;
   const project = isRecord(result.data) ? parseOwnedProject(result.data.project) : null;

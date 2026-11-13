@@ -72,6 +72,7 @@ const USER_AUDIT_ACTIONS = Object.freeze({
   PROJECT_UPDATED: "ProjectUpdated",
   PROJECT_PUBLISHED: "ProjectPublished",
   PROJECT_STAGES_CHANGED: "ProjectStagesChanged",
+  PROJECT_NEEDS_CHANGED: "ProjectNeedsChanged",
 });
 
 const UserAuditEventSchema = new mongoose.Schema(

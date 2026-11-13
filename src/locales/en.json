@@ -1513,6 +1513,33 @@
         "cancelled": "Cancelled"
       }
     },
+    "needs": {
+      "title": "Needs",
+      "hint": "A need is a skill, service, resource, or assistance. It is not an assigned task.",
+      "empty": "This stage has no needs yet.",
+      "add": "Add a need",
+      "needTitle": "Need title",
+      "needDescription": "Need description",
+      "kind": "Need type",
+      "chooseKind": "Choose a type",
+      "status": "Need status",
+      "blocker": "Why this need is blocked",
+      "remove": "Remove need",
+      "confirmRemove": "Confirm removal",
+      "cancelRemove": "Keep need",
+      "kinds": {
+        "skill": "Skill",
+        "service": "Service",
+        "resource": "Resource",
+        "assistance": "Assistance"
+      },
+      "statuses": {
+        "open": "Open",
+        "blocked": "Blocked",
+        "fulfilled": "Fulfilled",
+        "cancelled": "Cancelled"
+      }
+    },
     "draftHint": "A draft can stay incomplete. Only you can see it.",
     "empty": "You do not have a project yet.",
     "untitled": "Untitled project",
@@ -1543,7 +1570,13 @@
       "STAGE_TITLE_REQUIRED": "Enter a title for the stage.",
       "INVALID_STAGE_STATUS": "Choose a valid stage status.",
       "STAGE_NOT_FOUND": "This stage could not be found.",
-      "INVALID_STAGE_ORDER": "The stage order is not valid."
+      "INVALID_STAGE_ORDER": "The stage order is not valid.",
+      "NEED_TITLE_REQUIRED": "Enter a title for the need.",
+      "NEED_KIND_REQUIRED": "Choose a need type.",
+      "INVALID_NEED_KIND": "Choose a valid need type.",
+      "INVALID_NEED_STATUS": "Choose a valid need status.",
+      "BLOCKER_EXPLANATION_REQUIRED": "Explain what is blocking this need.",
+      "NEED_NOT_FOUND": "This need could not be found."
     }
   }
 }

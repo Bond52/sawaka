@@ -1,6 +1,12 @@
 const mongoose = require("mongoose");
 const Project = require("../models/Project");
-const { PROJECT_STATUS, PROJECT_VISIBILITY, STAGE_STATUS } = require("../models/Project");
+const {
+  PROJECT_STATUS,
+  PROJECT_VISIBILITY,
+  STAGE_STATUS,
+  NEED_KIND,
+  NEED_STATUS,
+} = require("../models/Project");
 const { recordUserAuditEvent, USER_AUDIT_ACTIONS } = require("./AuditService");
 
 const OBJECT_ID_PATTERN = /^[a-f\d]{24}$/i;
@@ -19,12 +25,30 @@ const EDITABLE_FIELDS = Object.freeze(Object.keys(FIELD_LIMITS));
 const EDITABLE_FIELD_SET = new Set(EDITABLE_FIELDS);
 
 const STAGE_FIELDS = Object.freeze(["title", "description", "status", "blockerExplanation"]);
+const NEED_FIELDS = Object.freeze(["title", "description", "kind", "status", "blockerExplanation"]);
+const NEED_FIELD_SET = new Set(NEED_FIELDS);
+const NEED_LIMITS = Object.freeze({
+  title: 120,
+  description: 2000,
+  blockerExplanation: 1000,
+});
 const STAGE_FIELD_SET = new Set(STAGE_FIELDS);
 const STAGE_LIMITS = Object.freeze({
   title: 120,
   description: 2000,
   blockerExplanation: 1000,
 });
+
+function needView(need) {
+  return {
+    id: String(need._id),
+    title: need.title || "",
+    description: need.description || "",
+    kind: need.kind,
+    status: need.status,
+    blockerExplanation: need.blockerExplanation || "",
+  };
+}
 
 function stageView(stage) {
   return {
@@ -34,6 +58,7 @@ function stageView(stage) {
     position: stage.position,
     status: stage.status,
     blockerExplanation: stage.blockerExplanation || "",
+    needs: [...(stage.needs || [])].map(needView),
   };
 }
 
@@ -364,6 +389,129 @@ async function reorderStages(ownerId, projectId, body) {
   return { project: ownerProjectView(project) };
 }
 
+function needChanges(body, requireIdentity) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    throw new ProjectError("INVALID_BODY", 400);
+  }
+  const rejected = Object.keys(body).filter((key) => !NEED_FIELD_SET.has(key));
+  if (rejected.length > 0) {
+    throw new ProjectError("FIELD_NOT_ALLOWED", 400, rejected);
+  }
+
+  const updates = {};
+  for (const field of NEED_FIELDS) {
+    if (!Object.prototype.hasOwnProperty.call(body, field)) continue;
+    const value = body[field];
+    if (typeof value !== "string") {
+      throw new ProjectError("INVALID_FIELD", 400, [field]);
+    }
+    const trimmed = value.trim();
+    if (field === "status") {
+      if (!Object.values(NEED_STATUS).includes(trimmed)) {
+        throw new ProjectError("INVALID_NEED_STATUS", 400, ["status"]);
+      }
+      updates.status = trimmed;
+      continue;
+    }
+    if (field === "kind") {
+      if (!Object.values(NEED_KIND).includes(trimmed)) {
+        throw new ProjectError("INVALID_NEED_KIND", 400, ["kind"]);
+      }
+      updates.kind = trimmed;
+      continue;
+    }
+    if (trimmed.length > NEED_LIMITS[field]) {
+      throw new ProjectError("FIELD_TOO_LONG", 400, [field]);
+    }
+    updates[field] = trimmed;
+  }
+  if (requireIdentity) {
+    if (!updates.title) throw new ProjectError("NEED_TITLE_REQUIRED", 400, ["title"]);
+    if (!updates.kind) throw new ProjectError("NEED_KIND_REQUIRED", 400, ["kind"]);
+  }
+  return updates;
+}
+
+function finalizeNeed(current, updates) {
+  const status = updates.status || current.status || NEED_STATUS.OPEN;
+  const explanation = Object.prototype.hasOwnProperty.call(updates, "blockerExplanation")
+    ? updates.blockerExplanation
+    : current.blockerExplanation || "";
+  if (status === NEED_STATUS.BLOCKED && String(explanation).trim().length === 0) {
+    throw new ProjectError("BLOCKER_EXPLANATION_REQUIRED", 400, ["blockerExplanation"]);
+  }
+  return {
+    title: updates.title !== undefined ? updates.title : current.title || "",
+    description: updates.description !== undefined ? updates.description : current.description || "",
+    kind: updates.kind || current.kind,
+    status,
+    blockerExplanation: status === NEED_STATUS.BLOCKED ? String(explanation).trim() : "",
+  };
+}
+
+function requireParentStage(stages, stageId) {
+  if (typeof stageId !== "string" || !OBJECT_ID_PATTERN.test(stageId)) {
+    throw new ProjectError("STAGE_NOT_FOUND", 404);
+  }
+  const stage = [...(stages || [])].find((item) => String(item._id || item.id) === stageId);
+  if (!stage) throw new ProjectError("STAGE_NOT_FOUND", 404);
+  return stage;
+}
+
+async function recordNeedChange(ownerId, projectId, stageId, needId, operation) {
+  await recordUserAuditEvent({
+    action: USER_AUDIT_ACTIONS.PROJECT_NEEDS_CHANGED,
+    userId: ownerId,
+    metadata: {
+      projectId: String(projectId),
+      stageId: String(stageId),
+      needId: String(needId),
+      operation,
+    },
+  });
+}
+
+async function createNeed(ownerId, projectId, stageId, body) {
+  const updates = needChanges(body, true);
+  const project = await findOwnedProject(ownerId, projectId);
+  const stage = requireParentStage(project.stages, stageId);
+  const next = finalizeNeed(
+    { title: "", description: "", kind: updates.kind, status: NEED_STATUS.OPEN, blockerExplanation: "" },
+    updates
+  );
+  stage.needs.push(next);
+  await project.save();
+  const created = stage.needs[stage.needs.length - 1];
+  await recordNeedChange(ownerId, project._id, stage._id, created._id, "created");
+  return { project: ownerProjectView(project) };
+}
+
+async function updateNeed(ownerId, projectId, stageId, needId, body) {
+  const updates = needChanges(body, false);
+  const project = await findOwnedProject(ownerId, projectId);
+  const stage = requireParentStage(project.stages, stageId);
+  const need = [...(stage.needs || [])].find((item) => String(item._id) === String(needId));
+  if (!need) throw new ProjectError("NEED_NOT_FOUND", 404);
+  if (Object.prototype.hasOwnProperty.call(updates, "title") && updates.title.length === 0) {
+    throw new ProjectError("NEED_TITLE_REQUIRED", 400, ["title"]);
+  }
+  Object.assign(need, finalizeNeed(need, updates));
+  await project.save();
+  await recordNeedChange(ownerId, project._id, stage._id, need._id, "updated");
+  return { project: ownerProjectView(project) };
+}
+
+async function removeNeed(ownerId, projectId, stageId, needId) {
+  const project = await findOwnedProject(ownerId, projectId);
+  const stage = requireParentStage(project.stages, stageId);
+  const need = [...(stage.needs || [])].find((item) => String(item._id) === String(needId));
+  if (!need) throw new ProjectError("NEED_NOT_FOUND", 404);
+  stage.needs.pull(need._id);
+  await project.save();
+  await recordNeedChange(ownerId, project._id, stage._id, need._id, "removed");
+  return { project: ownerProjectView(project) };
+}
+
 module.exports = {
   ProjectError,
   FIELD_LIMITS,
@@ -384,6 +532,12 @@ module.exports = {
   createStage,
   updateStage,
   reorderStages,
+  needChanges,
+  finalizeNeed,
+  requireParentStage,
+  createNeed,
+  updateNeed,
+  removeNeed,
   listPublic,
   getPublic,
 };

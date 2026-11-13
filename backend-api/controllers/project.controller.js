@@ -107,6 +107,55 @@ async function reorderStages(req, res) {
   }
 }
 
+async function createNeed(req, res) {
+  try {
+    const result = await projectService.createNeed(
+      req.user.id,
+      req.params.id,
+      req.params.stageId,
+      req.body
+    );
+    return res.status(201).json(result);
+  } catch (err) {
+    if (err instanceof ProjectError) return sendFunctionalError(res, err);
+    logTechnical("project.controller.createNeed:", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function updateNeed(req, res) {
+  try {
+    const result = await projectService.updateNeed(
+      req.user.id,
+      req.params.id,
+      req.params.stageId,
+      req.params.needId,
+      req.body
+    );
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof ProjectError) return sendFunctionalError(res, err);
+    logTechnical("project.controller.updateNeed:", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function removeNeed(req, res) {
+  try {
+    const result = await projectService.removeNeed(
+      req.user.id,
+      req.params.id,
+      req.params.stageId,
+      req.params.needId
+    );
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof ProjectError) return sendFunctionalError(res, err);
+    logTechnical("project.controller.removeNeed:", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
 async function listPublic(req, res) {
   try {
     const result = await projectService.listPublic();
@@ -138,6 +187,9 @@ module.exports = {
   createStage,
   updateStage,
   reorderStages,
+  createNeed,
+  updateNeed,
+  removeNeed,
   listPublic,
   getPublic,
 };

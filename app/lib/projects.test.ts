@@ -43,6 +43,36 @@ test("projectDraftPayload sends only the editable fields", () => {
   assert.equal("ownerId" in payload, false);
 });
 
+test("parseOwnedProject keeps a need on its stage and rejects a resolved status", () => {
+  const stage = {
+    id: "stage-1",
+    title: "Préparer",
+    description: "",
+    position: 0,
+    status: "not_started",
+    blockerExplanation: "",
+    needs: [
+      {
+        id: "need-1",
+        title: "Grillage",
+        description: "",
+        kind: "resource",
+        status: "open",
+        blockerExplanation: "",
+      },
+    ],
+  };
+  const parsed = parseOwnedProject({ ...draft, stages: [stage] });
+  assert.equal(parsed?.stages[0].needs[0].kind, "resource");
+  assert.equal(
+    parseOwnedProject({
+      ...draft,
+      stages: [{ ...stage, needs: [{ ...stage.needs[0], status: "resolved" }] }],
+    }),
+    null
+  );
+});
+
 test("projectProgress ignores cancelled stages and is unavailable without eligible stages", () => {
   assert.deepEqual(
     projectProgress([

@@ -1513,6 +1513,33 @@
         "cancelled": "Annulée"
       }
     },
+    "needs": {
+      "title": "Besoins",
+      "hint": "Un besoin décrit une compétence, un service, une ressource ou une assistance. Ce n’est pas une tâche assignée.",
+      "empty": "Cette étape n’a pas encore de besoin.",
+      "add": "Ajouter un besoin",
+      "needTitle": "Titre du besoin",
+      "needDescription": "Description du besoin",
+      "kind": "Type de besoin",
+      "chooseKind": "Choisir un type",
+      "status": "Statut du besoin",
+      "blocker": "Pourquoi ce besoin est bloqué",
+      "remove": "Retirer le besoin",
+      "confirmRemove": "Confirmer le retrait",
+      "cancelRemove": "Conserver le besoin",
+      "kinds": {
+        "skill": "Compétence",
+        "service": "Service",
+        "resource": "Ressource",
+        "assistance": "Assistance"
+      },
+      "statuses": {
+        "open": "Ouvert",
+        "blocked": "Bloqué",
+        "fulfilled": "Pourvu",
+        "cancelled": "Annulé"
+      }
+    },
     "draftHint": "Un brouillon peut rester incomplet. Seul vous pouvez le consulter.",
     "empty": "Vous n’avez pas encore de projet.",
     "untitled": "Projet sans titre",
@@ -1543,7 +1570,13 @@
       "STAGE_TITLE_REQUIRED": "Donnez un titre à l’étape.",
       "INVALID_STAGE_STATUS": "Choisissez un statut d’étape valide.",
       "STAGE_NOT_FOUND": "Cette étape est introuvable.",
-      "INVALID_STAGE_ORDER": "L’ordre des étapes n’est pas valide."
+      "INVALID_STAGE_ORDER": "L’ordre des étapes n’est pas valide.",
+      "NEED_TITLE_REQUIRED": "Saisissez un titre pour le besoin.",
+      "NEED_KIND_REQUIRED": "Choisissez un type de besoin.",
+      "INVALID_NEED_KIND": "Choisissez un type de besoin valide.",
+      "INVALID_NEED_STATUS": "Choisissez un statut de besoin valide.",
+      "BLOCKER_EXPLANATION_REQUIRED": "Indiquez ce qui bloque ce besoin.",
+      "NEED_NOT_FOUND": "Ce besoin est introuvable."
     }
   }
 }
