@@ -98,6 +98,19 @@ function parseStage(value: unknown): ProjectStage | null {
   };
 }
 
+export function projectProgress(stages: Array<{ status: string }>): {
+  available: boolean;
+  percent: number | null;
+} {
+  const eligible = stages.filter((stage) => stage.status !== "cancelled");
+  if (eligible.length === 0) return { available: false, percent: null };
+  const completed = eligible.filter((stage) => stage.status === "completed").length;
+  return {
+    available: true,
+    percent: Math.round((completed / eligible.length) * 100),
+  };
+}
+
 export function parseOwnedProject(value: unknown): OwnedProject | null {
   if (!isRecord(value)) return null;
   if (typeof value.id !== "string" || value.id.length === 0) return null;

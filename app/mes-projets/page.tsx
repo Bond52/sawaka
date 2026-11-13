@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslation } from "@/src/i18n/I18nProvider";
-import { listOwnedProjects, type OwnedProject } from "@/app/lib/projects";
+import { listOwnedProjects, projectProgress, type OwnedProject } from "@/app/lib/projects";
 import { useRequireMember } from "./useRequireMember";
 
 const focusRing =
@@ -53,7 +53,7 @@ export default function MyProjectsPage() {
           {t("myProjects.create")}
         </Link>
       </div>
-      <p className="mt-3 max-w-3xl text-sm text-muted-foreground">{t("myProjects.subtitle")}</p>
+        <p className="mt-3 max-w-3xl text-sm text-muted-foreground">{t("myProjects.subtitle")}</p>
 
       {phase === "loading" ? (
         <p role="status" className="mt-8 text-sm text-muted-foreground" data-testid="my-projects-loading">
@@ -77,6 +77,7 @@ export default function MyProjectsPage() {
         <ul data-testid="my-projects-list" className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
           {projects.map((project) => {
             const title = project.title.trim() || t("myProjects.untitled");
+            const progress = projectProgress(project.stages);
             return (
               <li key={project.id} className="rounded-xl border border-border bg-card p-5">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -85,6 +86,11 @@ export default function MyProjectsPage() {
                     : t("myProjects.statusDraft")}
                 </p>
                 <h2 className="mt-2 break-words font-display text-xl text-foreground">{title}</h2>
+                <p className="mt-1 text-sm text-muted-foreground" data-testid={`my-projects-progress-${project.id}`}>
+                  {progress.available
+                    ? t("myProjects.progressValue", { percent: progress.percent ?? 0 })
+                    : t("myProjects.progressUnavailable")}
+                </p>
                 {project.city || project.country ? (
                   <p className="mt-1 text-sm text-muted-foreground">
                     {[project.city, project.country].filter(Boolean).join(", ")}

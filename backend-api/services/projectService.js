@@ -41,6 +41,18 @@ function sortedStages(project) {
   return [...(project.stages || [])].sort((a, b) => a.position - b.position);
 }
 
+function projectProgress(stages) {
+  const eligible = (stages || []).filter((stage) => stage.status !== STAGE_STATUS.CANCELLED);
+  if (eligible.length === 0) {
+    return { available: false, percent: null };
+  }
+  const completed = eligible.filter((stage) => stage.status === STAGE_STATUS.COMPLETED).length;
+  return {
+    available: true,
+    percent: Math.round((completed / eligible.length) * 100),
+  };
+}
+
 const PUBLICATION_FIELDS = Object.freeze([
   "title",
   "description",
@@ -124,6 +136,7 @@ function ownerProjectView(project) {
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
     stages: sortedStages(project).map(stageView),
+    progress: projectProgress(sortedStages(project)),
   };
 }
 
@@ -141,6 +154,7 @@ function publicProjectView(project) {
     status: project.status,
     publishedAt: project.publishedAt || null,
     stages: sortedStages(project).map(stageView),
+    progress: projectProgress(sortedStages(project)),
   };
 }
 
@@ -360,6 +374,8 @@ module.exports = {
   isPubliclyReadable,
   ownerProjectView,
   publicProjectView,
+  stageView,
+  projectProgress,
   createDraft,
   listOwned,
   getOwned,

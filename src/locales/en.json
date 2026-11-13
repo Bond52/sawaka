@@ -1492,6 +1492,8 @@
     "publish": "Publish",
     "published": "Project published.",
     "fieldRequired": "This field is required to publish.",
+    "progressValue": "Progress: {percent}%",
+    "progressUnavailable": "Progress unavailable",
     "stages": {
       "title": "Stages",
       "hint": "Stages describe broad progress. They are not assigned tasks.",

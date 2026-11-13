@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseOwnedProject, projectDraftPayload } from "./projects.ts";
+import { parseOwnedProject, projectDraftPayload, projectProgress } from "./projects.ts";
 
 const draft = {
   id: "507f1f77bcf86cd799439011",
@@ -41,4 +41,19 @@ test("projectDraftPayload sends only the editable fields", () => {
   assert.equal(payload.title, "Atelier");
   assert.equal("status" in payload, false);
   assert.equal("ownerId" in payload, false);
+});
+
+test("projectProgress ignores cancelled stages and is unavailable without eligible stages", () => {
+  assert.deepEqual(
+    projectProgress([
+      { status: "completed" },
+      { status: "in_progress" },
+      { status: "cancelled" },
+    ]),
+    { available: true, percent: 50 }
+  );
+  assert.deepEqual(projectProgress([{ status: "cancelled" }]), {
+    available: false,
+    percent: null,
+  });
 });
