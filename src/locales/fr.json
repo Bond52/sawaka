@@ -1505,6 +1505,10 @@
       "blocker": "Explication du blocage",
       "moveUp": "Monter",
       "moveDown": "Descendre",
+      "remove": "Retirer l’étape",
+      "confirmRemove": "Retirer cette étape ? Une étape qui contient encore des besoins ne peut pas être retirée.",
+      "confirmAction": "Confirmer le retrait",
+      "cancelRemove": "Conserver l’étape",
       "statuses": {
         "not_started": "Pas commencée",
         "in_progress": "En cours",
@@ -1581,6 +1585,7 @@
       "INVALID_STAGE_STATUS": "Choisissez un statut d’étape valide.",
       "STAGE_NOT_FOUND": "Cette étape est introuvable.",
       "INVALID_STAGE_ORDER": "L’ordre des étapes n’est pas valide.",
+      "STAGE_HAS_NEEDS": "Retirez les besoins de cette étape avant de la retirer.",
       "NEED_TITLE_REQUIRED": "Saisissez un titre pour le besoin.",
       "NEED_KIND_REQUIRED": "Choisissez un type de besoin.",
       "INVALID_NEED_KIND": "Choisissez un type de besoin valide.",

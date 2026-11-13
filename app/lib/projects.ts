@@ -370,6 +370,17 @@ export async function updateProjectStage(
   return { ok: true, project };
 }
 
+export async function removeProjectStage(projectId: string, stageId: string): Promise<ProjectResult> {
+  const result = await sendProject(
+    `/api/projects/mine/${encodeURIComponent(projectId)}/stages/${encodeURIComponent(stageId)}`,
+    "DELETE"
+  );
+  if ("ok" in result) return result;
+  const project = isRecord(result.data) ? parseOwnedProject(result.data.project) : null;
+  if (!project) return { ok: false, status: result.status, code: "INVALID_RESPONSE" };
+  return { ok: true, project };
+}
+
 export async function reorderProjectStages(
   projectId: string,
   orderedIds: string[]

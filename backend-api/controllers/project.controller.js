@@ -96,6 +96,17 @@ async function updateStage(req, res) {
   }
 }
 
+async function removeStage(req, res) {
+  try {
+    const result = await projectService.removeStage(req.user.id, req.params.id, req.params.stageId);
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof ProjectError) return sendFunctionalError(res, err);
+    logTechnical("project.controller.removeStage:", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
 async function reorderStages(req, res) {
   try {
     const result = await projectService.reorderStages(req.user.id, req.params.id, req.body);
@@ -267,6 +278,7 @@ module.exports = {
   createStage,
   updateStage,
   reorderStages,
+  removeStage,
   createNeed,
   updateNeed,
   removeNeed,

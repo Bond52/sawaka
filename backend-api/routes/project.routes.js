@@ -27,6 +27,7 @@ router.patch("/mine/:id", requireAuth, projectWriteRateLimit, projectController.
 router.post("/mine/:id/publish", requireAuth, projectWriteRateLimit, projectController.publishOwned);
 router.post("/mine/:id/stages", requireAuth, projectWriteRateLimit, projectController.createStage);
 router.patch("/mine/:id/stages/:stageId", requireAuth, projectWriteRateLimit, projectController.updateStage);
+router.delete("/mine/:id/stages/:stageId", requireAuth, projectWriteRateLimit, projectController.removeStage);
 router.put("/mine/:id/stages/order", requireAuth, projectWriteRateLimit, projectController.reorderStages);
 router.post("/mine/:id/stages/:stageId/needs", requireAuth, projectWriteRateLimit, projectController.createNeed);
 router.patch(
