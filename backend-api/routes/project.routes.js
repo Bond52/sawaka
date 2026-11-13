@@ -24,6 +24,9 @@ router.post("/", requireAuth, projectWriteRateLimit, projectController.createDra
 router.get("/mine/:id", requireAuth, projectController.getOwned);
 router.patch("/mine/:id", requireAuth, projectWriteRateLimit, projectController.updateOwned);
 router.post("/mine/:id/publish", requireAuth, projectWriteRateLimit, projectController.publishOwned);
+router.post("/mine/:id/stages", requireAuth, projectWriteRateLimit, projectController.createStage);
+router.patch("/mine/:id/stages/:stageId", requireAuth, projectWriteRateLimit, projectController.updateStage);
+router.put("/mine/:id/stages/order", requireAuth, projectWriteRateLimit, projectController.reorderStages);
 
 router.get("/", projectController.listPublic);
 router.get("/:id", projectController.getPublic);

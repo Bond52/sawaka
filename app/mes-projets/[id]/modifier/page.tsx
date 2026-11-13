@@ -13,6 +13,7 @@ import {
   type ProjectDraftInput,
 } from "@/app/lib/projects";
 import ProjectDraftForm, { draftFromProject } from "../../ProjectDraftForm";
+import ProjectStages from "../../ProjectStages";
 import { useRequireMember } from "../../useRequireMember";
 
 const focusRing =
@@ -104,6 +105,7 @@ export default function EditProjectPage() {
             : undefined
         }
       />
+      <ProjectStages project={project} onChange={setProject} />
     </div>
   );
 }

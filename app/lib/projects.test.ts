@@ -16,7 +16,7 @@ const draft = {
 };
 
 test("parseOwnedProject keeps an incomplete private draft", () => {
-  assert.deepEqual(parseOwnedProject(draft), draft);
+  assert.deepEqual(parseOwnedProject(draft), { ...draft, stages: [] });
 });
 
 test("parseOwnedProject rejects public payloads that include an owner id", () => {
