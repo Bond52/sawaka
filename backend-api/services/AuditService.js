@@ -70,6 +70,7 @@ const USER_AUDIT_ACTIONS = Object.freeze({
   CONTRIBUTOR_PROFILE_DEACTIVATED: "ContributorProfileDeactivated",
   PROJECT_DRAFT_SAVED: "ProjectDraftSaved",
   PROJECT_UPDATED: "ProjectUpdated",
+  PROJECT_PUBLISHED: "ProjectPublished",
 });
 
 const UserAuditEventSchema = new mongoose.Schema(

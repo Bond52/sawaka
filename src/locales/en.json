@@ -1489,6 +1489,9 @@
     "saveDraft": "Save draft",
     "saving": "Saving…",
     "saved": "Draft saved.",
+    "publish": "Publish",
+    "published": "Project published.",
+    "fieldRequired": "This field is required to publish.",
     "draftHint": "A draft can stay incomplete. Only you can see it.",
     "empty": "You do not have a project yet.",
     "untitled": "Untitled project",
@@ -1513,7 +1516,9 @@
       "NOT_FOUND": "This project could not be found.",
       "UNAUTHORIZED": "Sign in to continue.",
       "NETWORK": "The server could not be reached. Try again.",
-      "SERVER_ERROR": "The draft could not be saved. Try again."
+      "SERVER_ERROR": "The draft could not be saved. Try again.",
+      "PUBLICATION_INCOMPLETE": "Complete the required fields before publishing.",
+      "ALREADY_PUBLISHED": "This project is already published."
     }
   }
 }

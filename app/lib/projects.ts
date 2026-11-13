@@ -197,4 +197,19 @@ export async function updateProjectDraft(
   return { ok: true, project };
 }
 
+export async function publishOwnedProject(
+  id: string,
+  input: ProjectDraftInput
+): Promise<ProjectResult> {
+  const result = await sendProject(
+    `/api/projects/mine/${encodeURIComponent(id)}/publish`,
+    "POST",
+    input
+  );
+  if ("ok" in result) return result;
+  const project = isRecord(result.data) ? parseOwnedProject(result.data.project) : null;
+  if (!project) return { ok: false, status: result.status, code: "INVALID_RESPONSE" };
+  return { ok: true, project };
+}
+
 export const SAVED_PROJECT_STORAGE_KEY = "sawaka-project-saved";

@@ -58,6 +58,17 @@ async function updateOwned(req, res) {
   }
 }
 
+async function publishOwned(req, res) {
+  try {
+    const result = await projectService.publishOwned(req.user.id, req.params.id, req.body);
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof ProjectError) return sendFunctionalError(res, err);
+    logTechnical("project.controller.publishOwned:", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
 async function listPublic(req, res) {
   try {
     const result = await projectService.listPublic();
@@ -85,6 +96,7 @@ module.exports = {
   listOwned,
   getOwned,
   updateOwned,
+  publishOwned,
   listPublic,
   getPublic,
 };
