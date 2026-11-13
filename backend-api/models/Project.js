@@ -18,6 +18,36 @@ const STAGE_STATUS = Object.freeze({
   CANCELLED: "cancelled",
 });
 
+const NEED_KIND = Object.freeze({
+  SKILL: "skill",
+  SERVICE: "service",
+  RESOURCE: "resource",
+  ASSISTANCE: "assistance",
+});
+
+const NEED_STATUS = Object.freeze({
+  OPEN: "open",
+  BLOCKED: "blocked",
+  FULFILLED: "fulfilled",
+  CANCELLED: "cancelled",
+});
+
+const needSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true, trim: true, maxlength: 120 },
+    description: { type: String, default: "", trim: true, maxlength: 2000 },
+    kind: { type: String, enum: Object.values(NEED_KIND), required: true },
+    status: {
+      type: String,
+      enum: Object.values(NEED_STATUS),
+      required: true,
+      default: NEED_STATUS.OPEN,
+    },
+    blockerExplanation: { type: String, default: "", trim: true, maxlength: 1000 },
+  },
+  { _id: true }
+);
+
 const stageSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true, maxlength: 120 },
@@ -30,6 +60,7 @@ const stageSchema = new mongoose.Schema(
       default: STAGE_STATUS.NOT_STARTED,
     },
     blockerExplanation: { type: String, default: "", trim: true, maxlength: 1000 },
+    needs: { type: [needSchema], default: [] },
   },
   { _id: true }
 );
@@ -75,3 +106,5 @@ module.exports = mongoose.model("Project", projectSchema);
 module.exports.PROJECT_STATUS = PROJECT_STATUS;
 module.exports.PROJECT_VISIBILITY = PROJECT_VISIBILITY;
 module.exports.STAGE_STATUS = STAGE_STATUS;
+module.exports.NEED_KIND = NEED_KIND;
+module.exports.NEED_STATUS = NEED_STATUS;

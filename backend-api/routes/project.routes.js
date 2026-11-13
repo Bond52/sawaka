@@ -27,6 +27,19 @@ router.post("/mine/:id/publish", requireAuth, projectWriteRateLimit, projectCont
 router.post("/mine/:id/stages", requireAuth, projectWriteRateLimit, projectController.createStage);
 router.patch("/mine/:id/stages/:stageId", requireAuth, projectWriteRateLimit, projectController.updateStage);
 router.put("/mine/:id/stages/order", requireAuth, projectWriteRateLimit, projectController.reorderStages);
+router.post("/mine/:id/stages/:stageId/needs", requireAuth, projectWriteRateLimit, projectController.createNeed);
+router.patch(
+  "/mine/:id/stages/:stageId/needs/:needId",
+  requireAuth,
+  projectWriteRateLimit,
+  projectController.updateNeed
+);
+router.delete(
+  "/mine/:id/stages/:stageId/needs/:needId",
+  requireAuth,
+  projectWriteRateLimit,
+  projectController.removeNeed
+);
 
 router.get("/", projectController.listPublic);
 router.get("/:id", projectController.getPublic);
