@@ -1478,5 +1478,42 @@
         "BIOGRAPHY_INVALID": "Saisissez la biographie en texte."
       }
     }
+  },
+  "myProjects": {
+    "title": "Mes projets",
+    "subtitle": "Enregistrez vos initiatives en brouillon privé, puis revenez les compléter.",
+    "create": "Créer un projet",
+    "edit": "Modifier",
+    "editTitle": "Modifier le projet",
+    "back": "Retour à mes projets",
+    "saveDraft": "Enregistrer le brouillon",
+    "saving": "Enregistrement…",
+    "saved": "Brouillon enregistré.",
+    "draftHint": "Un brouillon peut rester incomplet. Seul vous pouvez le consulter.",
+    "empty": "Vous n’avez pas encore de projet.",
+    "untitled": "Projet sans titre",
+    "loadError": "Les projets n’ont pas pu être chargés.",
+    "statusDraft": "Brouillon",
+    "statusPublished": "Publié",
+    "fields": {
+      "title": "Titre",
+      "summary": "Résumé",
+      "description": "Description",
+      "objective": "Objectif",
+      "category": "Catégorie",
+      "country": "Pays",
+      "city": "Ville"
+    },
+    "errors": {
+      "FIELD_TOO_LONG": "Ce texte dépasse la longueur autorisée.",
+      "INVALID_FIELD": "Saisissez ce champ en texte.",
+      "FIELD_NOT_ALLOWED": "Certains champs ne peuvent pas être modifiés.",
+      "INVALID_BODY": "Les informations envoyées ne sont pas valides.",
+      "FORBIDDEN": "Vous ne pouvez pas modifier ce projet.",
+      "NOT_FOUND": "Ce projet est introuvable.",
+      "UNAUTHORIZED": "Connectez-vous pour continuer.",
+      "NETWORK": "Impossible de joindre le serveur. Réessayez.",
+      "SERVER_ERROR": "L’enregistrement a échoué. Réessayez."
+    }
   }
 }

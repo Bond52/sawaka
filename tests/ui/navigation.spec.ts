@@ -187,7 +187,10 @@ test.describe("Public navigation", () => {
       "/vendeur/articles"
     );
     await expect(page.getByTestId("header-my-projects")).toHaveText("Mes projets");
-    await expect(page.getByTestId("header-my-projects")).toBeDisabled();
+    await expect(page.getByTestId("header-my-projects")).toHaveAttribute(
+      "href",
+      "/mes-projets"
+    );
     await expect(page.getByTestId("header-my-collaborations")).toHaveText(
       "Mes collaborations"
     );
@@ -238,6 +241,10 @@ test.describe("Public navigation", () => {
       "/vendeur/articles"
     );
     await expect(page.getByTestId("header-my-projects")).toHaveText("My Projects");
+    await expect(page.getByTestId("header-my-projects")).toHaveAttribute(
+      "href",
+      "/mes-projets"
+    );
     await expect(page.getByTestId("header-my-collaborations")).toHaveText(
       "My Collaborations"
     );
@@ -246,7 +253,6 @@ test.describe("Public navigation", () => {
       "href",
       "/settings"
     );
-    await expect(page.getByTestId("header-my-projects")).toBeDisabled();
     await expect(page.getByTestId("header-my-collaborations")).toBeDisabled();
     await expect(page.getByTestId("header-logout")).toHaveText("Log out");
   });
@@ -283,7 +289,10 @@ test.describe("Public navigation", () => {
       "href",
       "/vendeur/articles"
     );
-    await expect(page.getByTestId("header-mobile-my-projects")).toBeDisabled();
+    await expect(page.getByTestId("header-mobile-my-projects")).toHaveAttribute(
+      "href",
+      "/mes-projets"
+    );
     await expect(page.getByTestId("header-mobile-collaborations")).toBeDisabled();
     await expect(page.getByTestId("header-mobile-settings")).toHaveAttribute(
       "href",

@@ -1478,5 +1478,42 @@
         "BIOGRAPHY_INVALID": "Enter the biography as text."
       }
     }
+  },
+  "myProjects": {
+    "title": "My Projects",
+    "subtitle": "Save your initiatives as a private draft, then come back to complete them.",
+    "create": "Create a project",
+    "edit": "Edit",
+    "editTitle": "Edit project",
+    "back": "Back to my projects",
+    "saveDraft": "Save draft",
+    "saving": "Saving…",
+    "saved": "Draft saved.",
+    "draftHint": "A draft can stay incomplete. Only you can see it.",
+    "empty": "You do not have a project yet.",
+    "untitled": "Untitled project",
+    "loadError": "Projects could not be loaded.",
+    "statusDraft": "Draft",
+    "statusPublished": "Published",
+    "fields": {
+      "title": "Title",
+      "summary": "Summary",
+      "description": "Description",
+      "objective": "Objective",
+      "category": "Category",
+      "country": "Country",
+      "city": "City"
+    },
+    "errors": {
+      "FIELD_TOO_LONG": "This text is longer than allowed.",
+      "INVALID_FIELD": "Enter this field as text.",
+      "FIELD_NOT_ALLOWED": "Some fields cannot be changed.",
+      "INVALID_BODY": "The information sent is not valid.",
+      "FORBIDDEN": "You cannot change this project.",
+      "NOT_FOUND": "This project could not be found.",
+      "UNAUTHORIZED": "Sign in to continue.",
+      "NETWORK": "The server could not be reached. Try again.",
+      "SERVER_ERROR": "The draft could not be saved. Try again."
+    }
   }
 }
