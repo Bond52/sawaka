@@ -143,17 +143,18 @@ test.describe("My Projects navigation", () => {
 
     await expect(page).toHaveURL(/\/mes-projets\/proj-1\/modifier$/);
     await expect(page.getByTestId("project-save-status")).toHaveText("Brouillon enregistré.");
-    await expect(page.getByLabel("Titre")).toHaveValue("Poulailler");
+    const draftForm = page.getByTestId("project-draft-form");
+    await expect(draftForm.getByLabel("Titre")).toHaveValue("Poulailler");
 
     await page.getByTestId("project-back").click();
     await expect(page.getByTestId("my-projects-edit-proj-1")).toBeVisible();
     await page.getByTestId("my-projects-edit-proj-1").click();
-    await page.getByLabel("Objectif").fill("Nourrir le quartier");
+    await draftForm.getByLabel("Objectif").fill("Nourrir le quartier");
     await page.getByTestId("project-save").click();
-    await expect(page.getByTestId("project-draft-form").getByTestId("project-save-status")).toHaveText(
+    await expect(draftForm.getByTestId("project-save-status")).toHaveText(
       "Brouillon enregistré."
     );
-    await expect(page.getByLabel("Objectif")).toHaveValue("Nourrir le quartier");
+    await expect(draftForm.getByLabel("Objectif")).toHaveValue("Nourrir le quartier");
   });
 
   test("English mobile flow saves an incomplete draft", async ({ page }) => {
@@ -171,7 +172,7 @@ test.describe("My Projects navigation", () => {
     await page.getByTestId("project-save").click();
     await expect(page).toHaveURL(/\/mes-projets\/proj-1\/modifier$/);
     await expect(page.getByTestId("project-save-status")).toHaveText("Draft saved.");
-    await expect(page.getByLabel("Title")).toHaveValue("");
+    await expect(page.getByTestId("project-draft-form").getByLabel("Title")).toHaveValue("");
   });
 
   test("keeps the existing AI project ideation page", async ({ page }) => {
