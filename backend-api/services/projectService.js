@@ -8,6 +8,11 @@ const {
   NEED_STATUS,
 } = require("../models/Project");
 const { recordUserAuditEvent, USER_AUDIT_ACTIONS } = require("./AuditService");
+const { profilePhotoIssue } = require("./profilePhoto");
+const { uploadProjectImage, destroyStoredImage } = require("./imageStorage");
+
+const MAX_PROJECT_IMAGES = 8;
+const MAX_STAGE_IMAGES = 6;
 
 const OBJECT_ID_PATTERN = /^[a-f\d]{24}$/i;
 
@@ -39,6 +44,11 @@ const STAGE_LIMITS = Object.freeze({
   blockerExplanation: 1000,
 });
 
+function imageView(image) {
+  if (!image || !image.url) return null;
+  return { id: String(image._id), url: image.url };
+}
+
 function needView(need) {
   return {
     id: String(need._id),
@@ -59,6 +69,7 @@ function stageView(stage) {
     status: stage.status,
     blockerExplanation: stage.blockerExplanation || "",
     needs: [...(stage.needs || [])].map(needView),
+    images: [...(stage.images || [])].map(imageView).filter(Boolean),
   };
 }
 
@@ -160,6 +171,8 @@ function ownerProjectView(project) {
     visibility: project.visibility,
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
+    coverImage: imageView(project.coverImage),
+    images: [...(project.images || [])].map(imageView).filter(Boolean),
     stages: sortedStages(project).map(stageView),
     progress: projectProgress(sortedStages(project)),
   };
@@ -178,6 +191,8 @@ function publicProjectView(project) {
     city: project.city || "",
     status: project.status,
     publishedAt: project.publishedAt || null,
+    coverImage: imageView(project.coverImage),
+    images: [...(project.images || [])].map(imageView).filter(Boolean),
     stages: sortedStages(project).map(stageView),
     progress: projectProgress(sortedStages(project)),
   };
@@ -512,6 +527,145 @@ async function removeNeed(ownerId, projectId, stageId, needId) {
   return { project: ownerProjectView(project) };
 }
 
+function assertImageFile(file) {
+  const issue = profilePhotoIssue(file);
+  if (issue === "PHOTO_REQUIRED") throw new ProjectError("IMAGE_REQUIRED", 400);
+  if (issue) throw new ProjectError(issue, 400);
+}
+
+async function storeProjectImage(file) {
+  assertImageFile(file);
+  try {
+    return await uploadProjectImage(file.buffer);
+  } catch (err) {
+    console.error("projectService.uploadProjectImage:", {
+      name: err && err.name,
+      code: err && err.code,
+    });
+    throw new ProjectError("UPLOAD_FAILED", 502);
+  }
+}
+
+async function discardStoredImage(publicId) {
+  if (!publicId) return;
+  try {
+    await destroyStoredImage(publicId);
+  } catch (err) {
+    console.error("projectService.destroyStoredImage:", {
+      name: err && err.name,
+      code: err && err.code,
+    });
+  }
+}
+
+async function recordMediaChange(ownerId, projectId, operation, extra) {
+  await recordUserAuditEvent({
+    action: USER_AUDIT_ACTIONS.PROJECT_MEDIA_CHANGED,
+    userId: ownerId,
+    metadata: {
+      projectId: String(projectId),
+      operation,
+      ...(extra || {}),
+    },
+  });
+}
+
+async function setCover(ownerId, projectId, file) {
+  const project = await findOwnedProject(ownerId, projectId);
+  const uploaded = await storeProjectImage(file);
+  const previousPublicId = project.coverImage && project.coverImage.publicId;
+  project.coverImage = { url: uploaded.url, publicId: uploaded.publicId };
+  try {
+    await project.save();
+  } catch (err) {
+    await discardStoredImage(uploaded.publicId);
+    throw err;
+  }
+  if (previousPublicId && previousPublicId !== uploaded.publicId) {
+    await discardStoredImage(previousPublicId);
+  }
+  await recordMediaChange(ownerId, project._id, "cover_set");
+  return { project: ownerProjectView(project) };
+}
+
+async function removeCover(ownerId, projectId) {
+  const project = await findOwnedProject(ownerId, projectId);
+  const previousPublicId = project.coverImage && project.coverImage.publicId;
+  project.coverImage = null;
+  await project.save();
+  await discardStoredImage(previousPublicId);
+  await recordMediaChange(ownerId, project._id, "cover_removed");
+  return { project: ownerProjectView(project) };
+}
+
+async function addProjectImage(ownerId, projectId, file) {
+  const project = await findOwnedProject(ownerId, projectId);
+  if ((project.images || []).length >= MAX_PROJECT_IMAGES) {
+    throw new ProjectError("IMAGE_LIMIT", 400);
+  }
+  const uploaded = await storeProjectImage(file);
+  project.images.push({ url: uploaded.url, publicId: uploaded.publicId });
+  try {
+    await project.save();
+  } catch (err) {
+    await discardStoredImage(uploaded.publicId);
+    throw err;
+  }
+  const created = project.images[project.images.length - 1];
+  await recordMediaChange(ownerId, project._id, "image_added", { imageId: String(created._id) });
+  return { project: ownerProjectView(project) };
+}
+
+async function removeProjectImage(ownerId, projectId, imageId) {
+  const project = await findOwnedProject(ownerId, projectId);
+  const image = [...(project.images || [])].find((item) => String(item._id) === String(imageId));
+  if (!image) throw new ProjectError("IMAGE_NOT_FOUND", 404);
+  const publicId = image.publicId;
+  project.images.pull(image._id);
+  await project.save();
+  await discardStoredImage(publicId);
+  await recordMediaChange(ownerId, project._id, "image_removed", { imageId: String(imageId) });
+  return { project: ownerProjectView(project) };
+}
+
+async function addStageImage(ownerId, projectId, stageId, file) {
+  const project = await findOwnedProject(ownerId, projectId);
+  const stage = requireParentStage(project.stages, stageId);
+  if ((stage.images || []).length >= MAX_STAGE_IMAGES) {
+    throw new ProjectError("IMAGE_LIMIT", 400);
+  }
+  const uploaded = await storeProjectImage(file);
+  stage.images.push({ url: uploaded.url, publicId: uploaded.publicId });
+  try {
+    await project.save();
+  } catch (err) {
+    await discardStoredImage(uploaded.publicId);
+    throw err;
+  }
+  const created = stage.images[stage.images.length - 1];
+  await recordMediaChange(ownerId, project._id, "stage_image_added", {
+    stageId: String(stage._id),
+    imageId: String(created._id),
+  });
+  return { project: ownerProjectView(project) };
+}
+
+async function removeStageImage(ownerId, projectId, stageId, imageId) {
+  const project = await findOwnedProject(ownerId, projectId);
+  const stage = requireParentStage(project.stages, stageId);
+  const image = [...(stage.images || [])].find((item) => String(item._id) === String(imageId));
+  if (!image) throw new ProjectError("IMAGE_NOT_FOUND", 404);
+  const publicId = image.publicId;
+  stage.images.pull(image._id);
+  await project.save();
+  await discardStoredImage(publicId);
+  await recordMediaChange(ownerId, project._id, "stage_image_removed", {
+    stageId: String(stage._id),
+    imageId: String(imageId),
+  });
+  return { project: ownerProjectView(project) };
+}
+
 module.exports = {
   ProjectError,
   FIELD_LIMITS,
@@ -538,6 +692,15 @@ module.exports = {
   createNeed,
   updateNeed,
   removeNeed,
+  imageView,
+  MAX_PROJECT_IMAGES,
+  MAX_STAGE_IMAGES,
+  setCover,
+  removeCover,
+  addProjectImage,
+  removeProjectImage,
+  addStageImage,
+  removeStageImage,
   listPublic,
   getPublic,
 };

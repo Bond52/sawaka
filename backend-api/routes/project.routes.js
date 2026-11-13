@@ -2,6 +2,7 @@ const express = require("express");
 const { requireAuth } = require("../middleware/auth");
 const { createRateLimiter } = require("../middleware/rateLimit");
 const projectController = require("../controllers/project.controller");
+const { projectImageUpload } = require("../middleware/projectImageUpload");
 
 const router = express.Router();
 
@@ -39,6 +40,40 @@ router.delete(
   requireAuth,
   projectWriteRateLimit,
   projectController.removeNeed
+);
+router.post(
+  "/mine/:id/cover",
+  requireAuth,
+  projectWriteRateLimit,
+  projectImageUpload,
+  projectController.setCover
+);
+router.delete("/mine/:id/cover", requireAuth, projectWriteRateLimit, projectController.removeCover);
+router.post(
+  "/mine/:id/images",
+  requireAuth,
+  projectWriteRateLimit,
+  projectImageUpload,
+  projectController.addProjectImage
+);
+router.delete(
+  "/mine/:id/images/:imageId",
+  requireAuth,
+  projectWriteRateLimit,
+  projectController.removeProjectImage
+);
+router.post(
+  "/mine/:id/stages/:stageId/images",
+  requireAuth,
+  projectWriteRateLimit,
+  projectImageUpload,
+  projectController.addStageImage
+);
+router.delete(
+  "/mine/:id/stages/:stageId/images/:imageId",
+  requireAuth,
+  projectWriteRateLimit,
+  projectController.removeStageImage
 );
 
 router.get("/", projectController.listPublic);

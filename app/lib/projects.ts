@@ -10,6 +10,11 @@ export type StageStatus =
 export type NeedKind = "skill" | "service" | "resource" | "assistance";
 export type NeedStatus = "open" | "blocked" | "fulfilled" | "cancelled";
 
+export type ProjectImage = {
+  id: string;
+  url: string;
+};
+
 export type ProjectNeed = {
   id: string;
   title: string;
@@ -27,6 +32,7 @@ export type ProjectStage = {
   status: StageStatus;
   blockerExplanation: string;
   needs: ProjectNeed[];
+  images: ProjectImage[];
 };
 
 export type OwnedProject = {
@@ -40,6 +46,8 @@ export type OwnedProject = {
   city: string;
   status: ProjectStatus;
   visibility: ProjectVisibility;
+  coverImage: ProjectImage | null;
+  images: ProjectImage[];
   stages: ProjectStage[];
 };
 
@@ -99,6 +107,20 @@ const STAGE_STATUSES: StageStatus[] = [
 const NEED_KINDS: NeedKind[] = ["skill", "service", "resource", "assistance"];
 const NEED_STATUSES: NeedStatus[] = ["open", "blocked", "fulfilled", "cancelled"];
 
+function parseImage(value: unknown): ProjectImage | null {
+  if (!isRecord(value) || typeof value.id !== "string" || typeof value.url !== "string") return null;
+  if (!value.url.startsWith("https://") || "publicId" in value) return null;
+  return { id: value.id, url: value.url };
+}
+
+function parseImages(value: unknown): ProjectImage[] | null {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) return null;
+  const images = value.map(parseImage);
+  if (images.some((image) => image === null)) return null;
+  return images as ProjectImage[];
+}
+
 function parseNeed(value: unknown): ProjectNeed | null {
   if (!isRecord(value) || typeof value.id !== "string") return null;
   if (typeof value.title !== "string" || typeof value.description !== "string") return null;
@@ -123,6 +145,8 @@ function parseStage(value: unknown): ProjectStage | null {
   if (value.needs !== undefined && !Array.isArray(value.needs)) return null;
   const needs = Array.isArray(value.needs) ? value.needs.map(parseNeed) : [];
   if (needs.some((need) => need === null)) return null;
+  const images = parseImages(value.images);
+  if (!images) return null;
   return {
     id: value.id,
     title: value.title,
@@ -131,6 +155,7 @@ function parseStage(value: unknown): ProjectStage | null {
     status: value.status as StageStatus,
     blockerExplanation: value.blockerExplanation,
     needs: needs as ProjectNeed[],
+    images,
   };
 }
 
@@ -175,6 +200,10 @@ export function parseOwnedProject(value: unknown): OwnedProject | null {
   const stages = Array.isArray(value.stages) ? value.stages.map(parseStage) : [];
   if (!Array.isArray(value.stages) && value.stages !== undefined) return null;
   if (stages.some((stage) => stage === null)) return null;
+  const coverImage = value.coverImage == null ? null : parseImage(value.coverImage);
+  if (value.coverImage != null && !coverImage) return null;
+  const images = parseImages(value.images);
+  if (!images) return null;
   return {
     id: value.id,
     title,
@@ -186,6 +215,8 @@ export function parseOwnedProject(value: unknown): OwnedProject | null {
     city,
     status: value.status,
     visibility: value.visibility,
+    coverImage,
+    images,
     stages: stages as ProjectStage[],
   };
 }
@@ -411,6 +442,77 @@ export async function removeProjectNeed(
   const project = isRecord(result.data) ? parseOwnedProject(result.data.project) : null;
   if (!project) return { ok: false, status: result.status, code: "INVALID_RESPONSE" };
   return { ok: true, project };
+}
+
+async function sendProjectFile(
+  path: string,
+  method: "POST" | "DELETE",
+  file?: File
+): Promise<ProjectResult> {
+  const { readStoredUser } = await import("./authUser");
+  const { resolveApiBaseUrl } = await import("./apiBase");
+  const user = readStoredUser();
+  if (!user) return { ok: false, status: 401, code: "UNAUTHORIZED" };
+  const body = new FormData();
+  if (file) body.append("image", file);
+  try {
+    const res = await fetch(`${resolveApiBaseUrl()}${path}`, {
+      method,
+      credentials: "include",
+      headers: authHeaders(user.token),
+      body: file ? body : undefined,
+    });
+    const data = await readJson(res);
+    if (!res.ok) return failure(res.status, data);
+    const project = isRecord(data) ? parseOwnedProject(data.project) : null;
+    if (!project) return { ok: false, status: res.status, code: "INVALID_RESPONSE" };
+    return { ok: true, project };
+  } catch (err) {
+    console.error("[projects] image request failed", {
+      method,
+      path,
+      name: err instanceof Error ? err.name : "Error",
+    });
+    return { ok: false, status: 0, code: "NETWORK" };
+  }
+}
+
+export function uploadProjectCover(projectId: string, file: File): Promise<ProjectResult> {
+  return sendProjectFile(`/api/projects/mine/${encodeURIComponent(projectId)}/cover`, "POST", file);
+}
+
+export function removeProjectCover(projectId: string): Promise<ProjectResult> {
+  return sendProjectFile(`/api/projects/mine/${encodeURIComponent(projectId)}/cover`, "DELETE");
+}
+
+export function addOwnedProjectImage(projectId: string, file: File): Promise<ProjectResult> {
+  return sendProjectFile(`/api/projects/mine/${encodeURIComponent(projectId)}/images`, "POST", file);
+}
+
+export function removeOwnedProjectImage(projectId: string, imageId: string): Promise<ProjectResult> {
+  return sendProjectFile(
+    `/api/projects/mine/${encodeURIComponent(projectId)}/images/${encodeURIComponent(imageId)}`,
+    "DELETE"
+  );
+}
+
+export function uploadStageImage(projectId: string, stageId: string, file: File): Promise<ProjectResult> {
+  return sendProjectFile(
+    `/api/projects/mine/${encodeURIComponent(projectId)}/stages/${encodeURIComponent(stageId)}/images`,
+    "POST",
+    file
+  );
+}
+
+export function removeStageImage(
+  projectId: string,
+  stageId: string,
+  imageId: string
+): Promise<ProjectResult> {
+  return sendProjectFile(
+    `/api/projects/mine/${encodeURIComponent(projectId)}/stages/${encodeURIComponent(stageId)}/images/${encodeURIComponent(imageId)}`,
+    "DELETE"
+  );
 }
 
 export const SAVED_PROJECT_STORAGE_KEY = "sawaka-project-saved";

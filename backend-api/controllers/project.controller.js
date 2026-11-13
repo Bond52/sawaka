@@ -156,6 +156,86 @@ async function removeNeed(req, res) {
   }
 }
 
+async function setCover(req, res) {
+  try {
+    const result = await projectService.setCover(req.user.id, req.params.id, req.file);
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof ProjectError) return sendFunctionalError(res, err);
+    logTechnical("project.controller.setCover:", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function removeCover(req, res) {
+  try {
+    const result = await projectService.removeCover(req.user.id, req.params.id);
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof ProjectError) return sendFunctionalError(res, err);
+    logTechnical("project.controller.removeCover:", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function addProjectImage(req, res) {
+  try {
+    const result = await projectService.addProjectImage(req.user.id, req.params.id, req.file);
+    return res.status(201).json(result);
+  } catch (err) {
+    if (err instanceof ProjectError) return sendFunctionalError(res, err);
+    logTechnical("project.controller.addProjectImage:", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function removeProjectImage(req, res) {
+  try {
+    const result = await projectService.removeProjectImage(
+      req.user.id,
+      req.params.id,
+      req.params.imageId
+    );
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof ProjectError) return sendFunctionalError(res, err);
+    logTechnical("project.controller.removeProjectImage:", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function addStageImage(req, res) {
+  try {
+    const result = await projectService.addStageImage(
+      req.user.id,
+      req.params.id,
+      req.params.stageId,
+      req.file
+    );
+    return res.status(201).json(result);
+  } catch (err) {
+    if (err instanceof ProjectError) return sendFunctionalError(res, err);
+    logTechnical("project.controller.addStageImage:", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function removeStageImage(req, res) {
+  try {
+    const result = await projectService.removeStageImage(
+      req.user.id,
+      req.params.id,
+      req.params.stageId,
+      req.params.imageId
+    );
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof ProjectError) return sendFunctionalError(res, err);
+    logTechnical("project.controller.removeStageImage:", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
 async function listPublic(req, res) {
   try {
     const result = await projectService.listPublic();
@@ -190,6 +270,12 @@ module.exports = {
   createNeed,
   updateNeed,
   removeNeed,
+  setCover,
+  removeCover,
+  addProjectImage,
+  removeProjectImage,
+  addStageImage,
+  removeStageImage,
   listPublic,
   getPublic,
 };

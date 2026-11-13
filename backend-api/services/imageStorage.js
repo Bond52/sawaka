@@ -2,6 +2,7 @@ const cloudinary = require("cloudinary").v2;
 
 const PROFILE_PHOTO_FOLDER = "sawaka-contributor-profiles";
 const REALIZATION_IMAGE_FOLDER = "sawaka-realizations";
+const PROJECT_IMAGE_FOLDER = "sawaka-projects";
 
 let configured = false;
 
@@ -50,6 +51,10 @@ function uploadRealizationImage(buffer) {
   return uploadImage(buffer, REALIZATION_IMAGE_FOLDER);
 }
 
+function uploadProjectImage(buffer) {
+  return uploadImage(buffer, PROJECT_IMAGE_FOLDER);
+}
+
 async function destroyStoredImage(publicId) {
   if (!publicId) return;
   ensureConfig();
@@ -59,7 +64,9 @@ async function destroyStoredImage(publicId) {
 module.exports = {
   PROFILE_PHOTO_FOLDER,
   REALIZATION_IMAGE_FOLDER,
+  PROJECT_IMAGE_FOLDER,
   uploadProfileImage,
   uploadRealizationImage,
+  uploadProjectImage,
   destroyStoredImage,
 };
