@@ -131,6 +131,9 @@ app.use("/api/contributors", require("./routes/contributor.routes"));
 // Published realizations across contributors. Drafts stay on the owner route.
 app.use("/api/realizations", require("./routes/realization.routes"));
 
+// Member projects. Drafts stay on the owner routes.
+app.use("/api/projects", require("./routes/project.routes"));
+
 // 📨 Feedback utilisateurs (avis, signalements)
 app.use("/api/feedback", require("./routes/feedback"));
 

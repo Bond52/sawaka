@@ -71,12 +71,11 @@ const PUBLIC_NAV = [
 
 /**
  * Authenticated account destinations.
- * Available routes: /dashboard, /profile, /vendeur/articles, /settings.
+ * Available routes: /dashboard, /profile, /vendeur/articles, /mes-projets, /settings.
  * My Realizations opens the portfolio page at /vendeur/articles.
+ * My Projects opens the owner project list at /mes-projets.
  * Bulk import and the rest of Feature #346 stay out of this menu.
- * Unavailable (disabled interim UX — do not invent Features here):
- * - My Projects → EPIC #215 (no dedicated “my projects” area; /projets is public browse)
- * - My Collaborations → Feature #347
+ * My Collaborations remains unavailable (Feature #347).
  * Create Contributor Profile must not appear (Bug #392).
  */
 const ACCOUNT_MENU_ITEMS: AccountMenuItem[] = [
@@ -109,7 +108,8 @@ const ACCOUNT_MENU_ITEMS: AccountMenuItem[] = [
     labelKey: "navigation.myProjects",
     testId: "header-my-projects",
     icon: FolderKanban,
-    available: false,
+    href: "/mes-projets",
+    available: true,
   },
   {
     id: "collaborations",
