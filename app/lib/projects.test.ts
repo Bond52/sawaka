@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseOwnedProject, projectDraftPayload, projectProgress } from "./projects.ts";
+import {
+  missingPublicationFields,
+  parseOwnedProject,
+  pendingContentIssue,
+  pendingStagesPayload,
+  projectDraftPayload,
+  projectProgress,
+  type PendingStage,
+} from "./projects.ts";
 
 const draft = {
   id: "507f1f77bcf86cd799439011",
@@ -98,4 +106,68 @@ test("projectProgress ignores cancelled stages and is unavailable without eligib
     available: false,
     percent: null,
   });
+});
+
+test("publication requires the approved fields and keeps summary optional", () => {
+  assert.deepEqual(
+    missingPublicationFields({
+      title: " ",
+      summary: "",
+      description: "Un lieu partagé",
+      objective: "",
+      category: "Agriculture",
+      country: "",
+      city: "Dakar",
+    }),
+    ["title", "objective", "country"]
+  );
+});
+
+test("pending stages keep their needs and omit client identifiers", () => {
+  const stages: PendingStage[] = [
+    {
+      id: "local-1",
+      title: " Préparer ",
+      description: "Réunir le matériel",
+      status: "in_progress",
+      blockerExplanation: "",
+      needs: [
+        {
+          id: "local-need",
+          title: "Conseil",
+          description: "",
+          kind: "skill",
+          status: "blocked",
+          blockerExplanation: " En attente ",
+        },
+      ],
+    },
+  ];
+  assert.deepEqual(pendingStagesPayload(stages), [
+    {
+      title: "Préparer",
+      description: "Réunir le matériel",
+      status: "in_progress",
+      blockerExplanation: "",
+      needs: [
+        {
+          title: "Conseil",
+          description: "",
+          kind: "skill",
+          status: "blocked",
+          blockerExplanation: "En attente",
+        },
+      ],
+    },
+  ]);
+  assert.equal(pendingContentIssue([{ ...stages[0], title: " " }]), "STAGE_TITLE_REQUIRED");
+  assert.equal(
+    pendingContentIssue([
+      {
+        ...stages[0],
+        needs: [{ ...stages[0].needs[0], blockerExplanation: " " }],
+      },
+    ]),
+    "BLOCKER_EXPLANATION_REQUIRED"
+  );
 });

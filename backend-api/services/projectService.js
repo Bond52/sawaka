@@ -215,20 +215,109 @@ async function findOwnedProject(ownerId, id) {
   return project;
 }
 
+function splitCreateRequest(body) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    throw new ProjectError("INVALID_BODY", 400);
+  }
+  const fields = {};
+  let publish = false;
+  let stages = null;
+  for (const [key, value] of Object.entries(body)) {
+    if (key === "publish") {
+      if (typeof value !== "boolean") {
+        throw new ProjectError("INVALID_FIELD", 400, ["publish"]);
+      }
+      publish = value;
+      continue;
+    }
+    if (key === "stages") {
+      if (!Array.isArray(value)) {
+        throw new ProjectError("INVALID_FIELD", 400, ["stages"]);
+      }
+      stages = value;
+      continue;
+    }
+    fields[key] = value;
+  }
+  return { publish, stages, fields };
+}
+
+function pendingStageDocuments(stages) {
+  if (stages == null) return [];
+  if (!Array.isArray(stages)) {
+    throw new ProjectError("INVALID_FIELD", 400, ["stages"]);
+  }
+  return stages.map((stage, index) => {
+    if (!stage || typeof stage !== "object" || Array.isArray(stage)) {
+      throw new ProjectError("INVALID_FIELD", 400, ["stages"]);
+    }
+    const needsInput = Object.prototype.hasOwnProperty.call(stage, "needs") ? stage.needs : [];
+    if (!Array.isArray(needsInput)) {
+      throw new ProjectError("INVALID_FIELD", 400, ["needs"]);
+    }
+    const stageBody = {};
+    for (const key of Object.keys(stage)) {
+      if (key === "needs") continue;
+      stageBody[key] = stage[key];
+    }
+    const updates = stageChanges(stageBody, true);
+    const needs = needsInput.map((need) => {
+      const needUpdates = needChanges(need, true);
+      return finalizeNeed(
+        {
+          title: "",
+          description: "",
+          kind: needUpdates.kind,
+          status: NEED_STATUS.OPEN,
+          blockerExplanation: "",
+        },
+        needUpdates
+      );
+    });
+    return {
+      title: updates.title,
+      description: updates.description || "",
+      position: index,
+      status: updates.status || STAGE_STATUS.NOT_STARTED,
+      blockerExplanation: updates.blockerExplanation || "",
+      needs,
+    };
+  });
+}
+
 async function createDraft(ownerId, body) {
-  const updates = editableProjectUpdate(body || {});
+  const request = splitCreateRequest(body || {});
+  const updates = editableProjectUpdate(request.fields);
+  const stages = pendingStageDocuments(request.stages);
+  if (request.publish) {
+    const missing = missingPublicationFields(updates);
+    if (missing.length > 0) {
+      throw new ProjectError("PUBLICATION_INCOMPLETE", 422, missing);
+    }
+  }
+
   const project = await Project.create({
     ownerId,
     ...updates,
-    status: PROJECT_STATUS.DRAFT,
-    visibility: PROJECT_VISIBILITY.PRIVATE,
-    publishedAt: null,
+    ...(stages.length > 0 ? { stages } : {}),
+    status: request.publish ? PROJECT_STATUS.PUBLISHED : PROJECT_STATUS.DRAFT,
+    visibility: request.publish ? PROJECT_VISIBILITY.PUBLIC : PROJECT_VISIBILITY.PRIVATE,
+    publishedAt: request.publish ? new Date() : null,
   });
+
   await recordUserAuditEvent({
-    action: USER_AUDIT_ACTIONS.PROJECT_DRAFT_SAVED,
+    action: request.publish
+      ? USER_AUDIT_ACTIONS.PROJECT_PUBLISHED
+      : USER_AUDIT_ACTIONS.PROJECT_DRAFT_SAVED,
     userId: ownerId,
     metadata: { projectId: String(project._id) },
   });
+  for (const stage of project.stages || []) {
+    await recordStageChange(ownerId, project._id, "created", stage._id);
+    for (const need of stage.needs || []) {
+      await recordNeedChange(ownerId, project._id, stage._id, need._id, "created");
+    }
+  }
   return { project: ownerProjectView(project) };
 }
 
@@ -698,6 +787,8 @@ module.exports = {
   publicProjectView,
   stageView,
   projectProgress,
+  splitCreateRequest,
+  pendingStageDocuments,
   createDraft,
   listOwned,
   getOwned,

@@ -6,8 +6,8 @@ import { useParams } from "next/navigation";
 import { useTranslation } from "@/src/i18n/I18nProvider";
 import {
   getOwnedProject,
-  projectProgress,
   publishOwnedProject,
+  PROJECT_UPLOAD_ERROR_KEY,
   SAVED_PROJECT_STORAGE_KEY,
   updateProjectDraft,
   type OwnedProject,
@@ -28,6 +28,7 @@ export default function EditProjectPage() {
   const [project, setProject] = useState<OwnedProject | null>(null);
   const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading");
   const [justSaved, setJustSaved] = useState(false);
+  const [uploadError, setUploadError] = useState("");
 
   useEffect(() => {
     if (!ready || !params.id) return;
@@ -43,6 +44,11 @@ export default function EditProjectPage() {
       if (savedId === result.project.id) {
         sessionStorage.removeItem(SAVED_PROJECT_STORAGE_KEY);
         setJustSaved(true);
+      }
+      const uploadCode = sessionStorage.getItem(PROJECT_UPLOAD_ERROR_KEY);
+      if (uploadCode) {
+        sessionStorage.removeItem(PROJECT_UPLOAD_ERROR_KEY);
+        setUploadError(uploadCode);
       }
       setProject(result.project);
       setPhase("ready");
@@ -85,9 +91,15 @@ export default function EditProjectPage() {
           {t("myProjects.saved")}
         </p>
       ) : null}
+      {uploadError ? (
+        <p role="alert" data-testid="project-upload-error" className="mt-4 text-sm text-destructive">
+          {t(`myProjects.errors.${uploadError}`)}
+        </p>
+      ) : null}
       <ProjectDraftForm
         initial={draftFromProject(project)}
         heading={t("myProjects.editTitle")}
+        lifecycle={project.status}
         onSubmit={async (input: ProjectDraftInput) => {
           const result = await updateProjectDraft(project.id, input);
           if (!result.ok) return result;
@@ -106,17 +118,10 @@ export default function EditProjectPage() {
               }
             : undefined
         }
-      />
-      <p className="mt-4 text-sm text-muted-foreground" data-testid="project-progress">
-        {(() => {
-          const progress = projectProgress(project.stages);
-          return progress.available
-            ? t("myProjects.progressValue", { percent: progress.percent ?? 0 })
-            : t("myProjects.progressUnavailable");
-        })()}
-      </p>
-      <ProjectMedia project={project} onChange={setProject} />
-      <ProjectStages project={project} onChange={setProject} />
+      >
+        <ProjectStages project={project} onChange={setProject} />
+        <ProjectMedia project={project} onChange={setProject} />
+      </ProjectDraftForm>
     </div>
   );
 }
