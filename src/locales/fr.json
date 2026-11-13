@@ -1489,6 +1489,9 @@
     "saveDraft": "Enregistrer le brouillon",
     "saving": "Enregistrement…",
     "saved": "Brouillon enregistré.",
+    "publish": "Publier",
+    "published": "Projet publié.",
+    "fieldRequired": "Ce champ est requis pour publier.",
     "draftHint": "Un brouillon peut rester incomplet. Seul vous pouvez le consulter.",
     "empty": "Vous n’avez pas encore de projet.",
     "untitled": "Projet sans titre",
@@ -1513,7 +1516,9 @@
       "NOT_FOUND": "Ce projet est introuvable.",
       "UNAUTHORIZED": "Connectez-vous pour continuer.",
       "NETWORK": "Impossible de joindre le serveur. Réessayez.",
-      "SERVER_ERROR": "L’enregistrement a échoué. Réessayez."
+      "SERVER_ERROR": "L’enregistrement a échoué. Réessayez.",
+      "PUBLICATION_INCOMPLETE": "Complétez les champs requis avant de publier.",
+      "ALREADY_PUBLISHED": "Ce projet est déjà publié."
     }
   }
 }

@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useTranslation } from "@/src/i18n/I18nProvider";
 import {
   getOwnedProject,
+  publishOwnedProject,
   SAVED_PROJECT_STORAGE_KEY,
   updateProjectDraft,
   type OwnedProject,
@@ -91,6 +92,17 @@ export default function EditProjectPage() {
           setJustSaved(false);
           return { ok: true };
         }}
+        onPublish={
+          project.status === "draft"
+            ? async (input: ProjectDraftInput) => {
+                const result = await publishOwnedProject(project.id, input);
+                if (!result.ok) return result;
+                setProject(result.project);
+                setJustSaved(false);
+                return { ok: true };
+              }
+            : undefined
+        }
       />
     </div>
   );

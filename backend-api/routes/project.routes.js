@@ -23,6 +23,7 @@ router.get("/mine", requireAuth, projectController.listOwned);
 router.post("/", requireAuth, projectWriteRateLimit, projectController.createDraft);
 router.get("/mine/:id", requireAuth, projectController.getOwned);
 router.patch("/mine/:id", requireAuth, projectWriteRateLimit, projectController.updateOwned);
+router.post("/mine/:id/publish", requireAuth, projectWriteRateLimit, projectController.publishOwned);
 
 router.get("/", projectController.listPublic);
 router.get("/:id", projectController.getPublic);

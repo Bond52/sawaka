@@ -37,6 +37,7 @@ type ProjectDraftFormProps = {
   initial?: ProjectDraftInput;
   heading: string;
   onSubmit: (input: ProjectDraftInput) => Promise<ProjectFailure | { ok: true }>;
+  onPublish?: (input: ProjectDraftInput) => Promise<ProjectFailure | { ok: true }>;
 };
 
 export function emptyProjectDraft(): ProjectDraftInput {
@@ -59,24 +60,59 @@ export default function ProjectDraftForm({
   initial,
   heading,
   onSubmit,
+  onPublish,
 }: ProjectDraftFormProps) {
   const { t } = useTranslation();
   const [values, setValues] = useState<ProjectDraftInput>(initial || EMPTY_DRAFT);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<FieldName, string>>>({});
   const [formError, setFormError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [published, setPublished] = useState(false);
   const [pending, setPending] = useState(false);
 
   const setField = (name: FieldName, value: string) => {
     setValues((current) => ({ ...current, [name]: value }));
     setFieldErrors((current) => ({ ...current, [name]: undefined }));
     setSaved(false);
+    setPublished(false);
+  };
+
+  const applyResult = (
+    result: ProjectFailure | { ok: true },
+    success: "saved" | "published"
+  ) => {
+    if (result.ok === false) {
+      const messageKey =
+        result.code === "PUBLICATION_INCOMPLETE"
+          ? "myProjects.fieldRequired"
+          : `myProjects.errors.${result.code}`;
+      const translated = t(messageKey);
+      const readable = translated.startsWith("myProjects.")
+        ? t("myProjects.errors.SERVER_ERROR")
+        : translated;
+      if (result.fields) {
+        const next: Partial<Record<FieldName, string>> = {};
+        for (const field of result.fields) {
+          if (field in PROJECT_FIELD_LIMITS) {
+            next[field as FieldName] = readable;
+          }
+        }
+        setFieldErrors(next);
+      }
+      setFormError(
+        result.code === "PUBLICATION_INCOMPLETE" ? t("myProjects.errors.PUBLICATION_INCOMPLETE") : readable
+      );
+      return;
+    }
+    setSaved(success === "saved");
+    setPublished(success === "published");
   };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setFormError("");
     setSaved(false);
+    setPublished(false);
 
     const localErrors: Partial<Record<FieldName, string>> = {};
     for (const field of FIELDS) {
@@ -90,24 +126,18 @@ export default function ProjectDraftForm({
     setPending(true);
     const result = await onSubmit(values);
     setPending(false);
-    if (result.ok === false) {
-      const message = t(`myProjects.errors.${result.code}`);
-      const readable = message.startsWith("myProjects.errors.")
-        ? t("myProjects.errors.SERVER_ERROR")
-        : message;
-      if (result.fields) {
-        const next: Partial<Record<FieldName, string>> = {};
-        for (const field of result.fields) {
-          if (field in PROJECT_FIELD_LIMITS) {
-            next[field as FieldName] = readable;
-          }
-        }
-        setFieldErrors(next);
-      }
-      setFormError(readable);
-      return;
-    }
-    setSaved(true);
+    applyResult(result, "saved");
+  };
+
+  const handlePublish = async () => {
+    if (!onPublish) return;
+    setFormError("");
+    setSaved(false);
+    setPublished(false);
+    setPending(true);
+    const result = await onPublish(values);
+    setPending(false);
+    applyResult(result, "published");
   };
 
   return (
@@ -171,15 +201,33 @@ export default function ProjectDraftForm({
           {t("myProjects.saved")}
         </p>
       ) : null}
+      {published ? (
+        <p role="status" data-testid="project-publish-status" className="text-sm text-foreground">
+          {t("myProjects.published")}
+        </p>
+      ) : null}
 
-      <button
-        type="submit"
-        data-testid="project-save"
-        disabled={pending}
-        className={`inline-flex min-h-[44px] items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-70 ${focusRing}`}
-      >
-        {pending ? t("myProjects.saving") : t("myProjects.saveDraft")}
-      </button>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <button
+          type="submit"
+          data-testid="project-save"
+          disabled={pending}
+          className={`inline-flex min-h-[44px] items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-70 ${focusRing}`}
+        >
+          {pending ? t("myProjects.saving") : t("myProjects.saveDraft")}
+        </button>
+        {onPublish ? (
+          <button
+            type="button"
+            data-testid="project-publish"
+            disabled={pending}
+            onClick={handlePublish}
+            className={`inline-flex min-h-[44px] items-center justify-center rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground disabled:cursor-not-allowed disabled:opacity-70 ${focusRing}`}
+          >
+            {t("myProjects.publish")}
+          </button>
+        ) : null}
+      </div>
     </form>
   );
 }

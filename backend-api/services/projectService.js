@@ -180,6 +180,35 @@ async function updateOwned(ownerId, id, body) {
   return { project: ownerProjectView(project) };
 }
 
+async function publishOwned(ownerId, id, body) {
+  const updates = body && Object.keys(body).length > 0 ? editableProjectUpdate(body) : {};
+  const project = await findOwnedProject(ownerId, id);
+  if (project.status === PROJECT_STATUS.PUBLISHED) {
+    throw new ProjectError("ALREADY_PUBLISHED", 409);
+  }
+
+  for (const [field, value] of Object.entries(updates)) {
+    project[field] = value;
+  }
+
+  const missing = missingPublicationFields(project);
+  if (missing.length > 0) {
+    await project.save();
+    throw new ProjectError("PUBLICATION_INCOMPLETE", 422, missing);
+  }
+
+  project.status = PROJECT_STATUS.PUBLISHED;
+  project.visibility = PROJECT_VISIBILITY.PUBLIC;
+  project.publishedAt = new Date();
+  await project.save();
+  await recordUserAuditEvent({
+    action: USER_AUDIT_ACTIONS.PROJECT_PUBLISHED,
+    userId: ownerId,
+    metadata: { projectId: String(project._id) },
+  });
+  return { project: ownerProjectView(project) };
+}
+
 async function listPublic() {
   const projects = await Project.find({
     status: PROJECT_STATUS.PUBLISHED,
@@ -212,6 +241,7 @@ module.exports = {
   listOwned,
   getOwned,
   updateOwned,
+  publishOwned,
   listPublic,
   getPublic,
 };
