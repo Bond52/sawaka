@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useTranslation } from "@/src/i18n/I18nProvider";
 import {
   getOwnedProject,
+  projectProgress,
   publishOwnedProject,
   SAVED_PROJECT_STORAGE_KEY,
   updateProjectDraft,
@@ -105,6 +106,14 @@ export default function EditProjectPage() {
             : undefined
         }
       />
+      <p className="mt-4 text-sm text-muted-foreground" data-testid="project-progress">
+        {(() => {
+          const progress = projectProgress(project.stages);
+          return progress.available
+            ? t("myProjects.progressValue", { percent: progress.percent ?? 0 })
+            : t("myProjects.progressUnavailable");
+        })()}
+      </p>
       <ProjectStages project={project} onChange={setProject} />
     </div>
   );
