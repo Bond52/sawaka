@@ -51,6 +51,30 @@ export type OwnedProject = {
   stages: ProjectStage[];
 };
 
+export type PublicProject = {
+  id: string;
+  title: string;
+  summary: string;
+  description: string;
+  objective: string;
+  category: string;
+  country: string;
+  city: string;
+  status: "published";
+  publishedAt: string | null;
+  coverImage: ProjectImage | null;
+  images: ProjectImage[];
+  stages: ProjectStage[];
+};
+
+export type PublicProjectResult =
+  | { ok: true; project: PublicProject }
+  | ProjectFailure;
+
+export type PublicProjectListResult =
+  | { ok: true; projects: PublicProject[] }
+  | ProjectFailure;
+
 export type ProjectDraftInput = {
   title: string;
   summary: string;
@@ -245,8 +269,19 @@ export function projectProgress(stages: Array<{ status: string }>): {
   };
 }
 
-export function parseOwnedProject(value: unknown): OwnedProject | null {
-  if (!isRecord(value)) return null;
+function parseProjectCore(value: Record<string, unknown>): {
+  id: string;
+  title: string;
+  summary: string;
+  description: string;
+  objective: string;
+  category: string;
+  country: string;
+  city: string;
+  coverImage: ProjectImage | null;
+  images: ProjectImage[];
+  stages: ProjectStage[];
+} | null {
   if (typeof value.id !== "string" || value.id.length === 0) return null;
   const text = (key: string) => (typeof value[key] === "string" ? value[key] : null);
   const title = text("title");
@@ -267,8 +302,6 @@ export function parseOwnedProject(value: unknown): OwnedProject | null {
   ) {
     return null;
   }
-  if (value.status !== "draft" && value.status !== "published") return null;
-  if (value.visibility !== "private" && value.visibility !== "public") return null;
   if ("ownerId" in value) return null;
   const stages = Array.isArray(value.stages) ? value.stages.map(parseStage) : [];
   if (!Array.isArray(value.stages) && value.stages !== undefined) return null;
@@ -286,11 +319,43 @@ export function parseOwnedProject(value: unknown): OwnedProject | null {
     category,
     country,
     city,
-    status: value.status,
-    visibility: value.visibility,
     coverImage,
     images,
     stages: stages as ProjectStage[],
+  };
+}
+
+export function parseOwnedProject(value: unknown): OwnedProject | null {
+  if (!isRecord(value)) return null;
+  const core = parseProjectCore(value);
+  if (!core) return null;
+  if (value.status !== "draft" && value.status !== "published") return null;
+  if (value.visibility !== "private" && value.visibility !== "public") return null;
+  return {
+    ...core,
+    status: value.status,
+    visibility: value.visibility,
+  };
+}
+
+export function parsePublicProject(value: unknown): PublicProject | null {
+  if (!isRecord(value)) return null;
+  const core = parseProjectCore(value);
+  if (!core) return null;
+  if (value.status !== "published") return null;
+  if ("visibility" in value || "ownerId" in value) return null;
+  let publishedAt: string | null = null;
+  if (value.publishedAt === null || value.publishedAt === undefined) {
+    publishedAt = null;
+  } else if (typeof value.publishedAt === "string") {
+    publishedAt = value.publishedAt;
+  } else {
+    return null;
+  }
+  return {
+    ...core,
+    status: "published",
+    publishedAt,
   };
 }
 
@@ -366,6 +431,45 @@ export async function listOwnedProjects(): Promise<ProjectListResult> {
     return { ok: false, status: result.status, code: "INVALID_RESPONSE" };
   }
   return { ok: true, projects };
+}
+
+async function readPublicJson(path: string): Promise<{ status: number; data: unknown } | ProjectFailure> {
+  const { resolveApiBaseUrl } = await import("./apiBase");
+  try {
+    const res = await fetch(`${resolveApiBaseUrl()}${path}`, {
+      method: "GET",
+      credentials: "include",
+    });
+    const data = await readJson(res);
+    if (!res.ok) return failure(res.status, data);
+    return { status: res.status, data };
+  } catch (err) {
+    console.error("[projects] public request failed", {
+      path,
+      name: err instanceof Error ? err.name : "Error",
+    });
+    return { ok: false, status: 0, code: "NETWORK" };
+  }
+}
+
+export async function listPublicProjects(): Promise<PublicProjectListResult> {
+  const result = await readPublicJson("/api/projects");
+  if ("ok" in result) return result;
+  const projects = isRecord(result.data) && Array.isArray(result.data.projects)
+    ? result.data.projects.map(parsePublicProject)
+    : null;
+  if (!projects || projects.some((project) => project === null)) {
+    return { ok: false, status: result.status, code: "INVALID_RESPONSE" };
+  }
+  return { ok: true, projects };
+}
+
+export async function getPublicProject(id: string): Promise<PublicProjectResult> {
+  const result = await readPublicJson(`/api/projects/${encodeURIComponent(id)}`);
+  if ("ok" in result) return result;
+  const project = isRecord(result.data) ? parsePublicProject(result.data.project) : null;
+  if (!project) return { ok: false, status: result.status, code: "INVALID_RESPONSE" };
+  return { ok: true, project };
 }
 
 export async function getOwnedProject(id: string): Promise<ProjectResult> {

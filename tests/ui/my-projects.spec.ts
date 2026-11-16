@@ -13,7 +13,7 @@ type StoredProject = {
   visibility: "private";
 };
 
-function blank(partial: Partial<StoredProject> = {}): StoredProject {
+function blank(partial: Partial<StoredProject> & { coverImage?: null; images?: []; stages?: [] } = {}) {
   return {
     id: partial.id || "proj-1",
     title: partial.title || "",
@@ -23,8 +23,11 @@ function blank(partial: Partial<StoredProject> = {}): StoredProject {
     category: partial.category || "",
     country: partial.country || "",
     city: partial.city || "",
-    status: "draft",
-    visibility: "private",
+    status: "draft" as const,
+    visibility: "private" as const,
+    coverImage: null,
+    images: [] as [],
+    stages: [] as [],
   };
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, ReactNode, useEffect, useState, type ChangeEvent } from "react";
+import { FormEvent, ReactNode, useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { useTranslation } from "@/src/i18n/I18nProvider";
 import {
   missingPublicationFields,
@@ -9,11 +9,18 @@ import {
   type ProjectDraftInput,
   type ProjectFailure,
 } from "@/app/lib/projects";
+import {
+  countrySelectValue,
+  PROJECT_CATEGORY_OPTIONS,
+  PROJECT_COUNTRY_OPTIONS,
+  isApprovedProjectCategory,
+  normalizeProjectCountry,
+} from "@/app/lib/projectReferenceData";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
-const controlClass = `w-full rounded-xl border border-border bg-card px-4 py-3 text-base text-foreground ${focusRing}`;
+const controlClass = `w-full min-h-[44px] rounded-xl border border-border bg-card px-4 py-3 text-base text-foreground ${focusRing}`;
 
 const EMPTY_DRAFT: ProjectDraftInput = {
   title: "",
@@ -80,8 +87,14 @@ export default function ProjectDraftForm({
   onSubmit,
   onPublish,
 }: ProjectDraftFormProps) {
-  const { t } = useTranslation();
-  const [values, setValues] = useState<ProjectDraftInput>(initial || EMPTY_DRAFT);
+  const { t, locale } = useTranslation();
+  const [values, setValues] = useState<ProjectDraftInput>(() => {
+    const seed = initial || EMPTY_DRAFT;
+    return {
+      ...seed,
+      country: countrySelectValue(seed.country),
+    };
+  });
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<FieldName, string>>>({});
   const [formError, setFormError] = useState("");
   const [saved, setSaved] = useState(false);
@@ -99,8 +112,34 @@ export default function ProjectDraftForm({
     return () => window.removeEventListener("beforeunload", onLeave);
   }, [dirty, dirtyExtra]);
 
+  const categoryOptions = useMemo(() => {
+    const options = [...PROJECT_CATEGORY_OPTIONS];
+    if (values.category && !isApprovedProjectCategory(values.category)) {
+      options.unshift({
+        value: values.category,
+        nameEN: values.category,
+        nameFR: values.category,
+      });
+    }
+    return options;
+  }, [values.category]);
+
+  const countryOptions = useMemo(() => {
+    const options = [...PROJECT_COUNTRY_OPTIONS];
+    const selected = values.country;
+    if (selected && !normalizeProjectCountry(selected)) {
+      options.unshift({
+        value: selected,
+        nameEN: selected,
+        nameFR: selected,
+      });
+    }
+    return options;
+  }, [values.country]);
+
   const setField = (name: FieldName, value: string) => {
-    setValues((current) => ({ ...current, [name]: value }));
+    const nextValue = name === "country" ? countrySelectValue(value) : value;
+    setValues((current) => ({ ...current, [name]: nextValue }));
     setFieldErrors((current) => ({ ...current, [name]: undefined }));
     setSaved(false);
     setPublished(false);
@@ -191,7 +230,87 @@ export default function ProjectDraftForm({
     const errorId = `project-${field.name}-error`;
     const counterId = `project-${field.name}-count`;
     const inputId = `project-${field.name}`;
-    const describedBy = [error ? errorId : "", counterId].filter(Boolean).join(" ") || undefined;
+    const describedBy =
+      [
+        error ? errorId : "",
+        field.name === "category" || field.name === "country" ? "" : counterId,
+      ]
+        .filter(Boolean)
+        .join(" ") || undefined;
+    const label = (
+      <label htmlFor={inputId} className="mb-2 block text-sm font-medium text-foreground">
+        {t(`myProjects.fields.${field.name}`)}
+        {REQUIRED.has(field.name) ? (
+          <span className="text-primary" aria-hidden="true">
+            {" "}
+            *
+          </span>
+        ) : null}
+      </label>
+    );
+
+    if (field.name === "category") {
+      return (
+        <div key={field.name} className="min-w-0">
+          {label}
+          <select
+            id={inputId}
+            name={field.name}
+            value={values.category}
+            aria-invalid={Boolean(error)}
+            aria-required={REQUIRED.has(field.name)}
+            aria-describedby={describedBy}
+            data-testid="project-field-category"
+            className={controlClass}
+            onChange={(event: ChangeEvent<HTMLSelectElement>) => setField("category", event.target.value)}
+          >
+            <option value="">{t("myProjects.chooseCategory")}</option>
+            {categoryOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {locale === "fr" ? option.nameFR : option.nameEN}
+              </option>
+            ))}
+          </select>
+          {error ? (
+            <p id={errorId} role="alert" className="mt-1 text-sm text-destructive">
+              {error}
+            </p>
+          ) : null}
+        </div>
+      );
+    }
+
+    if (field.name === "country") {
+      return (
+        <div key={field.name} className="min-w-0">
+          {label}
+          <select
+            id={inputId}
+            name={field.name}
+            value={values.country}
+            aria-invalid={Boolean(error)}
+            aria-required={REQUIRED.has(field.name)}
+            aria-describedby={describedBy}
+            data-testid="project-field-country"
+            className={controlClass}
+            onChange={(event: ChangeEvent<HTMLSelectElement>) => setField("country", event.target.value)}
+          >
+            <option value="">{t("myProjects.chooseCountry")}</option>
+            {countryOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {locale === "fr" ? option.nameFR : option.nameEN}
+              </option>
+            ))}
+          </select>
+          {error ? (
+            <p id={errorId} role="alert" className="mt-1 text-sm text-destructive">
+              {error}
+            </p>
+          ) : null}
+        </div>
+      );
+    }
+
     const shared = {
       id: inputId,
       name: field.name,
@@ -206,19 +325,16 @@ export default function ProjectDraftForm({
     };
     return (
       <div key={field.name} className="min-w-0">
-        <label htmlFor={inputId} className="mb-2 block text-sm font-medium text-foreground">
-          {t(`myProjects.fields.${field.name}`)}
-          {REQUIRED.has(field.name) ? (
-            <span className="text-primary" aria-hidden="true">
-              {" "}
-              *
-            </span>
-          ) : null}
-        </label>
+        {label}
         {field.multiline ? (
           <textarea {...shared} rows={field.name === "description" ? 6 : 4} data-testid={`project-field-${field.name}`} />
         ) : (
-          <input {...shared} type="text" data-testid={`project-field-${field.name}`} />
+          <input
+            {...shared}
+            type="text"
+            autoComplete={field.name === "city" ? "address-level2" : undefined}
+            data-testid={`project-field-${field.name}`}
+          />
         )}
         <div className="mt-1 flex items-start justify-between gap-3">
           <div className="min-w-0">

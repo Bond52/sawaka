@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useTranslation } from "@/src/i18n/I18nProvider";
 import {
   getOwnedProject,
@@ -23,6 +23,7 @@ const focusRing =
 
 export default function EditProjectPage() {
   const { t } = useTranslation();
+  const router = useRouter();
   const params = useParams<{ id: string }>();
   const ready = useRequireMember();
   const [project, setProject] = useState<OwnedProject | null>(null);
@@ -114,6 +115,7 @@ export default function EditProjectPage() {
                 if (!result.ok) return result;
                 setProject(result.project);
                 setJustSaved(false);
+                router.replace(`/projets/${result.project.id}`);
                 return { ok: true };
               }
             : undefined

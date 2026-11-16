@@ -10,6 +10,10 @@ const {
 const { recordUserAuditEvent, USER_AUDIT_ACTIONS } = require("./AuditService");
 const { profilePhotoIssue } = require("./profilePhoto");
 const { uploadProjectImage, destroyStoredImage } = require("./imageStorage");
+const {
+  isApprovedProjectCategory,
+  normalizeProjectCountry,
+} = require("./projectReferenceData");
 
 const MAX_PROJECT_IMAGES = 8;
 const MAX_STAGE_IMAGES = 6;
@@ -115,8 +119,13 @@ function isObjectId(value) {
 /**
  * Drafts may be incomplete. Only allowlisted strings are accepted.
  * ownerId, lifecycle, and visibility are never taken from the client.
+ *
+ * Category must be an approved Domain slug, empty (draft), or the project's
+ * previously stored free-text value (legacy compatibility).
+ * Country must normalize to an approved code, be empty, or match the previous
+ * stored legacy value. Recognized aliases are persisted as ISO codes.
  */
-function editableProjectUpdate(body) {
+function editableProjectUpdate(body, previous = {}) {
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     throw new ProjectError("INVALID_BODY", 400);
   }
@@ -125,6 +134,11 @@ function editableProjectUpdate(body) {
   if (rejected.length > 0) {
     throw new ProjectError("FIELD_NOT_ALLOWED", 400, rejected);
   }
+
+  const previousCategory =
+    typeof previous.category === "string" ? previous.category.trim() : "";
+  const previousCountry =
+    typeof previous.country === "string" ? previous.country.trim() : "";
 
   const updates = {};
   for (const field of EDITABLE_FIELDS) {
@@ -137,6 +151,24 @@ function editableProjectUpdate(body) {
     if (trimmed.length > FIELD_LIMITS[field]) {
       throw new ProjectError("FIELD_TOO_LONG", 400, [field]);
     }
+
+    if (field === "category" && trimmed.length > 0) {
+      if (!isApprovedProjectCategory(trimmed) && trimmed !== previousCategory) {
+        throw new ProjectError("INVALID_CATEGORY", 400, ["category"]);
+      }
+      updates[field] = trimmed;
+      continue;
+    }
+
+    if (field === "country" && trimmed.length > 0) {
+      const normalized = normalizeProjectCountry(trimmed);
+      if (!normalized && trimmed !== previousCountry) {
+        throw new ProjectError("INVALID_COUNTRY", 400, ["country"]);
+      }
+      updates[field] = normalized || trimmed;
+      continue;
+    }
+
     updates[field] = trimmed;
   }
   return updates;
@@ -287,7 +319,7 @@ function pendingStageDocuments(stages) {
 
 async function createDraft(ownerId, body) {
   const request = splitCreateRequest(body || {});
-  const updates = editableProjectUpdate(request.fields);
+  const updates = editableProjectUpdate(request.fields, {});
   const stages = pendingStageDocuments(request.stages);
   if (request.publish) {
     const missing = missingPublicationFields(updates);
@@ -332,8 +364,11 @@ async function getOwned(ownerId, id) {
 }
 
 async function updateOwned(ownerId, id, body) {
-  const updates = editableProjectUpdate(body);
   const project = await findOwnedProject(ownerId, id);
+  const updates = editableProjectUpdate(body, {
+    category: project.category,
+    country: project.country,
+  });
   const changed = [];
   for (const [field, value] of Object.entries(updates)) {
     if (project[field] !== value) changed.push(field);
@@ -349,8 +384,14 @@ async function updateOwned(ownerId, id, body) {
 }
 
 async function publishOwned(ownerId, id, body) {
-  const updates = body && Object.keys(body).length > 0 ? editableProjectUpdate(body) : {};
   const project = await findOwnedProject(ownerId, id);
+  const updates =
+    body && Object.keys(body).length > 0
+      ? editableProjectUpdate(body, {
+          category: project.category,
+          country: project.country,
+        })
+      : {};
   if (project.status === PROJECT_STATUS.PUBLISHED) {
     throw new ProjectError("ALREADY_PUBLISHED", 409);
   }

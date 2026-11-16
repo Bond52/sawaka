@@ -222,7 +222,7 @@ export default function ProjectStages({
           form="project-stage-form"
           data-testid="project-stage-add"
           disabled={pending}
-          className={`inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl border border-primary bg-card px-4 text-sm font-medium text-primary disabled:opacity-70 ${focusRing}`}
+          className={`inline-flex min-h-[44px] w-full shrink-0 items-center justify-center rounded-xl border border-primary bg-card px-4 text-sm font-medium text-primary disabled:opacity-70 sm:w-auto ${focusRing}`}
         >
           + {t("myProjects.stages.add")}
         </button>
@@ -273,58 +273,62 @@ export default function ProjectStages({
             const open = !collapsed[stage.id];
             const panelId = `stage-panel-${stage.id}`;
             return (
-              <li key={stage.id} className="rounded-xl border border-border bg-card" data-testid={`project-stage-${stage.id}`}>
-                <div className="flex flex-wrap items-center gap-3 p-4">
-                  <div className="flex gap-1">
+              <li key={stage.id} className="min-w-0 overflow-hidden rounded-xl border border-border bg-card" data-testid={`project-stage-${stage.id}`}>
+                <div className="flex flex-col gap-3 p-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3 sm:p-4">
+                  <div className="flex min-w-0 items-start gap-2 sm:items-center sm:gap-3">
+                    <div className="flex shrink-0 gap-1">
+                      <button
+                        type="button"
+                        className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-border text-sm ${focusRing}`}
+                        data-testid={`stage-up-${stage.id}`}
+                        aria-label={t("myProjects.stages.moveUp")}
+                        disabled={pending || index === 0}
+                        onClick={() => void move(index, -1)}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-border text-sm ${focusRing}`}
+                        data-testid={`stage-down-${stage.id}`}
+                        aria-label={t("myProjects.stages.moveDown")}
+                        disabled={pending || index === stages.length - 1}
+                        onClick={() => void move(index, 1)}
+                      >
+                        ↓
+                      </button>
+                    </div>
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="break-words font-medium text-foreground">{stage.title}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {stage.needs.length === 1
+                          ? t("myProjects.stages.needOne")
+                          : t("myProjects.stages.needMany", { count: stage.needs.length })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+                    <span className={`inline-flex max-w-full items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${STATUS_CLASS[stage.status]}`}>
+                      <span className="h-2 w-2 shrink-0 rounded-full bg-current" aria-hidden="true" />
+                      <span className="truncate">{t(`myProjects.stages.statuses.${stage.status}`)}</span>
+                    </span>
                     <button
                       type="button"
-                      className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-border text-sm ${focusRing}`}
-                      data-testid={`stage-up-${stage.id}`}
-                      aria-label={t("myProjects.stages.moveUp")}
-                      disabled={pending || index === 0}
-                      onClick={() => void move(index, -1)}
+                      className={`inline-flex min-h-[44px] items-center rounded-lg px-3 text-sm ${focusRing}`}
+                      data-testid={`stage-toggle-${stage.id}`}
+                      aria-expanded={open}
+                      aria-controls={panelId}
+                      onClick={() => setCollapsed((current) => ({ ...current, [stage.id]: open }))}
                     >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-border text-sm ${focusRing}`}
-                      data-testid={`stage-down-${stage.id}`}
-                      aria-label={t("myProjects.stages.moveDown")}
-                      disabled={pending || index === stages.length - 1}
-                      onClick={() => void move(index, 1)}
-                    >
-                      ↓
+                      {open ? t("myProjects.stages.collapse") : t("myProjects.stages.expand")}
                     </button>
                   </div>
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-foreground">{stage.title}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {stage.needs.length === 1
-                        ? t("myProjects.stages.needOne")
-                        : t("myProjects.stages.needMany", { count: stage.needs.length })}
-                    </p>
-                  </div>
-                  <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${STATUS_CLASS[stage.status]}`}>
-                    <span className="h-2 w-2 rounded-full bg-current" aria-hidden="true" />
-                    {t(`myProjects.stages.statuses.${stage.status}`)}
-                  </span>
-                  <button
-                    type="button"
-                    className={`inline-flex min-h-[44px] items-center rounded-lg px-3 text-sm ${focusRing}`}
-                    data-testid={`stage-toggle-${stage.id}`}
-                    aria-expanded={open}
-                    aria-controls={panelId}
-                    onClick={() => setCollapsed((current) => ({ ...current, [stage.id]: open }))}
-                  >
-                    {open ? t("myProjects.stages.collapse") : t("myProjects.stages.expand")}
-                  </button>
                 </div>
                 {open ? (
-                  <div id={panelId} className="border-t border-border px-4 pb-4 pt-4">
+                  <div id={panelId} className="min-w-0 border-t border-border px-3 pb-4 pt-4 sm:px-4">
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                       <div className="min-w-0">
                         <label className="mb-1 block text-sm font-medium" htmlFor={`stage-title-${stage.id}`}>

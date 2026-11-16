@@ -8,8 +8,8 @@ const COMPLETE = {
   title: "Poulailler communautaire",
   description: "Un élevage partagé pour le quartier.",
   objective: "Améliorer l’alimentation locale.",
-  category: "Agriculture",
-  country: "Cameroun",
+  category: "agriculture-livestock-and-agro-processing",
+  country: "CM",
   city: "Douala",
 };
 

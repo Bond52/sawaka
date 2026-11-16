@@ -91,7 +91,7 @@ test("a valid project can be published directly with a prepared stage and need",
       });
       return;
     }
-    if (request.method() === "GET" && path.endsWith("/mine/proj-direct")) {
+    if (request.method() === "GET" && path.endsWith("/api/projects/proj-direct")) {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -102,11 +102,11 @@ test("a valid project can be published directly with a prepared stage and need",
             summary: "",
             description: "A shared workshop.",
             objective: "Repair together.",
-            category: "Craft",
-            country: "Senegal",
+            category: "ceramics-glass-and-traditional-crafts",
+            country: "CM",
             city: "Dakar",
             status: "published",
-            visibility: "public",
+            publishedAt: "2026-11-16T00:00:00.000Z",
             coverImage: null,
             images: [],
             stages: [],
@@ -123,8 +123,8 @@ test("a valid project can be published directly with a prepared stage and need",
   await form.getByLabel("Project title").fill("Repair workshop");
   await page.getByTestId("project-field-description").fill("A shared workshop.");
   await page.getByTestId("project-field-objective").fill("Repair together.");
-  await page.getByTestId("project-field-category").fill("Craft");
-  await page.getByTestId("project-field-country").fill("Senegal");
+  await page.getByTestId("project-field-category").selectOption("ceramics-glass-and-traditional-crafts");
+  await page.getByTestId("project-field-country").selectOption("CM");
   await page.getByTestId("project-field-city").fill("Dakar");
   await page.getByTestId("new-stage-title").fill("Prepare");
   await page.getByTestId("project-stage-add").click();
@@ -142,8 +142,8 @@ test("a valid project can be published directly with a prepared stage and need",
       needs: [expect.objectContaining({ title: "Advice", kind: "skill" })],
     }),
   ]);
-  await expect(page).toHaveURL(/\/mes-projets\/proj-direct\/modifier/);
-  await expect(page.getByTestId("project-publish")).toHaveCount(0);
+  await expect(page).toHaveURL(/\/projets\/proj-direct/);
+  await expect(page.getByTestId("public-project-detail")).toBeVisible();
 });
 
 test("an incomplete publication keeps the entered project, stage, and need", async ({ page }) => {

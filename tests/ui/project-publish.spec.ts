@@ -55,7 +55,31 @@ test("publishing reports missing fields, then confirms a complete project", asyn
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ project: stored }),
+        body: JSON.stringify({ project: { ...stored, coverImage: null, images: [], stages: [] } }),
+      });
+      return;
+    }
+    if (request.method() === "GET" && path.endsWith("/api/projects/proj-9")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          project: {
+            id: stored.id,
+            title: stored.title,
+            summary: stored.summary,
+            description: stored.description,
+            objective: stored.objective,
+            category: stored.category,
+            country: stored.country,
+            city: stored.city,
+            status: "published",
+            publishedAt: "2026-11-16T00:00:00.000Z",
+            coverImage: null,
+            images: [],
+            stages: [],
+          },
+        }),
       });
       return;
     }
@@ -76,7 +100,7 @@ test("publishing reports missing fields, then confirms a complete project", asyn
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ project: stored }),
+        body: JSON.stringify({ project: { ...stored, coverImage: null, images: [], stages: [] } }),
       });
       return;
     }
@@ -94,10 +118,10 @@ test("publishing reports missing fields, then confirms a complete project", asyn
 
   await page.getByTestId("project-field-description").fill("A shared poultry yard.");
   await page.getByTestId("project-field-objective").fill("Feed the neighborhood.");
-  await page.getByTestId("project-field-category").fill("Agriculture");
-  await page.getByTestId("project-field-country").fill("Cameroon");
+  await page.getByTestId("project-field-category").selectOption("agriculture-livestock-and-agro-processing");
+  await page.getByTestId("project-field-country").selectOption("CM");
   await page.getByTestId("project-field-city").fill("Douala");
   await page.getByTestId("project-publish").click();
-  await expect(page.getByTestId("project-publish-status")).toHaveText("Project published.");
-  await expect(page.getByTestId("project-publish")).toHaveCount(0);
+  await expect(page).toHaveURL(/\/projets\/proj-9/);
+  await expect(page.getByTestId("public-project-detail")).toBeVisible();
 });

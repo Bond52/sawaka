@@ -292,7 +292,15 @@
     "communityNote": "This is a community project in progress.",
     "createMyProject": "Create my project",
     "currentlyUnavailable": "Currently unavailable",
-    "byAuthor": "by {author}"
+    "byAuthor": "by {author}",
+    "empty": "No published projects are available yet.",
+    "loadError": "Published projects could not be loaded.",
+    "detailUnavailable": "This project is not available.",
+    "backToList": "Back to projects",
+    "noCover": "No cover image",
+    "uncategorized": "Uncategorized",
+    "untitled": "Untitled project",
+    "fixMedia": "Fix images"
   },
   "artisans": {
     "loading": "Loading artisans...",
@@ -1625,7 +1633,12 @@
       "INVALID_IMAGE": "This file could not be used as an image.",
       "UPLOAD_FAILED": "The image could not be stored. Try again.",
       "IMAGE_LIMIT": "You cannot add more images.",
-      "IMAGE_NOT_FOUND": "This image could not be found."
-    }
+      "IMAGE_NOT_FOUND": "This image could not be found.",
+      "INVALID_CATEGORY": "Choose a valid project category.",
+      "INVALID_COUNTRY": "Choose a valid country."
+    },
+    "chooseCategory": "Choose a category",
+    "chooseCountry": "Choose a country",
+    "view": "View"
   }
 }
