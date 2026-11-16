@@ -68,8 +68,12 @@ export default function NewProjectPage() {
     const result = await createOwnedProject(input, { publish, stages });
     if (!result.ok) return result;
     const uploadError = await uploadQueued(result.project.id, result.project.stages);
-    if (!publish) sessionStorage.setItem(SAVED_PROJECT_STORAGE_KEY, result.project.id);
     if (uploadError) sessionStorage.setItem(PROJECT_UPLOAD_ERROR_KEY, uploadError);
+    if (publish) {
+      router.replace(`/projets/${result.project.id}`);
+      return { ok: true as const };
+    }
+    sessionStorage.setItem(SAVED_PROJECT_STORAGE_KEY, result.project.id);
     router.replace(`/mes-projets/${result.project.id}/modifier`);
     return { ok: true as const };
   };

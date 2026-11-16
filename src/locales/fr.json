@@ -292,7 +292,15 @@
     "communityNote": "Ceci est un projet communautaire en cours.",
     "createMyProject": "Créer mon projet",
     "currentlyUnavailable": "Actuellement indisponible",
-    "byAuthor": "par {author}"
+    "byAuthor": "par {author}",
+    "empty": "Aucun projet publié n’est disponible pour le moment.",
+    "loadError": "Les projets publiés n’ont pas pu être chargés.",
+    "detailUnavailable": "Ce projet n’est pas disponible.",
+    "backToList": "Retour aux projets",
+    "noCover": "Pas d’image de couverture",
+    "uncategorized": "Sans catégorie",
+    "untitled": "Projet sans titre",
+    "fixMedia": "Corriger les images"
   },
   "artisans": {
     "loading": "Chargement des artisans...",
@@ -1625,7 +1633,12 @@
       "INVALID_IMAGE": "Ce fichier ne peut pas servir d’image.",
       "UPLOAD_FAILED": "L’image n’a pas pu être enregistrée. Réessayez.",
       "IMAGE_LIMIT": "Vous ne pouvez pas ajouter d’autres images.",
-      "IMAGE_NOT_FOUND": "Cette image est introuvable."
-    }
+      "IMAGE_NOT_FOUND": "Cette image est introuvable.",
+      "INVALID_CATEGORY": "Choisissez une catégorie de projet valide.",
+      "INVALID_COUNTRY": "Choisissez un pays valide."
+    },
+    "chooseCategory": "Choisir une catégorie",
+    "chooseCountry": "Choisir un pays",
+    "view": "Voir"
   }
 }

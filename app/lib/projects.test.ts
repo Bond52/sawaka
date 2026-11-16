@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   missingPublicationFields,
   parseOwnedProject,
+  parsePublicProject,
   pendingContentIssue,
   pendingStagesPayload,
   projectDraftPayload,
@@ -170,4 +171,32 @@ test("pending stages keep their needs and omit client identifiers", () => {
     ]),
     "BLOCKER_EXPLANATION_REQUIRED"
   );
+});
+
+test("parsePublicProject accepts published payloads and rejects ownership fields", () => {
+  const published = parsePublicProject({
+    id: "507f1f77bcf86cd799439011",
+    title: "Jardin",
+    summary: "",
+    description: "Un jardin partagé.",
+    objective: "Nourrir le quartier",
+    category: "agriculture-livestock-and-agro-processing",
+    country: "CM",
+    city: "Douala",
+    status: "published",
+    publishedAt: "2026-11-16T00:00:00.000Z",
+    coverImage: null,
+    images: [],
+    stages: [],
+  });
+  assert.equal(published?.status, "published");
+  assert.equal(published?.country, "CM");
+  assert.equal(
+    parsePublicProject({
+      ...published,
+      visibility: "public",
+    }),
+    null
+  );
+  assert.equal(parsePublicProject({ ...draft, status: "published" }), null);
 });
