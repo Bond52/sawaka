@@ -20,6 +20,21 @@ export function readStoredUser(): StoredUser | null {
   }
 }
 
+/** Decodes the JWT payload id for client-side ownership UI only. */
+export function readStoredUserId(): string | null {
+  const user = readStoredUser();
+  if (!user?.token) return null;
+  try {
+    const payloadPart = user.token.split(".")[1];
+    if (!payloadPart) return null;
+    const json = atob(payloadPart.replace(/-/g, "+").replace(/_/g, "/"));
+    const payload = JSON.parse(json) as { id?: unknown };
+    return typeof payload.id === "string" ? payload.id : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Best available display name for greetings.
  * Prefers firstName, then username; returns null when nothing usable exists.

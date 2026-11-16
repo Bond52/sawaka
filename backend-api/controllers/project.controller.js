@@ -1,4 +1,5 @@
 const projectService = require("../services/projectService");
+const projectCommentService = require("../services/projectCommentService");
 const { ProjectError } = projectService;
 
 function sendFunctionalError(res, err) {
@@ -249,7 +250,7 @@ async function removeStageImage(req, res) {
 
 async function listPublic(req, res) {
   try {
-    const result = await projectService.listPublic();
+    const result = await projectService.listPublic(req.query);
     return res.json(result);
   } catch (err) {
     if (err instanceof ProjectError) return sendFunctionalError(res, err);
@@ -260,11 +261,74 @@ async function listPublic(req, res) {
 
 async function getPublic(req, res) {
   try {
-    const result = await projectService.getPublic(req.params.id);
+    const result = await projectService.getPublic(req.params.id, req.user);
     return res.json(result);
   } catch (err) {
     if (err instanceof ProjectError) return sendFunctionalError(res, err);
     logTechnical("project.controller.getPublic:", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function listProjectComments(req, res) {
+  try {
+    const result = await projectCommentService.listComments(req.params.id);
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof ProjectError) return sendFunctionalError(res, err);
+    logTechnical("project.controller.listProjectComments:", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function createProjectComment(req, res) {
+  try {
+    const result = await projectCommentService.createComment(req.params.id, req.user, req.body);
+    return res.status(201).json(result);
+  } catch (err) {
+    if (err instanceof ProjectError) return sendFunctionalError(res, err);
+    logTechnical("project.controller.createProjectComment:", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function listNeedComments(req, res) {
+  try {
+    const result = await projectCommentService.listComments(req.params.id, {
+      needId: req.params.needId,
+    });
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof ProjectError) return sendFunctionalError(res, err);
+    logTechnical("project.controller.listNeedComments:", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function createNeedComment(req, res) {
+  try {
+    const result = await projectCommentService.createComment(req.params.id, req.user, req.body, {
+      needId: req.params.needId,
+    });
+    return res.status(201).json(result);
+  } catch (err) {
+    if (err instanceof ProjectError) return sendFunctionalError(res, err);
+    logTechnical("project.controller.createNeedComment:", err);
+    return res.status(500).json({ error: { code: "SERVER_ERROR" } });
+  }
+}
+
+async function deleteComment(req, res) {
+  try {
+    const result = await projectCommentService.deleteComment(
+      req.params.id,
+      req.params.commentId,
+      req.user
+    );
+    return res.json(result);
+  } catch (err) {
+    if (err instanceof ProjectError) return sendFunctionalError(res, err);
+    logTechnical("project.controller.deleteComment:", err);
     return res.status(500).json({ error: { code: "SERVER_ERROR" } });
   }
 }
@@ -290,4 +354,9 @@ module.exports = {
   removeStageImage,
   listPublic,
   getPublic,
+  listProjectComments,
+  createProjectComment,
+  listNeedComments,
+  createNeedComment,
+  deleteComment,
 };

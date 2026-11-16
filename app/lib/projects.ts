@@ -1,5 +1,6 @@
 export type ProjectStatus = "draft" | "published";
 export type ProjectVisibility = "private" | "public";
+export type CommentAccess = "members" | "everyone";
 export type StageStatus =
   | "not_started"
   | "in_progress"
@@ -46,6 +47,7 @@ export type OwnedProject = {
   city: string;
   status: ProjectStatus;
   visibility: ProjectVisibility;
+  commentAccess: CommentAccess;
   coverImage: ProjectImage | null;
   images: ProjectImage[];
   stages: ProjectStage[];
@@ -62,18 +64,51 @@ export type PublicProject = {
   city: string;
   status: "published";
   publishedAt: string | null;
+  commentAccess: CommentAccess;
   coverImage: ProjectImage | null;
   images: ProjectImage[];
   stages: ProjectStage[];
 };
 
 export type PublicProjectResult =
-  | { ok: true; project: PublicProject }
+  | { ok: true; project: PublicProject; viewerCanModerate: boolean }
   | ProjectFailure;
 
+export type PublicDirectoryQuery = {
+  q?: string;
+  category?: string;
+  country?: string;
+  city?: string;
+  stageStatus?: StageStatus | "";
+  needKind?: NeedKind | "";
+  needStatus?: NeedStatus | "";
+  page?: number;
+  limit?: number;
+};
+
 export type PublicProjectListResult =
-  | { ok: true; projects: PublicProject[] }
+  | {
+      ok: true;
+      projects: PublicProject[];
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    }
   | ProjectFailure;
+
+export type ProjectComment = {
+  id: string;
+  projectId: string;
+  target: "project" | "need";
+  needId: string | null;
+  stageId: string | null;
+  authorType: "member" | "visitor";
+  authorLabel: string | null;
+  authorId: string | null;
+  body: string;
+  createdAt: string;
+};
 
 export type ProjectDraftInput = {
   title: string;
@@ -83,6 +118,7 @@ export type ProjectDraftInput = {
   category: string;
   country: string;
   city: string;
+  commentAccess: CommentAccess;
 };
 
 export const PROJECT_FIELD_LIMITS = {
@@ -168,7 +204,9 @@ export function createPendingId(): string {
   return `pending-${Date.now()}`;
 }
 
-const EDITABLE_FIELDS = Object.keys(PROJECT_FIELD_LIMITS) as Array<keyof ProjectDraftInput>;
+const EDITABLE_FIELDS = Object.keys(PROJECT_FIELD_LIMITS) as Array<
+  Exclude<keyof ProjectDraftInput, "commentAccess">
+>;
 
 export type ProjectFailure = {
   ok: false;
@@ -325,6 +363,10 @@ function parseProjectCore(value: Record<string, unknown>): {
   };
 }
 
+function parseCommentAccess(value: unknown): CommentAccess {
+  return value === "everyone" ? "everyone" : "members";
+}
+
 export function parseOwnedProject(value: unknown): OwnedProject | null {
   if (!isRecord(value)) return null;
   const core = parseProjectCore(value);
@@ -335,6 +377,7 @@ export function parseOwnedProject(value: unknown): OwnedProject | null {
     ...core,
     status: value.status,
     visibility: value.visibility,
+    commentAccess: parseCommentAccess(value.commentAccess),
   };
 }
 
@@ -356,6 +399,7 @@ export function parsePublicProject(value: unknown): PublicProject | null {
     ...core,
     status: "published",
     publishedAt,
+    commentAccess: parseCommentAccess(value.commentAccess),
   };
 }
 
@@ -364,7 +408,28 @@ export function projectDraftPayload(input: ProjectDraftInput): ProjectDraftInput
   for (const field of EDITABLE_FIELDS) {
     payload[field] = input[field] ?? "";
   }
+  payload.commentAccess = input.commentAccess === "everyone" ? "everyone" : "members";
   return payload;
+}
+
+function parseComment(value: unknown): ProjectComment | null {
+  if (!isRecord(value) || typeof value.id !== "string") return null;
+  if (typeof value.projectId !== "string" || typeof value.body !== "string") return null;
+  if (value.target !== "project" && value.target !== "need") return null;
+  if (value.authorType !== "member" && value.authorType !== "visitor") return null;
+  if (typeof value.createdAt !== "string") return null;
+  return {
+    id: value.id,
+    projectId: value.projectId,
+    target: value.target,
+    needId: typeof value.needId === "string" ? value.needId : null,
+    stageId: typeof value.stageId === "string" ? value.stageId : null,
+    authorType: value.authorType,
+    authorLabel: typeof value.authorLabel === "string" ? value.authorLabel : null,
+    authorId: typeof value.authorId === "string" ? value.authorId : null,
+    body: value.body,
+    createdAt: value.createdAt,
+  };
 }
 
 async function readJson(res: Response): Promise<unknown> {
@@ -452,8 +517,25 @@ async function readPublicJson(path: string): Promise<{ status: number; data: unk
   }
 }
 
-export async function listPublicProjects(): Promise<PublicProjectListResult> {
-  const result = await readPublicJson("/api/projects");
+export function buildPublicDirectoryQuery(params: PublicDirectoryQuery): string {
+  const search = new URLSearchParams();
+  if (params.q?.trim()) search.set("q", params.q.trim());
+  if (params.category?.trim()) search.set("category", params.category.trim());
+  if (params.country?.trim()) search.set("country", params.country.trim());
+  if (params.city?.trim()) search.set("city", params.city.trim());
+  if (params.stageStatus) search.set("stageStatus", params.stageStatus);
+  if (params.needKind) search.set("needKind", params.needKind);
+  if (params.needStatus) search.set("needStatus", params.needStatus);
+  if (params.page && params.page > 1) search.set("page", String(params.page));
+  if (params.limit) search.set("limit", String(params.limit));
+  const query = search.toString();
+  return query ? `?${query}` : "";
+}
+
+export async function listPublicProjects(
+  params: PublicDirectoryQuery = {}
+): Promise<PublicProjectListResult> {
+  const result = await readPublicJson(`/api/projects${buildPublicDirectoryQuery(params)}`);
   if ("ok" in result) return result;
   const projects = isRecord(result.data) && Array.isArray(result.data.projects)
     ? result.data.projects.map(parsePublicProject)
@@ -461,15 +543,160 @@ export async function listPublicProjects(): Promise<PublicProjectListResult> {
   if (!projects || projects.some((project) => project === null)) {
     return { ok: false, status: result.status, code: "INVALID_RESPONSE" };
   }
-  return { ok: true, projects };
+  const page = isRecord(result.data) && typeof result.data.page === "number" ? result.data.page : 1;
+  const limit = isRecord(result.data) && typeof result.data.limit === "number" ? result.data.limit : 24;
+  const total = isRecord(result.data) && typeof result.data.total === "number" ? result.data.total : projects.length;
+  const totalPages =
+    isRecord(result.data) && typeof result.data.totalPages === "number"
+      ? result.data.totalPages
+      : Math.max(1, Math.ceil(total / limit));
+  return { ok: true, projects, page, limit, total, totalPages };
 }
 
 export async function getPublicProject(id: string): Promise<PublicProjectResult> {
-  const result = await readPublicJson(`/api/projects/${encodeURIComponent(id)}`);
+  const { resolveApiBaseUrl } = await import("./apiBase");
+  const { readStoredUser } = await import("./authUser");
+  const user = readStoredUser();
+  try {
+    const res = await fetch(`${resolveApiBaseUrl()}/api/projects/${encodeURIComponent(id)}`, {
+      method: "GET",
+      credentials: "include",
+      headers: user ? { Authorization: `Bearer ${user.token}` } : undefined,
+    });
+    const data = await readJson(res);
+    if (!res.ok) return failure(res.status, data);
+    const project = isRecord(data) ? parsePublicProject(data.project) : null;
+    if (!project) return { ok: false, status: res.status, code: "INVALID_RESPONSE" };
+    return {
+      ok: true,
+      project,
+      viewerCanModerate: Boolean(isRecord(data) && data.viewerCanModerate === true),
+    };
+  } catch (err) {
+    console.error("[projects] public detail failed", {
+      name: err instanceof Error ? err.name : "Error",
+    });
+    return { ok: false, status: 0, code: "NETWORK" };
+  }
+}
+
+export type CommentListResult =
+  | { ok: true; comments: ProjectComment[]; commentAccess: CommentAccess }
+  | ProjectFailure;
+
+export type CommentResult = { ok: true; comment: ProjectComment } | ProjectFailure;
+
+async function sendPublicComment(
+  path: string,
+  method: "GET" | "POST" | "DELETE",
+  body?: { body: string }
+): Promise<{ status: number; data: unknown } | ProjectFailure> {
+  const { resolveApiBaseUrl } = await import("./apiBase");
+  const { readStoredUser } = await import("./authUser");
+  const user = readStoredUser();
+  try {
+    const res = await fetch(`${resolveApiBaseUrl()}${path}`, {
+      method,
+      credentials: "include",
+      headers: {
+        ...(user ? { Authorization: `Bearer ${user.token}` } : {}),
+        ...(body ? { "Content-Type": "application/json" } : {}),
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const data = await readJson(res);
+    if (!res.ok) {
+      if (res.status === 429) return { ok: false, status: 429, code: "RATE_LIMITED" };
+      return failure(res.status, data);
+    }
+    return { status: res.status, data };
+  } catch (err) {
+    console.error("[projects] comment request failed", {
+      path,
+      name: err instanceof Error ? err.name : "Error",
+    });
+    return { ok: false, status: 0, code: "NETWORK" };
+  }
+}
+
+export async function listProjectComments(projectId: string): Promise<CommentListResult> {
+  const result = await sendPublicComment(
+    `/api/projects/${encodeURIComponent(projectId)}/comments`,
+    "GET"
+  );
   if ("ok" in result) return result;
-  const project = isRecord(result.data) ? parsePublicProject(result.data.project) : null;
-  if (!project) return { ok: false, status: result.status, code: "INVALID_RESPONSE" };
-  return { ok: true, project };
+  const comments =
+    isRecord(result.data) && Array.isArray(result.data.comments)
+      ? result.data.comments.map(parseComment)
+      : null;
+  if (!comments || comments.some((comment) => comment === null)) {
+    return { ok: false, status: result.status, code: "INVALID_RESPONSE" };
+  }
+  return {
+    ok: true,
+    comments: comments as ProjectComment[],
+    commentAccess: parseCommentAccess(isRecord(result.data) ? result.data.commentAccess : null),
+  };
+}
+
+export async function listNeedComments(projectId: string, needId: string): Promise<CommentListResult> {
+  const result = await sendPublicComment(
+    `/api/projects/${encodeURIComponent(projectId)}/needs/${encodeURIComponent(needId)}/comments`,
+    "GET"
+  );
+  if ("ok" in result) return result;
+  const comments =
+    isRecord(result.data) && Array.isArray(result.data.comments)
+      ? result.data.comments.map(parseComment)
+      : null;
+  if (!comments || comments.some((comment) => comment === null)) {
+    return { ok: false, status: result.status, code: "INVALID_RESPONSE" };
+  }
+  return {
+    ok: true,
+    comments: comments as ProjectComment[],
+    commentAccess: parseCommentAccess(isRecord(result.data) ? result.data.commentAccess : null),
+  };
+}
+
+export async function createProjectComment(projectId: string, body: string): Promise<CommentResult> {
+  const result = await sendPublicComment(
+    `/api/projects/${encodeURIComponent(projectId)}/comments`,
+    "POST",
+    { body }
+  );
+  if ("ok" in result) return result;
+  const comment = isRecord(result.data) ? parseComment(result.data.comment) : null;
+  if (!comment) return { ok: false, status: result.status, code: "INVALID_RESPONSE" };
+  return { ok: true, comment };
+}
+
+export async function createNeedComment(
+  projectId: string,
+  needId: string,
+  body: string
+): Promise<CommentResult> {
+  const result = await sendPublicComment(
+    `/api/projects/${encodeURIComponent(projectId)}/needs/${encodeURIComponent(needId)}/comments`,
+    "POST",
+    { body }
+  );
+  if ("ok" in result) return result;
+  const comment = isRecord(result.data) ? parseComment(result.data.comment) : null;
+  if (!comment) return { ok: false, status: result.status, code: "INVALID_RESPONSE" };
+  return { ok: true, comment };
+}
+
+export async function deleteProjectComment(
+  projectId: string,
+  commentId: string
+): Promise<{ ok: true } | ProjectFailure> {
+  const result = await sendPublicComment(
+    `/api/projects/${encodeURIComponent(projectId)}/comments/${encodeURIComponent(commentId)}`,
+    "DELETE"
+  );
+  if ("ok" in result) return result;
+  return { ok: true };
 }
 
 export async function getOwnedProject(id: string): Promise<ProjectResult> {

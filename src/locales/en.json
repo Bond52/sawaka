@@ -300,7 +300,59 @@
     "noCover": "No cover image",
     "uncategorized": "Uncategorized",
     "untitled": "Untitled project",
-    "fixMedia": "Fix images"
+    "fixMedia": "Fix images",
+    "search": {
+      "label": "Search projects",
+      "placeholder": "Title, summary, description…",
+      "empty": "No projects match these criteria.",
+      "results": "{count} project(s) found"
+    },
+    "filters": {
+      "category": "Category",
+      "country": "Country",
+      "city": "City",
+      "stageStatus": "Stage status",
+      "needKind": "Need type",
+      "needStatus": "Need status",
+      "any": "Any",
+      "apply": "Apply filters",
+      "reset": "Reset filters",
+      "prev": "Previous",
+      "next": "Next",
+      "page": "Page {page} of {total}"
+    },
+    "comments": {
+      "title": "Comments",
+      "needTitle": "Comments on this need",
+      "empty": "No comments yet.",
+      "write": "Your comment",
+      "submit": "Post comment",
+      "sending": "Sending…",
+      "delete": "Delete",
+      "confirmDelete": "Confirm deletion",
+      "cancelDelete": "Keep comment",
+      "required": "Enter a comment.",
+      "loadError": "Comments could not be loaded.",
+      "visitor": "Visitor",
+      "member": "Member",
+      "membersOnly": "Only Sawaka members can comment on this project.",
+      "login": "Log in",
+      "register": "Register",
+      "showNeed": "Show comments",
+      "hideNeed": "Hide comments",
+      "errors": {
+        "LOGIN_REQUIRED": "Sign in to comment.",
+        "COMMENT_REQUIRED": "Enter a comment.",
+        "FIELD_TOO_LONG": "This comment is too long.",
+        "RATE_LIMITED": "Too many comments. Try again later.",
+        "FORBIDDEN": "You cannot delete this comment.",
+        "UNAUTHORIZED": "Sign in to continue.",
+        "NOT_FOUND": "This comment could not be found.",
+        "SERVER_ERROR": "The comment could not be saved.",
+        "NETWORK": "The server could not be reached.",
+        "INVALID_RESPONSE": "Unexpected server response."
+      }
+    }
   },
   "artisans": {
     "loading": "Loading artisans...",
@@ -1635,10 +1687,21 @@
       "IMAGE_LIMIT": "You cannot add more images.",
       "IMAGE_NOT_FOUND": "This image could not be found.",
       "INVALID_CATEGORY": "Choose a valid project category.",
-      "INVALID_COUNTRY": "Choose a valid country."
+      "INVALID_COUNTRY": "Choose a valid country.",
+      "INVALID_COMMENT_ACCESS": "Choose a valid comment setting.",
+      "RATE_LIMITED": "Too many requests. Try again later.",
+      "LOGIN_REQUIRED": "Sign in to continue.",
+      "COMMENT_REQUIRED": "Enter a comment."
     },
     "chooseCategory": "Choose a category",
     "chooseCountry": "Choose a country",
-    "view": "View"
+    "view": "View",
+    "commentAccess": {
+      "label": "Who can comment",
+      "hint": "Choose who may comment on this project and its needs.",
+      "members": "Sawaka Members Only",
+      "everyone": "Everyone, including visitors",
+      "everyoneWarning": "Visitors who are not signed in will be able to comment on your project and its needs. You can delete their comments at any time."
+    }
   }
 }

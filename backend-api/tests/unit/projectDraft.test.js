@@ -78,6 +78,8 @@ describe("project draft rules", () => {
     expect(publicView.ownerId).toBeUndefined();
     expect(publicView.visibility).toBeUndefined();
     expect(publicView.title).toBe("Privé");
+    expect(publicView.commentAccess).toBe("members");
+    expect(ownerProjectView(draft).commentAccess).toBe("members");
     expect(missingPublicationFields({ ...draft, title: "" })).toEqual([
       "title",
       "description",

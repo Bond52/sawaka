@@ -32,6 +32,11 @@ const NEED_STATUS = Object.freeze({
   CANCELLED: "cancelled",
 });
 
+const COMMENT_ACCESS = Object.freeze({
+  MEMBERS: "members",
+  EVERYONE: "everyone",
+});
+
 const imageSchema = new mongoose.Schema(
   {
     url: { type: String, required: true },
@@ -103,6 +108,12 @@ const projectSchema = new mongoose.Schema(
       default: PROJECT_VISIBILITY.PRIVATE,
     },
     publishedAt: { type: Date, default: null },
+    commentAccess: {
+      type: String,
+      enum: Object.values(COMMENT_ACCESS),
+      required: true,
+      default: COMMENT_ACCESS.MEMBERS,
+    },
     coverImage: { type: imageSchema, default: null },
     images: { type: [imageSchema], default: [] },
     stages: { type: [stageSchema], default: [] },
@@ -118,4 +129,5 @@ module.exports.PROJECT_STATUS = PROJECT_STATUS;
 module.exports.PROJECT_VISIBILITY = PROJECT_VISIBILITY;
 module.exports.STAGE_STATUS = STAGE_STATUS;
 module.exports.NEED_KIND = NEED_KIND;
+module.exports.COMMENT_ACCESS = COMMENT_ACCESS;
 module.exports.NEED_STATUS = NEED_STATUS;

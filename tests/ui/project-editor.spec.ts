@@ -63,6 +63,7 @@ test("a valid project can be published directly with a prepared stage and need",
             city: body.city,
             status: "published",
             visibility: "public",
+            commentAccess: body.commentAccess || "members",
             coverImage: null,
             images: [],
             stages: [
@@ -107,11 +108,25 @@ test("a valid project can be published directly with a prepared stage and need",
             city: "Dakar",
             status: "published",
             publishedAt: "2026-11-16T00:00:00.000Z",
+            commentAccess: "members",
             coverImage: null,
             images: [],
             stages: [],
           },
+          viewerCanModerate: true,
         }),
+      });
+      return;
+    }
+    if (
+      request.method() === "GET" &&
+      path.includes("/api/projects/proj-direct") &&
+      path.includes("/comments")
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ commentAccess: "members", comments: [] }),
       });
       return;
     }

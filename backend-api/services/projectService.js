@@ -6,6 +6,7 @@ const {
   STAGE_STATUS,
   NEED_KIND,
   NEED_STATUS,
+  COMMENT_ACCESS,
 } = require("../models/Project");
 const { recordUserAuditEvent, USER_AUDIT_ACTIONS } = require("./AuditService");
 const { profilePhotoIssue } = require("./profilePhoto");
@@ -14,6 +15,7 @@ const {
   isApprovedProjectCategory,
   normalizeProjectCountry,
 } = require("./projectReferenceData");
+const { parsePublicDirectoryQuery } = require("./projectDirectoryQuery");
 
 const MAX_PROJECT_IMAGES = 8;
 const MAX_STAGE_IMAGES = 6;
@@ -31,7 +33,7 @@ const FIELD_LIMITS = Object.freeze({
 });
 
 const EDITABLE_FIELDS = Object.freeze(Object.keys(FIELD_LIMITS));
-const EDITABLE_FIELD_SET = new Set(EDITABLE_FIELDS);
+const EDITABLE_FIELD_SET = new Set([...EDITABLE_FIELDS, "commentAccess"]);
 
 const STAGE_FIELDS = Object.freeze(["title", "description", "status", "blockerExplanation"]);
 const NEED_FIELDS = Object.freeze(["title", "description", "kind", "status", "blockerExplanation"]);
@@ -141,6 +143,14 @@ function editableProjectUpdate(body, previous = {}) {
     typeof previous.country === "string" ? previous.country.trim() : "";
 
   const updates = {};
+  if (Object.prototype.hasOwnProperty.call(body, "commentAccess")) {
+    const value = body.commentAccess;
+    if (typeof value !== "string" || !Object.values(COMMENT_ACCESS).includes(value)) {
+      throw new ProjectError("INVALID_COMMENT_ACCESS", 400, ["commentAccess"]);
+    }
+    updates.commentAccess = value;
+  }
+
   for (const field of EDITABLE_FIELDS) {
     if (!Object.prototype.hasOwnProperty.call(body, field)) continue;
     const value = body[field];
@@ -174,6 +184,13 @@ function editableProjectUpdate(body, previous = {}) {
   return updates;
 }
 
+function resolveCommentAccess(project) {
+  if (project && project.commentAccess === COMMENT_ACCESS.EVERYONE) {
+    return COMMENT_ACCESS.EVERYONE;
+  }
+  return COMMENT_ACCESS.MEMBERS;
+}
+
 function missingPublicationFields(project) {
   return PUBLICATION_FIELDS.filter((field) => {
     const value = project[field];
@@ -201,6 +218,7 @@ function ownerProjectView(project) {
     city: project.city || "",
     status: project.status,
     visibility: project.visibility,
+    commentAccess: resolveCommentAccess(project),
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
     coverImage: imageView(project.coverImage),
@@ -223,6 +241,7 @@ function publicProjectView(project) {
     city: project.city || "",
     status: project.status,
     publishedAt: project.publishedAt || null,
+    commentAccess: resolveCommentAccess(project),
     coverImage: imageView(project.coverImage),
     images: [...(project.images || [])].map(imageView).filter(Boolean),
     stages: sortedStages(project).map(stageView),
@@ -418,22 +437,42 @@ async function publishOwned(ownerId, id, body) {
   return { project: ownerProjectView(project) };
 }
 
-async function listPublic() {
-  const projects = await Project.find({
+async function listPublic(query) {
+  let parsed;
+  try {
+    parsed = parsePublicDirectoryQuery(query || {});
+  } catch (err) {
+    throw new ProjectError(err.code || "INVALID_QUERY", err.status || 400, err.fields);
+  }
+  const base = {
     status: PROJECT_STATUS.PUBLISHED,
     visibility: PROJECT_VISIBILITY.PUBLIC,
-  })
+    ...parsed.filter,
+  };
+  const total = await Project.countDocuments(base);
+  const skip = (parsed.page - 1) * parsed.limit;
+  const projects = await Project.find(base)
     .sort({ publishedAt: -1, updatedAt: -1 })
-    .limit(100);
-  return { projects: projects.map(publicProjectView) };
+    .skip(skip)
+    .limit(parsed.limit);
+  return {
+    projects: projects.map(publicProjectView),
+    page: parsed.page,
+    limit: parsed.limit,
+    total,
+    totalPages: Math.max(1, Math.ceil(total / parsed.limit)),
+  };
 }
 
-async function getPublic(id) {
+async function getPublic(id, authUser) {
   const project = await findProject(id);
   if (!isPubliclyReadable(project)) {
     throw new ProjectError("NOT_FOUND", 404);
   }
-  return { project: publicProjectView(project) };
+  const viewerCanModerate = Boolean(
+    authUser && authUser.id && String(project.ownerId) === String(authUser.id)
+  );
+  return { project: publicProjectView(project), viewerCanModerate };
 }
 
 function stageChanges(body, requireTitle) {
@@ -821,9 +860,11 @@ module.exports = {
   FIELD_LIMITS,
   EDITABLE_FIELDS,
   PUBLICATION_FIELDS,
+  COMMENT_ACCESS,
   editableProjectUpdate,
   missingPublicationFields,
   isPubliclyReadable,
+  resolveCommentAccess,
   ownerProjectView,
   publicProjectView,
   stageView,

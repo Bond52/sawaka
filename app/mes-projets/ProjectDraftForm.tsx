@@ -6,6 +6,7 @@ import {
   missingPublicationFields,
   PROJECT_FIELD_LIMITS,
   PUBLICATION_FIELDS,
+  type CommentAccess,
   type ProjectDraftInput,
   type ProjectFailure,
 } from "@/app/lib/projects";
@@ -30,6 +31,7 @@ const EMPTY_DRAFT: ProjectDraftInput = {
   category: "",
   country: "",
   city: "",
+  commentAccess: "members",
 };
 
 type FieldName = keyof ProjectDraftInput;
@@ -69,6 +71,7 @@ export function draftFromProject(project: ProjectDraftInput): ProjectDraftInput 
     category: project.category,
     country: project.country,
     city: project.city,
+    commentAccess: project.commentAccess === "everyone" ? "everyone" : "members",
   };
 }
 
@@ -138,7 +141,14 @@ export default function ProjectDraftForm({
   }, [values.country]);
 
   const setField = (name: FieldName, value: string) => {
-    const nextValue = name === "country" ? countrySelectValue(value) : value;
+    const nextValue =
+      name === "country"
+        ? countrySelectValue(value)
+        : name === "commentAccess"
+          ? value === "everyone"
+            ? "everyone"
+            : "members"
+          : value;
     setValues((current) => ({ ...current, [name]: nextValue }));
     setFieldErrors((current) => ({ ...current, [name]: undefined }));
     setSaved(false);
@@ -422,6 +432,44 @@ export default function ProjectDraftForm({
               {renderField({ name: "country" })}
               {renderField({ name: "city" })}
             </div>
+            <fieldset className="min-w-0" data-testid="project-comment-access">
+              <legend className="mb-2 text-sm font-medium text-foreground">
+                {t("myProjects.commentAccess.label")}
+              </legend>
+              <p className="mb-3 text-sm text-muted-foreground">{t("myProjects.commentAccess.hint")}</p>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                {(["members", "everyone"] as CommentAccess[]).map((mode) => (
+                  <label
+                    key={mode}
+                    className={`inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-xl border px-4 py-2 text-sm ${
+                      values.commentAccess === mode
+                        ? "border-primary bg-card text-foreground"
+                        : "border-border bg-card/60 text-muted-foreground"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="commentAccess"
+                      value={mode}
+                      checked={values.commentAccess === mode}
+                      data-testid={`project-comment-access-${mode}`}
+                      className={focusRing}
+                      onChange={() => setField("commentAccess", mode)}
+                    />
+                    {t(`myProjects.commentAccess.${mode}`)}
+                  </label>
+                ))}
+              </div>
+              {values.commentAccess === "everyone" ? (
+                <p
+                  role="note"
+                  data-testid="project-comment-access-warning"
+                  className="mt-3 text-sm text-foreground"
+                >
+                  {t("myProjects.commentAccess.everyoneWarning")}
+                </p>
+              ) : null}
+            </fieldset>
           </div>
         </section>
 

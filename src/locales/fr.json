@@ -300,7 +300,59 @@
     "noCover": "Pas d’image de couverture",
     "uncategorized": "Sans catégorie",
     "untitled": "Projet sans titre",
-    "fixMedia": "Corriger les images"
+    "fixMedia": "Corriger les images",
+    "search": {
+      "label": "Rechercher des projets",
+      "placeholder": "Titre, résumé, description…",
+      "empty": "Aucun projet ne correspond à ces critères.",
+      "results": "{count} projet(s) trouvé(s)"
+    },
+    "filters": {
+      "category": "Catégorie",
+      "country": "Pays",
+      "city": "Ville",
+      "stageStatus": "Statut d’étape",
+      "needKind": "Type de besoin",
+      "needStatus": "Statut du besoin",
+      "any": "Tous",
+      "apply": "Appliquer les filtres",
+      "reset": "Réinitialiser",
+      "prev": "Précédent",
+      "next": "Suivant",
+      "page": "Page {page} sur {total}"
+    },
+    "comments": {
+      "title": "Commentaires",
+      "needTitle": "Commentaires sur ce besoin",
+      "empty": "Aucun commentaire pour le moment.",
+      "write": "Votre commentaire",
+      "submit": "Publier le commentaire",
+      "sending": "Envoi…",
+      "delete": "Supprimer",
+      "confirmDelete": "Confirmer la suppression",
+      "cancelDelete": "Conserver le commentaire",
+      "required": "Saisissez un commentaire.",
+      "loadError": "Les commentaires n’ont pas pu être chargés.",
+      "visitor": "Visiteur",
+      "member": "Membre",
+      "membersOnly": "Seuls les membres Sawaka peuvent commenter ce projet.",
+      "login": "Se connecter",
+      "register": "S’inscrire",
+      "showNeed": "Voir les commentaires",
+      "hideNeed": "Masquer les commentaires",
+      "errors": {
+        "LOGIN_REQUIRED": "Connectez-vous pour commenter.",
+        "COMMENT_REQUIRED": "Saisissez un commentaire.",
+        "FIELD_TOO_LONG": "Ce commentaire est trop long.",
+        "RATE_LIMITED": "Trop de commentaires. Réessayez plus tard.",
+        "FORBIDDEN": "Vous ne pouvez pas supprimer ce commentaire.",
+        "UNAUTHORIZED": "Connectez-vous pour continuer.",
+        "NOT_FOUND": "Ce commentaire est introuvable.",
+        "SERVER_ERROR": "Le commentaire n’a pas pu être enregistré.",
+        "NETWORK": "Le serveur est injoignable.",
+        "INVALID_RESPONSE": "Réponse serveur inattendue."
+      }
+    }
   },
   "artisans": {
     "loading": "Chargement des artisans...",
@@ -1635,10 +1687,21 @@
       "IMAGE_LIMIT": "Vous ne pouvez pas ajouter d’autres images.",
       "IMAGE_NOT_FOUND": "Cette image est introuvable.",
       "INVALID_CATEGORY": "Choisissez une catégorie de projet valide.",
-      "INVALID_COUNTRY": "Choisissez un pays valide."
+      "INVALID_COUNTRY": "Choisissez un pays valide.",
+      "INVALID_COMMENT_ACCESS": "Choisissez un paramètre de commentaire valide.",
+      "RATE_LIMITED": "Trop de requêtes. Réessayez plus tard.",
+      "LOGIN_REQUIRED": "Connectez-vous pour continuer.",
+      "COMMENT_REQUIRED": "Saisissez un commentaire."
     },
     "chooseCategory": "Choisir une catégorie",
     "chooseCountry": "Choisir un pays",
-    "view": "Voir"
+    "view": "Voir",
+    "commentAccess": {
+      "label": "Qui peut commenter",
+      "hint": "Choisissez qui peut commenter ce projet et ses besoins.",
+      "members": "Membres Sawaka uniquement",
+      "everyone": "Tout le monde, y compris les visiteurs non connectés",
+      "everyoneWarning": "Les visiteurs non connectés pourront commenter votre projet et ses besoins. Vous pourrez supprimer leurs commentaires à tout moment."
+    }
   }
 }
