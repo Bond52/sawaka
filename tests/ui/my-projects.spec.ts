@@ -9,6 +9,7 @@ type StoredProject = {
   category: string;
   country: string;
   city: string;
+  commentAccess: "members" | "everyone";
   status: "draft";
   visibility: "private";
 };
@@ -23,6 +24,7 @@ function blank(partial: Partial<StoredProject> & { coverImage?: null; images?: [
     category: partial.category || "",
     country: partial.country || "",
     city: partial.city || "",
+    commentAccess: partial.commentAccess || ("members" as const),
     status: "draft" as const,
     visibility: "private" as const,
     coverImage: null,

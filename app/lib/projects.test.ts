@@ -20,6 +20,7 @@ const draft = {
   category: "",
   country: "Cameroun",
   city: "Douala",
+  commentAccess: "members",
   status: "draft",
   visibility: "private",
 };
@@ -53,6 +54,7 @@ test("projectDraftPayload sends only the editable fields", () => {
   assert.deepEqual(Object.keys(payload).sort(), [
     "category",
     "city",
+    "commentAccess",
     "country",
     "description",
     "objective",

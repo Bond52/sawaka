@@ -1,5 +1,5 @@
 const express = require("express");
-const { requireAuth } = require("../middleware/auth");
+const { requireAuth, optionalAuth } = require("../middleware/auth");
 const { createRateLimiter } = require("../middleware/rateLimit");
 const projectController = require("../controllers/project.controller");
 const { projectImageUpload } = require("../middleware/projectImageUpload");
@@ -17,6 +17,13 @@ const projectWriteRateLimit = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 60,
   keyGenerator: (req) => `project-write:${clientIp(req)}:${req.user?.id || "unknown"}`,
+  message: "Too many requests. Please try again later.",
+});
+
+const projectCommentRateLimit = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  keyGenerator: (req) => `project-comment:${clientIp(req)}:${req.user?.id || "guest"}`,
   message: "Too many requests. Please try again later.",
 });
 
@@ -78,6 +85,28 @@ router.delete(
 );
 
 router.get("/", projectController.listPublic);
-router.get("/:id", projectController.getPublic);
+router.get("/:id/comments", projectController.listProjectComments);
+router.post(
+  "/:id/comments",
+  optionalAuth,
+  projectCommentRateLimit,
+  projectController.createProjectComment
+);
+router.get("/:id/needs/:needId/comments", projectController.listNeedComments);
+router.post(
+  "/:id/needs/:needId/comments",
+  optionalAuth,
+  projectCommentRateLimit,
+  projectController.createNeedComment
+);
+router.delete(
+  "/:id/comments/:commentId",
+  requireAuth,
+  projectWriteRateLimit,
+  projectController.deleteComment
+);
+router.get("/:id", optionalAuth, projectController.getPublic);
 
 module.exports = router;
+module.exports.projectWriteRateLimit = projectWriteRateLimit;
+module.exports.projectCommentRateLimit = projectCommentRateLimit;

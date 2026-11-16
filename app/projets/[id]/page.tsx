@@ -14,6 +14,7 @@ import {
   projectCategoryLabel,
   projectCountryLabel,
 } from "@/app/lib/projectReferenceData";
+import ProjectComments from "../ProjectComments";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -22,8 +23,10 @@ export default function ProjetDetailPage() {
   const { t, locale } = useTranslation();
   const params = useParams<{ id: string }>();
   const [project, setProject] = useState<PublicProject | null>(null);
+  const [viewerCanModerate, setViewerCanModerate] = useState(false);
   const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading");
   const [uploadError, setUploadError] = useState("");
+  const [openNeeds, setOpenNeeds] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!params.id) return;
@@ -41,6 +44,7 @@ export default function ProjetDetailPage() {
         setUploadError(uploadCode);
       }
       setProject(result.project);
+      setViewerCanModerate(result.viewerCanModerate);
       setPhase("ready");
     });
     return () => {
@@ -190,24 +194,63 @@ export default function ProjetDetailPage() {
                   ) : null}
                   {stage.needs.length > 0 ? (
                     <ul className="mt-3 space-y-2">
-                      {stage.needs.map((need) => (
-                        <li key={need.id} className="rounded-lg bg-secondary px-3 py-2 text-sm">
-                          <p className="font-medium text-foreground">{need.title}</p>
-                          <p className="text-muted-foreground">
-                            {t(`myProjects.needs.kinds.${need.kind}`)} ·{" "}
-                            {t(`myProjects.needs.statuses.${need.status}`)}
-                          </p>
-                          {need.description.trim() ? (
-                            <p className="mt-1 text-sawaka-700">{need.description}</p>
-                          ) : null}
-                        </li>
-                      ))}
+                      {stage.needs.map((need) => {
+                        const open = Boolean(openNeeds[need.id]);
+                        return (
+                          <li key={need.id} className="rounded-lg bg-secondary px-3 py-2 text-sm">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                              <div className="min-w-0">
+                                <p className="font-medium text-foreground">{need.title}</p>
+                                <p className="text-muted-foreground">
+                                  {t(`myProjects.needs.kinds.${need.kind}`)} ·{" "}
+                                  {t(`myProjects.needs.statuses.${need.status}`)}
+                                </p>
+                                {need.description.trim() ? (
+                                  <p className="mt-1 text-sawaka-700">{need.description}</p>
+                                ) : null}
+                              </div>
+                              <button
+                                type="button"
+                                data-testid={`need-comments-toggle-${need.id}`}
+                                className={`inline-flex min-h-[44px] shrink-0 items-center text-sm font-medium text-primary ${focusRing}`}
+                                aria-expanded={open}
+                                onClick={() =>
+                                  setOpenNeeds((current) => ({ ...current, [need.id]: !open }))
+                                }
+                              >
+                                {open
+                                  ? t("projects.comments.hideNeed")
+                                  : t("projects.comments.showNeed")}
+                              </button>
+                            </div>
+                            {open ? (
+                              <ProjectComments
+                                projectId={project.id}
+                                commentAccess={project.commentAccess}
+                                needId={need.id}
+                                canModerate={viewerCanModerate}
+                              />
+                            ) : null}
+                          </li>
+                        );
+                      })}
                     </ul>
                   ) : null}
                 </li>
               ))}
             </ol>
           )}
+        </section>
+
+        <section className="mt-10 border-t border-border pt-8" aria-labelledby="public-project-comments">
+          <h2 id="public-project-comments" className="text-xl font-semibold text-sawaka-800">
+            {t("projects.comments.title")}
+          </h2>
+          <ProjectComments
+            projectId={project.id}
+            commentAccess={project.commentAccess}
+            canModerate={viewerCanModerate}
+          />
         </section>
       </div>
     </div>

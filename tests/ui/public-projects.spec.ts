@@ -11,6 +11,7 @@ const published = {
   city: "Douala",
   status: "published" as const,
   publishedAt: "2026-11-16T00:00:00.000Z",
+  commentAccess: "members" as const,
   coverImage: null,
   images: [],
   stages: [
@@ -44,7 +45,13 @@ async function mockPublic(page: Page) {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ projects: [published] }),
+        body: JSON.stringify({
+          projects: [published],
+          page: 1,
+          limit: 24,
+          total: 1,
+          totalPages: 1,
+        }),
       });
       return;
     }
@@ -52,7 +59,19 @@ async function mockPublic(page: Page) {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ project: published }),
+        body: JSON.stringify({ project: published, viewerCanModerate: false }),
+      });
+      return;
+    }
+    if (
+      request.method() === "GET" &&
+      (path.endsWith(`/api/projects/${published.id}/comments`) ||
+        path.includes(`/api/projects/${published.id}/needs/`))
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ commentAccess: published.commentAccess, comments: [] }),
       });
       return;
     }
