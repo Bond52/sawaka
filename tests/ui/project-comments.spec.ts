@@ -232,7 +232,7 @@ test("visitors can comment when everyone is enabled, including on needs", async 
   await page.getByTestId("comment-body").fill("Visitor project note");
   await page.getByTestId("comment-submit").click();
   await expect(page.getByText("Visitor project note")).toBeVisible();
-  await expect(page.getByText("Visitor")).toBeVisible();
+  await expect(page.getByText("Visitor", { exact: true })).toBeVisible();
 
   await page.getByTestId("need-comments-toggle-need-1").click();
   await expect(page.getByTestId("need-comments-need-1")).toBeVisible();
