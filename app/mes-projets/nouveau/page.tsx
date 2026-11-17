@@ -39,6 +39,9 @@ export default function NewProjectPage() {
   const [gallery, setGallery] = useState<File[]>([]);
   const [initial, setInitial] = useState<ProjectDraftInput | null>(null);
   const [prefillReady, setPrefillReady] = useState(false);
+  // Stable remount key — must NOT include stages.length or form state, or
+  // adding a stage remounts ProjectDraftForm and wipes entered values.
+  const [formKey, setFormKey] = useState("blank");
 
   useEffect(() => {
     const idea = readIdeaPrefill();
@@ -55,9 +58,11 @@ export default function NewProjectPage() {
         commentAccess: "members",
       });
       setStages(ideaToPendingStages(idea));
+      setFormKey(`idea-${idea.title || "prefill"}`);
       clearIdeaPrefill();
     } else {
       setInitial(emptyProjectDraft());
+      setFormKey("blank");
     }
     setPrefillReady(true);
   }, []);
@@ -116,7 +121,7 @@ export default function NewProjectPage() {
         {t("myProjects.back")}
       </Link>
       <ProjectDraftForm
-        key={`${initial.title}-${stages.length}`}
+        key={formKey}
         initial={initial}
         heading={t("myProjects.create")}
         lifecycle="new"
