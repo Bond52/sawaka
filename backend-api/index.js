@@ -134,6 +134,9 @@ app.use("/api/realizations", require("./routes/realization.routes"));
 // Member projects. Drafts stay on the owner routes.
 app.use("/api/projects", require("./routes/project.routes"));
 
+// AI project ideation (ideas are distinct from Projects until the user converts).
+app.use("/api/project-ideas", require("./routes/projectIdeation.routes"));
+
 // 📨 Feedback utilisateurs (avis, signalements)
 app.use("/api/feedback", require("./routes/feedback"));
 

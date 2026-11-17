@@ -122,5 +122,6 @@ test("project detail shows stages and hides drafts", async ({ page }) => {
 test("AI ideation route remains available", async ({ page }) => {
   await page.addInitScript(() => window.localStorage.setItem("sawaka-locale", "en"));
   await page.goto("/projets/creer");
-  await expect(page.getByRole("heading", { name: "Create a project" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Generate project ideas" })).toBeVisible();
+  await expect(page.getByTestId("ideation-generate")).toBeVisible();
 });

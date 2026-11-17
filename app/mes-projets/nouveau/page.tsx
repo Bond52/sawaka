@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/src/i18n/I18nProvider";
@@ -16,10 +16,15 @@ import {
   type ProjectDraftInput,
   type ProjectStage,
 } from "@/app/lib/projects";
-import ProjectDraftForm from "../ProjectDraftForm";
+import ProjectDraftForm, { emptyProjectDraft } from "../ProjectDraftForm";
 import { PendingProjectMedia } from "../ProjectMedia";
 import ProjectStages from "../ProjectStages";
 import { useRequireMember } from "../useRequireMember";
+import {
+  clearIdeaPrefill,
+  ideaToPendingStages,
+  readIdeaPrefill,
+} from "@/app/lib/projectIdeas";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -32,8 +37,37 @@ export default function NewProjectPage() {
   const [stageFiles, setStageFiles] = useState<Record<string, File[]>>({});
   const [cover, setCover] = useState<File | null>(null);
   const [gallery, setGallery] = useState<File[]>([]);
+  const [initial, setInitial] = useState<ProjectDraftInput | null>(null);
+  const [prefillReady, setPrefillReady] = useState(false);
+  // Stable remount key — must NOT include stages.length or form state, or
+  // adding a stage remounts ProjectDraftForm and wipes entered values.
+  const [formKey, setFormKey] = useState("blank");
 
-  if (!ready) {
+  useEffect(() => {
+    const idea = readIdeaPrefill();
+    if (idea) {
+      setInitial({
+        ...emptyProjectDraft(),
+        title: idea.title || "",
+        summary: idea.summary || "",
+        description: idea.description || "",
+        objective: idea.objective || "",
+        category: idea.category || "",
+        country: idea.country || "",
+        city: idea.city || "",
+        commentAccess: "members",
+      });
+      setStages(ideaToPendingStages(idea));
+      setFormKey(`idea-${idea.title || "prefill"}`);
+      clearIdeaPrefill();
+    } else {
+      setInitial(emptyProjectDraft());
+      setFormKey("blank");
+    }
+    setPrefillReady(true);
+  }, []);
+
+  if (!ready || !prefillReady || !initial) {
     return (
       <div className="wrap py-8">
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
@@ -87,6 +121,8 @@ export default function NewProjectPage() {
         {t("myProjects.back")}
       </Link>
       <ProjectDraftForm
+        key={formKey}
+        initial={initial}
         heading={t("myProjects.create")}
         lifecycle="new"
         dirtyExtra={stages.length > 0 || cover !== null || gallery.length > 0}
