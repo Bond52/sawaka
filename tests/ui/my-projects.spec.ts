@@ -184,7 +184,7 @@ test.describe("My Projects navigation", () => {
     await setLocale(page, "en");
     await page.setViewportSize({ width: 768, height: 1024 });
     await page.goto("/projets/creer");
-    await expect(page.getByRole("heading", { name: "Create a project" })).toBeVisible();
-    await expect(page.getByText("Enter your budget and city to explore possibilities.")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Generate project ideas" })).toBeVisible();
+    await expect(page.getByTestId("ideation-form")).toBeVisible();
   });
 });

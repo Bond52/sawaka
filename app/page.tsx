@@ -4,6 +4,7 @@ import HeroSection from "./components/home/HeroSection";
 import ProjectExplorer from "./components/home/ProjectExplorer";
 import FeaturedProjects from "./components/home/FeaturedProjects";
 import FeaturedProducts from "./components/home/FeaturedProducts";
+import HowItWorks from "./components/home/HowItWorks";
 // import FinalCTA from "./components/home/FinalCTA"; // ⛔ toujours masqué
 
 export default function HomePage() {
@@ -17,6 +18,8 @@ export default function HomePage() {
         <FeaturedProducts />
         {/* <FinalCTA /> */}
       </div>
+
+      <HowItWorks />
     </>
   );
 }
