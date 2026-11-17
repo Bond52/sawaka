@@ -15,6 +15,7 @@ import {
   projectCountryLabel,
 } from "@/app/lib/projectReferenceData";
 import ProjectComments from "../ProjectComments";
+import ProjectStatusBadge from "../ProjectStatusBadge";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -95,7 +96,7 @@ export default function ProjetDetailPage() {
           className={`ml-4 inline-flex min-h-[44px] items-center text-sm font-medium text-muted-foreground ${focusRing}`}
           data-testid="public-project-my-projects"
         >
-          {t("nav.myProjects")}
+          {t("navigation.myProjects")}
         </Link>
 
         {uploadError ? (
@@ -110,9 +111,12 @@ export default function ProjetDetailPage() {
           </p>
         ) : null}
 
-        <p className="mt-6 text-xs uppercase tracking-wide text-sawaka-500">
-          {projectCategoryLabel(project.category, locale) || t("projects.uncategorized")}
-        </p>
+        <div className="mt-6 flex flex-wrap items-center gap-2">
+          <p className="text-xs uppercase tracking-wide text-sawaka-500">
+            {projectCategoryLabel(project.category, locale) || t("projects.uncategorized")}
+          </p>
+          <ProjectStatusBadge status={project.discoveryStatus} testId="public-project-status" />
+        </div>
         <h1 className="mt-2 break-words text-3xl font-bold text-sawaka-800 md:text-4xl">
           {project.title.trim() || t("projects.untitled")}
         </h1>

@@ -64,6 +64,7 @@ test("a valid project can be published directly with a prepared stage and need",
             status: "published",
             visibility: "public",
             commentAccess: body.commentAccess || "members",
+            discoveryStatus: "not_started",
             coverImage: null,
             images: [],
             stages: [
@@ -109,6 +110,7 @@ test("a valid project can be published directly with a prepared stage and need",
             status: "published",
             publishedAt: "2026-11-16T00:00:00.000Z",
             commentAccess: "members",
+            discoveryStatus: "not_started",
             coverImage: null,
             images: [],
             stages: [],
@@ -126,7 +128,8 @@ test("a valid project can be published directly with a prepared stage and need",
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ commentAccess: "members", comments: [] }),
+        body: JSON.stringify({ commentAccess: "members",
+            discoveryStatus: "not_started", comments: [] }),
       });
       return;
     }

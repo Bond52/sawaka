@@ -12,6 +12,7 @@ const published = {
   status: "published" as const,
   publishedAt: "2026-11-16T00:00:00.000Z",
   commentAccess: "members" as const,
+  discoveryStatus: "in_progress" as const,
   coverImage: null,
   images: [],
   stages: [
@@ -231,7 +232,7 @@ test("visitors can comment when everyone is enabled, including on needs", async 
   await page.getByTestId("comment-body").fill("Visitor project note");
   await page.getByTestId("comment-submit").click();
   await expect(page.getByText("Visitor project note")).toBeVisible();
-  await expect(page.getByText("Visitor")).toBeVisible();
+  await expect(page.getByText("Visitor", { exact: true })).toBeVisible();
 
   await page.getByTestId("need-comments-toggle-need-1").click();
   await expect(page.getByTestId("need-comments-need-1")).toBeVisible();

@@ -3,11 +3,14 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { ChevronDown, Filter } from "lucide-react";
 import { useTranslation } from "@/src/i18n/I18nProvider";
 import PublicPageHeader from "@/app/components/PublicPageHeader";
+import ProjectStatusBadge from "@/app/projets/ProjectStatusBadge";
 import {
   listPublicProjects,
   projectProgress,
+  type DiscoveryStatus,
   type NeedKind,
   type NeedStatus,
   type PublicDirectoryQuery,
@@ -33,6 +36,13 @@ const STAGE_STATUSES: StageStatus[] = [
 ];
 const NEED_KINDS: NeedKind[] = ["skill", "service", "resource", "assistance"];
 const NEED_STATUSES: NeedStatus[] = ["open", "blocked"];
+/** Proposed is reserved until moderator-approved AI proposals exist. */
+const DISCOVERY_STATUSES: Exclude<DiscoveryStatus, "proposed">[] = [
+  "in_progress",
+  "blocked",
+  "completed",
+  "not_started",
+];
 
 const EMPTY_FILTERS: PublicDirectoryQuery = {
   q: "",
@@ -42,6 +52,7 @@ const EMPTY_FILTERS: PublicDirectoryQuery = {
   stageStatus: "",
   needKind: "",
   needStatus: "",
+  discoveryStatus: "",
   page: 1,
 };
 
@@ -54,6 +65,7 @@ function readFilters(params: { get(name: string): string | null }): PublicDirect
     stageStatus: (params.get("stageStatus") as StageStatus) || "",
     needKind: (params.get("needKind") as NeedKind) || "",
     needStatus: (params.get("needStatus") as NeedStatus) || "",
+    discoveryStatus: (params.get("discoveryStatus") as DiscoveryStatus) || "",
     page: Math.max(1, Number(params.get("page") || "1") || 1),
   };
 }
@@ -65,6 +77,7 @@ function ProjetsEnCoursPage() {
   const searchParams = useSearchParams();
   const filters = useMemo(() => readFilters(searchParams), [searchParams]);
   const [draft, setDraft] = useState<PublicDirectoryQuery>(filters);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [projects, setProjects] = useState<PublicProject[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -105,6 +118,7 @@ function ProjetsEnCoursPage() {
     if (next.stageStatus) params.set("stageStatus", next.stageStatus);
     if (next.needKind) params.set("needKind", next.needKind);
     if (next.needStatus) params.set("needStatus", next.needStatus);
+    if (next.discoveryStatus) params.set("discoveryStatus", next.discoveryStatus);
     if (next.page && next.page > 1) params.set("page", String(next.page));
     const query = params.toString();
     router.replace(query ? `${pathname}?${query}` : pathname);
@@ -115,10 +129,22 @@ function ProjetsEnCoursPage() {
     filters.category ? projectCategoryLabel(filters.category, locale) : "",
     filters.country ? projectCountryLabel(filters.country, locale) : "",
     filters.city?.trim() ? `${t("projects.filters.city")}: ${filters.city.trim()}` : "",
+    filters.discoveryStatus
+      ? t(`projects.discoveryStatus.${filters.discoveryStatus}`)
+      : "",
     filters.stageStatus ? t(`myProjects.stages.statuses.${filters.stageStatus}`) : "",
     filters.needKind ? t(`myProjects.needs.kinds.${filters.needKind}`) : "",
     filters.needStatus ? t(`myProjects.needs.statuses.${filters.needStatus}`) : "",
   ].filter(Boolean);
+  const panelFilterCount = [
+    filters.category,
+    filters.country,
+    filters.city?.trim(),
+    filters.discoveryStatus,
+    filters.stageStatus,
+    filters.needKind,
+    filters.needStatus,
+  ].filter(Boolean).length;
 
   return (
     <div data-testid="public-projects">
@@ -148,136 +174,33 @@ function ProjetsEnCoursPage() {
             onChange={(event) => setDraft((current) => ({ ...current, q: event.target.value }))}
           />
 
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <div>
-              <label htmlFor="filter-category" className="mb-1 block text-sm font-medium">
-                {t("projects.filters.category")}
-              </label>
-              <select
-                id="filter-category"
-                data-testid="filter-category"
-                value={draft.category || ""}
-                className={`h-11 w-full rounded-xl border border-border bg-card px-3 text-sm ${focusRing}`}
-                onChange={(event) =>
-                  setDraft((current) => ({ ...current, category: event.target.value }))
-                }
-              >
-                <option value="">{t("projects.filters.any")}</option>
-                {PROJECT_CATEGORY_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {locale === "fr" ? option.nameFR : option.nameEN}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="filter-country" className="mb-1 block text-sm font-medium">
-                {t("projects.filters.country")}
-              </label>
-              <select
-                id="filter-country"
-                data-testid="filter-country"
-                value={draft.country || ""}
-                className={`h-11 w-full rounded-xl border border-border bg-card px-3 text-sm ${focusRing}`}
-                onChange={(event) =>
-                  setDraft((current) => ({ ...current, country: event.target.value }))
-                }
-              >
-                <option value="">{t("projects.filters.any")}</option>
-                {PROJECT_COUNTRY_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {locale === "fr" ? option.nameFR : option.nameEN}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="filter-city" className="mb-1 block text-sm font-medium">
-                {t("projects.filters.city")}
-              </label>
-              <input
-                id="filter-city"
-                data-testid="filter-city"
-                value={draft.city || ""}
-                className={`h-11 w-full rounded-xl border border-border px-3 text-sm ${focusRing}`}
-                onChange={(event) => setDraft((current) => ({ ...current, city: event.target.value }))}
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              data-testid="project-filters-toggle"
+              aria-expanded={filtersOpen}
+              aria-controls="project-filters-panel"
+              className={`inline-flex min-h-[44px] items-center justify-between gap-2 rounded-xl border border-border px-4 text-sm font-medium ${focusRing}`}
+              onClick={() => setFiltersOpen((open) => !open)}
+            >
+              <span className="inline-flex items-center gap-2">
+                <Filter className="h-4 w-4" aria-hidden strokeWidth={2} />
+                {t("projects.filters.toggle")}
+                {panelFilterCount > 0 ? (
+                  <span
+                    data-testid="project-filters-count"
+                    className="rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground"
+                  >
+                    {panelFilterCount}
+                  </span>
+                ) : null}
+              </span>
+              <ChevronDown
+                className={`h-4 w-4 transition-transform ${filtersOpen ? "rotate-180" : ""}`}
+                aria-hidden
+                strokeWidth={2}
               />
-            </div>
-            <div>
-              <label htmlFor="filter-stage-status" className="mb-1 block text-sm font-medium">
-                {t("projects.filters.stageStatus")}
-              </label>
-              <select
-                id="filter-stage-status"
-                data-testid="filter-stage-status"
-                value={draft.stageStatus || ""}
-                className={`h-11 w-full rounded-xl border border-border bg-card px-3 text-sm ${focusRing}`}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    stageStatus: event.target.value as StageStatus | "",
-                  }))
-                }
-              >
-                <option value="">{t("projects.filters.any")}</option>
-                {STAGE_STATUSES.map((status) => (
-                  <option key={status} value={status}>
-                    {t(`myProjects.stages.statuses.${status}`)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="filter-need-kind" className="mb-1 block text-sm font-medium">
-                {t("projects.filters.needKind")}
-              </label>
-              <select
-                id="filter-need-kind"
-                data-testid="filter-need-kind"
-                value={draft.needKind || ""}
-                className={`h-11 w-full rounded-xl border border-border bg-card px-3 text-sm ${focusRing}`}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    needKind: event.target.value as NeedKind | "",
-                  }))
-                }
-              >
-                <option value="">{t("projects.filters.any")}</option>
-                {NEED_KINDS.map((kind) => (
-                  <option key={kind} value={kind}>
-                    {t(`myProjects.needs.kinds.${kind}`)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="filter-need-status" className="mb-1 block text-sm font-medium">
-                {t("projects.filters.needStatus")}
-              </label>
-              <select
-                id="filter-need-status"
-                data-testid="filter-need-status"
-                value={draft.needStatus || ""}
-                className={`h-11 w-full rounded-xl border border-border bg-card px-3 text-sm ${focusRing}`}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    needStatus: event.target.value as NeedStatus | "",
-                  }))
-                }
-              >
-                <option value="">{t("projects.filters.any")}</option>
-                {NEED_STATUSES.map((status) => (
-                  <option key={status} value={status}>
-                    {t(`myProjects.needs.statuses.${status}`)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+            </button>
             <button
               type="submit"
               data-testid="project-filters-apply"
@@ -285,18 +208,181 @@ function ProjetsEnCoursPage() {
             >
               {t("projects.filters.apply")}
             </button>
-            <button
-              type="button"
-              data-testid="project-filters-reset"
-              className={`inline-flex min-h-[44px] items-center justify-center rounded-xl border border-border px-4 text-sm ${focusRing}`}
-              onClick={() => {
-                setDraft(EMPTY_FILTERS);
-                pushFilters(EMPTY_FILTERS);
-              }}
-            >
-              {t("projects.filters.reset")}
-            </button>
+            {activeChips.length > 0 ? (
+              <button
+                type="button"
+                data-testid="project-filters-reset"
+                className={`inline-flex min-h-[44px] items-center justify-center rounded-xl border border-border px-4 text-sm ${focusRing}`}
+                onClick={() => {
+                  setDraft(EMPTY_FILTERS);
+                  pushFilters(EMPTY_FILTERS);
+                }}
+              >
+                {t("projects.filters.reset")}
+              </button>
+            ) : null}
           </div>
+
+          {filtersOpen ? (
+            <div
+              id="project-filters-panel"
+              data-testid="project-filters-panel"
+              className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+            >
+              <div>
+                <label htmlFor="filter-category" className="mb-1 block text-sm font-medium">
+                  {t("projects.filters.category")}
+                </label>
+                <select
+                  id="filter-category"
+                  data-testid="filter-category"
+                  value={draft.category || ""}
+                  className={`h-11 w-full rounded-xl border border-border bg-card px-3 text-sm ${focusRing}`}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, category: event.target.value }))
+                  }
+                >
+                  <option value="">{t("projects.filters.any")}</option>
+                  {PROJECT_CATEGORY_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {locale === "fr" ? option.nameFR : option.nameEN}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="filter-country" className="mb-1 block text-sm font-medium">
+                  {t("projects.filters.country")}
+                </label>
+                <select
+                  id="filter-country"
+                  data-testid="filter-country"
+                  value={draft.country || ""}
+                  className={`h-11 w-full rounded-xl border border-border bg-card px-3 text-sm ${focusRing}`}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, country: event.target.value }))
+                  }
+                >
+                  <option value="">{t("projects.filters.any")}</option>
+                  {PROJECT_COUNTRY_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {locale === "fr" ? option.nameFR : option.nameEN}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="filter-city" className="mb-1 block text-sm font-medium">
+                  {t("projects.filters.city")}
+                </label>
+                <input
+                  id="filter-city"
+                  data-testid="filter-city"
+                  value={draft.city || ""}
+                  className={`h-11 w-full rounded-xl border border-border px-3 text-sm ${focusRing}`}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, city: event.target.value }))
+                  }
+                />
+              </div>
+              <div>
+                <label htmlFor="filter-discovery-status" className="mb-1 block text-sm font-medium">
+                  {t("projects.filters.discoveryStatus")}
+                </label>
+                <select
+                  id="filter-discovery-status"
+                  data-testid="filter-discovery-status"
+                  value={draft.discoveryStatus || ""}
+                  className={`h-11 w-full rounded-xl border border-border bg-card px-3 text-sm ${focusRing}`}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      discoveryStatus: event.target.value as DiscoveryStatus | "",
+                    }))
+                  }
+                >
+                  <option value="">{t("projects.filters.any")}</option>
+                  {DISCOVERY_STATUSES.map((status) => (
+                    <option key={status} value={status}>
+                      {t(`projects.discoveryStatus.${status}`)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="filter-stage-status" className="mb-1 block text-sm font-medium">
+                  {t("projects.filters.stageStatus")}
+                </label>
+                <select
+                  id="filter-stage-status"
+                  data-testid="filter-stage-status"
+                  value={draft.stageStatus || ""}
+                  className={`h-11 w-full rounded-xl border border-border bg-card px-3 text-sm ${focusRing}`}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      stageStatus: event.target.value as StageStatus | "",
+                    }))
+                  }
+                >
+                  <option value="">{t("projects.filters.any")}</option>
+                  {STAGE_STATUSES.map((status) => (
+                    <option key={status} value={status}>
+                      {t(`myProjects.stages.statuses.${status}`)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="filter-need-kind" className="mb-1 block text-sm font-medium">
+                  {t("projects.filters.needKind")}
+                </label>
+                <select
+                  id="filter-need-kind"
+                  data-testid="filter-need-kind"
+                  value={draft.needKind || ""}
+                  className={`h-11 w-full rounded-xl border border-border bg-card px-3 text-sm ${focusRing}`}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      needKind: event.target.value as NeedKind | "",
+                    }))
+                  }
+                >
+                  <option value="">{t("projects.filters.any")}</option>
+                  {NEED_KINDS.map((kind) => (
+                    <option key={kind} value={kind}>
+                      {t(`myProjects.needs.kinds.${kind}`)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="filter-need-status" className="mb-1 block text-sm font-medium">
+                  {t("projects.filters.needStatus")}
+                </label>
+                <select
+                  id="filter-need-status"
+                  data-testid="filter-need-status"
+                  value={draft.needStatus || ""}
+                  className={`h-11 w-full rounded-xl border border-border bg-card px-3 text-sm ${focusRing}`}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      needStatus: event.target.value as NeedStatus | "",
+                    }))
+                  }
+                >
+                  <option value="">{t("projects.filters.any")}</option>
+                  {NEED_STATUSES.map((status) => (
+                    <option key={status} value={status}>
+                      {t(`myProjects.needs.statuses.${status}`)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          ) : null}
 
           {activeChips.length > 0 ? (
             <ul className="mt-4 flex flex-wrap gap-2" data-testid="project-active-filters">
@@ -374,9 +460,12 @@ function ProjetsEnCoursPage() {
                       )}
                     </div>
                     <div className="min-w-0 p-4">
-                      <p className="truncate text-xs uppercase tracking-wide text-sawaka-500">
-                        {projectCategoryLabel(project.category, locale) || t("projects.uncategorized")}
-                      </p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate text-xs uppercase tracking-wide text-sawaka-500">
+                          {projectCategoryLabel(project.category, locale) || t("projects.uncategorized")}
+                        </p>
+                        <ProjectStatusBadge status={project.discoveryStatus} />
+                      </div>
                       <h2 className="mt-1 break-words font-semibold text-sawaka-800">
                         {project.title.trim() || t("projects.untitled")}
                       </h2>
