@@ -319,7 +319,9 @@
       "reset": "Reset filters",
       "prev": "Previous",
       "next": "Next",
-      "page": "Page {page} of {total}"
+      "page": "Page {page} of {total}",
+      "toggle": "Filters",
+      "discoveryStatus": "Project status"
     },
     "comments": {
       "title": "Comments",
@@ -352,6 +354,13 @@
         "NETWORK": "The server could not be reached.",
         "INVALID_RESPONSE": "Unexpected server response."
       }
+    },
+    "discoveryStatus": {
+      "not_started": "Not Started",
+      "in_progress": "In Progress",
+      "blocked": "Blocked",
+      "completed": "Completed",
+      "proposed": "Proposed"
     }
   },
   "artisans": {

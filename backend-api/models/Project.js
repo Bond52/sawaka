@@ -37,6 +37,16 @@ const COMMENT_ACCESS = Object.freeze({
   EVERYONE: "everyone",
 });
 
+/** Public discovery status (not publication draft/published). */
+const DISCOVERY_STATUS = Object.freeze({
+  NOT_STARTED: "not_started",
+  IN_PROGRESS: "in_progress",
+  BLOCKED: "blocked",
+  COMPLETED: "completed",
+  /** Reserved for future moderator-approved AI proposals. */
+  PROPOSED: "proposed",
+});
+
 const imageSchema = new mongoose.Schema(
   {
     url: { type: String, required: true },
@@ -114,6 +124,13 @@ const projectSchema = new mongoose.Schema(
       required: true,
       default: COMMENT_ACCESS.MEMBERS,
     },
+    discoveryStatus: {
+      type: String,
+      enum: Object.values(DISCOVERY_STATUS),
+      required: true,
+      default: DISCOVERY_STATUS.NOT_STARTED,
+      index: true,
+    },
     coverImage: { type: imageSchema, default: null },
     images: { type: [imageSchema], default: [] },
     stages: { type: [stageSchema], default: [] },
@@ -123,6 +140,7 @@ const projectSchema = new mongoose.Schema(
 
 projectSchema.index({ ownerId: 1, updatedAt: -1 });
 projectSchema.index({ status: 1, visibility: 1, updatedAt: -1 });
+projectSchema.index({ status: 1, visibility: 1, discoveryStatus: 1, publishedAt: -1 });
 
 module.exports = mongoose.model("Project", projectSchema);
 module.exports.PROJECT_STATUS = PROJECT_STATUS;
@@ -131,3 +149,4 @@ module.exports.STAGE_STATUS = STAGE_STATUS;
 module.exports.NEED_KIND = NEED_KIND;
 module.exports.COMMENT_ACCESS = COMMENT_ACCESS;
 module.exports.NEED_STATUS = NEED_STATUS;
+module.exports.DISCOVERY_STATUS = DISCOVERY_STATUS;

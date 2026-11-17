@@ -7,6 +7,7 @@ const {
   isApprovedProjectCategory,
   normalizeProjectCountry,
 } = require("./projectReferenceData");
+const { isDiscoveryStatus } = require("./projectDiscoveryStatus");
 
 const ACCENT_MAP = Object.freeze({
   a: "aàáâãäåāăą",
@@ -55,7 +56,8 @@ function textRegex(value) {
 
 /**
  * Builds a Mongo filter for published public projects from query params.
- * Allowed: q, category, country, city, stageStatus, needKind, needStatus, page, limit
+ * Allowed: q, category, country, city, stageStatus, needKind, needStatus,
+ * discoveryStatus, page, limit
  */
 function parsePublicDirectoryQuery(query) {
   if (query == null) return { filter: {}, page: 1, limit: 24 };
@@ -74,6 +76,7 @@ function parsePublicDirectoryQuery(query) {
     "stageStatus",
     "needKind",
     "needStatus",
+    "discoveryStatus",
     "page",
     "limit",
   ]);
@@ -179,6 +182,18 @@ function parsePublicDirectoryQuery(query) {
         },
       },
     });
+  }
+
+  if (query.discoveryStatus != null && String(query.discoveryStatus).trim()) {
+    const discoveryStatus = String(query.discoveryStatus).trim();
+    if (!isDiscoveryStatus(discoveryStatus)) {
+      const err = new Error("INVALID_DISCOVERY_STATUS");
+      err.code = "INVALID_DISCOVERY_STATUS";
+      err.status = 400;
+      err.fields = ["discoveryStatus"];
+      throw err;
+    }
+    filter.discoveryStatus = discoveryStatus;
   }
 
   if (and.length > 0) filter.$and = and;

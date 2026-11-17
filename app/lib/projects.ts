@@ -1,6 +1,13 @@
 export type ProjectStatus = "draft" | "published";
 export type ProjectVisibility = "private" | "public";
 export type CommentAccess = "members" | "everyone";
+/** Public discovery status — distinct from publication draft/published. */
+export type DiscoveryStatus =
+  | "not_started"
+  | "in_progress"
+  | "blocked"
+  | "completed"
+  | "proposed";
 export type StageStatus =
   | "not_started"
   | "in_progress"
@@ -48,6 +55,7 @@ export type OwnedProject = {
   status: ProjectStatus;
   visibility: ProjectVisibility;
   commentAccess: CommentAccess;
+  discoveryStatus: DiscoveryStatus;
   coverImage: ProjectImage | null;
   images: ProjectImage[];
   stages: ProjectStage[];
@@ -65,6 +73,7 @@ export type PublicProject = {
   status: "published";
   publishedAt: string | null;
   commentAccess: CommentAccess;
+  discoveryStatus: DiscoveryStatus;
   coverImage: ProjectImage | null;
   images: ProjectImage[];
   stages: ProjectStage[];
@@ -82,6 +91,7 @@ export type PublicDirectoryQuery = {
   stageStatus?: StageStatus | "";
   needKind?: NeedKind | "";
   needStatus?: NeedStatus | "";
+  discoveryStatus?: DiscoveryStatus | "";
   page?: number;
   limit?: number;
 };
@@ -307,6 +317,37 @@ export function projectProgress(stages: Array<{ status: string }>): {
   };
 }
 
+/**
+ * Discovery status from stages/needs. Mirrors backend deriveDiscoveryStatus.
+ * Never returns "proposed" for ordinary projects (reserved for future AI proposals).
+ */
+export function deriveDiscoveryStatus(
+  stages: Array<{ status: string; needs?: Array<{ status: string }> }>
+): Exclude<DiscoveryStatus, "proposed"> {
+  const eligible = stages.filter((stage) => stage.status !== "cancelled");
+  const stageBlocked = eligible.some((stage) => stage.status === "blocked");
+  const needBlocked = eligible.some((stage) =>
+    (stage.needs || []).some((need) => need.status === "blocked")
+  );
+  if (stageBlocked || needBlocked) return "blocked";
+  if (eligible.length === 0) return "not_started";
+  if (eligible.every((stage) => stage.status === "completed")) return "completed";
+  return "in_progress";
+}
+
+export function parseDiscoveryStatus(value: unknown, stages: ProjectStage[] = []): DiscoveryStatus {
+  if (value === "proposed") return "proposed";
+  if (
+    value === "not_started" ||
+    value === "in_progress" ||
+    value === "blocked" ||
+    value === "completed"
+  ) {
+    return value;
+  }
+  return deriveDiscoveryStatus(stages);
+}
+
 function parseProjectCore(value: Record<string, unknown>): {
   id: string;
   title: string;
@@ -378,6 +419,7 @@ export function parseOwnedProject(value: unknown): OwnedProject | null {
     status: value.status,
     visibility: value.visibility,
     commentAccess: parseCommentAccess(value.commentAccess),
+    discoveryStatus: parseDiscoveryStatus(value.discoveryStatus, core.stages),
   };
 }
 
@@ -400,6 +442,7 @@ export function parsePublicProject(value: unknown): PublicProject | null {
     status: "published",
     publishedAt,
     commentAccess: parseCommentAccess(value.commentAccess),
+    discoveryStatus: parseDiscoveryStatus(value.discoveryStatus, core.stages),
   };
 }
 
@@ -526,6 +569,7 @@ export function buildPublicDirectoryQuery(params: PublicDirectoryQuery): string 
   if (params.stageStatus) search.set("stageStatus", params.stageStatus);
   if (params.needKind) search.set("needKind", params.needKind);
   if (params.needStatus) search.set("needStatus", params.needStatus);
+  if (params.discoveryStatus) search.set("discoveryStatus", params.discoveryStatus);
   if (params.page && params.page > 1) search.set("page", String(params.page));
   if (params.limit) search.set("limit", String(params.limit));
   const query = search.toString();

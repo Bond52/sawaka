@@ -319,7 +319,9 @@
       "reset": "Réinitialiser",
       "prev": "Précédent",
       "next": "Suivant",
-      "page": "Page {page} sur {total}"
+      "page": "Page {page} sur {total}",
+      "toggle": "Filtres",
+      "discoveryStatus": "Statut du projet"
     },
     "comments": {
       "title": "Commentaires",
@@ -352,6 +354,13 @@
         "NETWORK": "Le serveur est injoignable.",
         "INVALID_RESPONSE": "Réponse serveur inattendue."
       }
+    },
+    "discoveryStatus": {
+      "not_started": "Non démarré",
+      "in_progress": "En cours",
+      "blocked": "Bloqué",
+      "completed": "Terminé",
+      "proposed": "Proposé"
     }
   },
   "artisans": {

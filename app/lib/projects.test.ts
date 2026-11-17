@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  deriveDiscoveryStatus,
   missingPublicationFields,
   parseOwnedProject,
   parsePublicProject,
@@ -21,6 +22,7 @@ const draft = {
   country: "Cameroun",
   city: "Douala",
   commentAccess: "members",
+  discoveryStatus: "not_started",
   status: "draft",
   visibility: "private",
 };
@@ -201,4 +203,21 @@ test("parsePublicProject accepts published payloads and rejects ownership fields
     null
   );
   assert.equal(parsePublicProject({ ...draft, status: "published" }), null);
+});
+
+test("deriveDiscoveryStatus follows blocked precedence and empty stages", () => {
+  assert.equal(deriveDiscoveryStatus([]), "not_started");
+  assert.equal(deriveDiscoveryStatus([{ status: "blocked", needs: [] }]), "blocked");
+  assert.equal(
+    deriveDiscoveryStatus([{ status: "in_progress", needs: [{ status: "blocked" }] }]),
+    "blocked"
+  );
+  assert.equal(
+    deriveDiscoveryStatus([
+      { status: "completed", needs: [] },
+      { status: "cancelled", needs: [{ status: "blocked" }] },
+    ]),
+    "completed"
+  );
+  assert.equal(deriveDiscoveryStatus([{ status: "not_started", needs: [] }]), "in_progress");
 });

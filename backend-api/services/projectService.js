@@ -16,6 +16,10 @@ const {
   normalizeProjectCountry,
 } = require("./projectReferenceData");
 const { parsePublicDirectoryQuery } = require("./projectDirectoryQuery");
+const {
+  DISCOVERY_STATUS,
+  deriveDiscoveryStatus,
+} = require("./projectDiscoveryStatus");
 
 const MAX_PROJECT_IMAGES = 8;
 const MAX_STAGE_IMAGES = 6;
@@ -93,6 +97,21 @@ function projectProgress(stages) {
     available: true,
     percent: Math.round((completed / eligible.length) * 100),
   };
+}
+
+/** Keeps the denormalized discoveryStatus aligned with stages/needs. */
+function syncDiscoveryStatus(project) {
+  // Preserve an explicit reserved "proposed" value until a future workflow clears it.
+  if (project.discoveryStatus === DISCOVERY_STATUS.PROPOSED) return project.discoveryStatus;
+  project.discoveryStatus = deriveDiscoveryStatus(project.stages);
+  return project.discoveryStatus;
+}
+
+function resolveDiscoveryStatus(project) {
+  if (project && project.discoveryStatus === DISCOVERY_STATUS.PROPOSED) {
+    return DISCOVERY_STATUS.PROPOSED;
+  }
+  return deriveDiscoveryStatus(project && project.stages);
 }
 
 const PUBLICATION_FIELDS = Object.freeze([
@@ -219,6 +238,7 @@ function ownerProjectView(project) {
     status: project.status,
     visibility: project.visibility,
     commentAccess: resolveCommentAccess(project),
+    discoveryStatus: resolveDiscoveryStatus(project),
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
     coverImage: imageView(project.coverImage),
@@ -242,6 +262,7 @@ function publicProjectView(project) {
     status: project.status,
     publishedAt: project.publishedAt || null,
     commentAccess: resolveCommentAccess(project),
+    discoveryStatus: resolveDiscoveryStatus(project),
     coverImage: imageView(project.coverImage),
     images: [...(project.images || [])].map(imageView).filter(Boolean),
     stages: sortedStages(project).map(stageView),
@@ -351,6 +372,7 @@ async function createDraft(ownerId, body) {
     ownerId,
     ...updates,
     ...(stages.length > 0 ? { stages } : {}),
+    discoveryStatus: deriveDiscoveryStatus(stages),
     status: request.publish ? PROJECT_STATUS.PUBLISHED : PROJECT_STATUS.DRAFT,
     visibility: request.publish ? PROJECT_VISIBILITY.PUBLIC : PROJECT_VISIBILITY.PRIVATE,
     publishedAt: request.publish ? new Date() : null,
@@ -428,6 +450,7 @@ async function publishOwned(ownerId, id, body) {
   project.status = PROJECT_STATUS.PUBLISHED;
   project.visibility = PROJECT_VISIBILITY.PUBLIC;
   project.publishedAt = new Date();
+  syncDiscoveryStatus(project);
   await project.save();
   await recordUserAuditEvent({
     action: USER_AUDIT_ACTIONS.PROJECT_PUBLISHED,
@@ -449,6 +472,19 @@ async function listPublic(query) {
     visibility: PROJECT_VISIBILITY.PUBLIC,
     ...parsed.filter,
   };
+
+  // Lazily persist discoveryStatus for older published projects missing the field.
+  const stale = await Project.find({
+    status: PROJECT_STATUS.PUBLISHED,
+    visibility: PROJECT_VISIBILITY.PUBLIC,
+    $or: [{ discoveryStatus: { $exists: false } }, { discoveryStatus: null }],
+  }).limit(100);
+  for (const item of stale) {
+    if (item.discoveryStatus === DISCOVERY_STATUS.PROPOSED) continue;
+    item.discoveryStatus = deriveDiscoveryStatus(item.stages);
+    await item.save();
+  }
+
   const total = await Project.countDocuments(base);
   const skip = (parsed.page - 1) * parsed.limit;
   const projects = await Project.find(base)
@@ -532,6 +568,7 @@ async function createStage(ownerId, projectId, body) {
     status: updates.status || STAGE_STATUS.NOT_STARTED,
     blockerExplanation: updates.blockerExplanation || "",
   });
+  syncDiscoveryStatus(project);
   await project.save();
   const created = project.stages[project.stages.length - 1];
   await recordStageChange(ownerId, project._id, "created", created._id);
@@ -547,6 +584,7 @@ async function updateStage(ownerId, projectId, stageId, body) {
     throw new ProjectError("STAGE_TITLE_REQUIRED", 400, ["title"]);
   }
   Object.assign(stage, updates);
+  syncDiscoveryStatus(project);
   await project.save();
   await recordStageChange(ownerId, project._id, "updated", stage._id);
   return { project: ownerProjectView(project) };
@@ -566,6 +604,7 @@ async function removeStage(ownerId, projectId, stageId) {
   sortedStages(project).forEach((item, index) => {
     item.position = index;
   });
+  syncDiscoveryStatus(project);
   await project.save();
   await Promise.all(storedImages.map((publicId) => discardStoredImage(publicId)));
   await recordStageChange(ownerId, project._id, "removed", stage._id);
@@ -684,6 +723,7 @@ async function createNeed(ownerId, projectId, stageId, body) {
     updates
   );
   stage.needs.push(next);
+  syncDiscoveryStatus(project);
   await project.save();
   const created = stage.needs[stage.needs.length - 1];
   await recordNeedChange(ownerId, project._id, stage._id, created._id, "created");
@@ -700,6 +740,7 @@ async function updateNeed(ownerId, projectId, stageId, needId, body) {
     throw new ProjectError("NEED_TITLE_REQUIRED", 400, ["title"]);
   }
   Object.assign(need, finalizeNeed(need, updates));
+  syncDiscoveryStatus(project);
   await project.save();
   await recordNeedChange(ownerId, project._id, stage._id, need._id, "updated");
   return { project: ownerProjectView(project) };
@@ -711,6 +752,7 @@ async function removeNeed(ownerId, projectId, stageId, needId) {
   const need = [...(stage.needs || [])].find((item) => String(item._id) === String(needId));
   if (!need) throw new ProjectError("NEED_NOT_FOUND", 404);
   stage.needs.pull(need._id);
+  syncDiscoveryStatus(project);
   await project.save();
   await recordNeedChange(ownerId, project._id, stage._id, need._id, "removed");
   return { project: ownerProjectView(project) };
@@ -861,10 +903,14 @@ module.exports = {
   EDITABLE_FIELDS,
   PUBLICATION_FIELDS,
   COMMENT_ACCESS,
+  DISCOVERY_STATUS,
   editableProjectUpdate,
   missingPublicationFields,
   isPubliclyReadable,
   resolveCommentAccess,
+  resolveDiscoveryStatus,
+  deriveDiscoveryStatus,
+  syncDiscoveryStatus,
   ownerProjectView,
   publicProjectView,
   stageView,

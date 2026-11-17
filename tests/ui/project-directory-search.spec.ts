@@ -12,6 +12,7 @@ const garden = {
   status: "published" as const,
   publishedAt: "2026-11-16T00:00:00.000Z",
   commentAccess: "members" as const,
+  discoveryStatus: "in_progress" as const,
   coverImage: null,
   images: [],
   stages: [],
@@ -29,6 +30,7 @@ const atelier = {
   status: "published" as const,
   publishedAt: "2026-11-15T00:00:00.000Z",
   commentAccess: "members" as const,
+  discoveryStatus: "in_progress" as const,
   coverImage: null,
   images: [],
   stages: [],
@@ -87,6 +89,7 @@ test("directory search and combined filters work on desktop and mobile", async (
   await page.getByTestId("project-filters-reset").click();
   await expect(page.getByTestId(`public-project-card-${atelier.id}`)).toBeVisible();
 
+  await page.getByTestId("project-filters-toggle").click();
   await page.getByTestId("filter-category").selectOption("agriculture-livestock-and-agro-processing");
   await page.getByTestId("filter-country").selectOption("CM");
   await page.getByTestId("filter-city").fill("Douala");

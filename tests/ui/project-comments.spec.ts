@@ -12,6 +12,7 @@ const published = {
   status: "published" as const,
   publishedAt: "2026-11-16T00:00:00.000Z",
   commentAccess: "members" as const,
+  discoveryStatus: "in_progress" as const,
   coverImage: null,
   images: [],
   stages: [
